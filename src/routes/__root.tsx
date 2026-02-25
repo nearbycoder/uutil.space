@@ -73,6 +73,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 		<html lang="en">
 			<head>
 				<HeadContent />
+				<script
+					defer
+					data-domain="uutil.space"
+					src="https://tic.nrby.xyz/js/script.js"
+				/>
 			</head>
 			<body>
 				<TanStackQueryProvider>

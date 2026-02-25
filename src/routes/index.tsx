@@ -748,6 +748,7 @@ const AppThemeContext = createContext<AppThemeState>({
 });
 
 const ToolQueryContext = createContext<ToolQueryRuntime | null>(null);
+const ToolGridContext = createContext<boolean>(false);
 
 function useAppTheme() {
 	return useContext(AppThemeContext);
@@ -1802,7 +1803,11 @@ export function ToolingApp({
 				}`}
 			>
 				<div
-					className={`${effectiveNavExpanded ? "space-y-1" : "mx-auto w-10 space-y-1"}`}
+					className={`${
+						effectiveNavExpanded
+							? "space-y-1"
+							: "mx-auto w-10 space-y-1.5 py-1"
+					}`}
 				>
 					{filteredTools.map((tool) => {
 						const ToolIcon = getToolIcon(tool);
@@ -2245,7 +2250,11 @@ function CommandPalette({
 }
 
 function ToolGrid({ children }: { children: React.ReactNode }) {
-	return <div className="grid gap-3 xl:grid-cols-2">{children}</div>;
+	return (
+		<ToolGridContext.Provider value>
+			<div className="grid items-stretch gap-3 xl:grid-cols-2">{children}</div>
+		</ToolGridContext.Provider>
+	);
 }
 
 function ToolCard({
@@ -2259,7 +2268,7 @@ function ToolCard({
 }) {
 	return (
 		<section
-			className={`rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-3 shadow-[inset_0_1px_0_var(--app-glow-1)] ${className ?? ""}`}
+			className={`flex h-full min-h-0 flex-col rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-3 shadow-[inset_0_1px_0_var(--app-glow-1)] ${className ?? ""}`}
 		>
 			<h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--app-fg-muted)]">
 				{title}
@@ -2323,11 +2332,13 @@ function ToolTextarea({
 
 function OutputBox({
 	value,
-	fill = false,
+	fill,
 }: {
 	value: string;
 	fill?: boolean;
 }) {
+	const isInToolGrid = useContext(ToolGridContext);
+	const shouldFill = fill ?? isInToolGrid;
 	const [copyState, setCopyState] = useState<"idle" | "done" | "error">("idle");
 
 	const copy = async () => {
@@ -2344,7 +2355,7 @@ function OutputBox({
 	};
 
 	return (
-		<div className={`relative ${fill ? "h-full" : ""}`}>
+		<div className={`relative ${shouldFill ? "h-full min-h-0 flex-1" : ""}`}>
 			<button
 				type="button"
 				onClick={copy}
@@ -2358,7 +2369,7 @@ function OutputBox({
 			</button>
 			<pre
 				className={`overflow-auto rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-2.5 py-1.5 pr-16 font-mono text-[13px] text-[color:var(--app-fg)] ${
-					fill ? "h-full min-h-0" : "min-h-28"
+					shouldFill ? "h-full min-h-0" : "min-h-28"
 				}`}
 			>
 				{value || "Output will appear here..."}
@@ -3721,9 +3732,11 @@ function RegexTesterTool() {
 						className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
 					/>
 				</div>
-				<ActionRow>
-					<ActionButton label="Run Regex" onClick={run} />
-				</ActionRow>
+				<div className="mt-3">
+					<ActionRow>
+						<ActionButton label="Run Regex" onClick={run} />
+					</ActionRow>
+				</div>
 				<ErrorText text={error} />
 			</ToolCard>
 
