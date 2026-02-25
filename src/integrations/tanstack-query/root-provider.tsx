@@ -8,11 +8,11 @@ import type { TRPCRouter } from '#/integrations/trpc/router'
 import { TRPCProvider } from '#/integrations/trpc/react'
 
 function getUrl() {
-  const base = (() => {
-    if (typeof window !== 'undefined') return ''
-    return `http://localhost:${process.env.PORT ?? 3000}`
-  })()
-  return `${base}/api/trpc`
+  if (import.meta.env.SSR) {
+    const origin = import.meta.env.VITE_TRPC_ORIGIN ?? "http://127.0.0.1:3000";
+    return `${origin}/api/trpc`;
+  }
+  return "/api/trpc";
 }
 
 export const trpcClient = createTRPCClient<TRPCRouter>({

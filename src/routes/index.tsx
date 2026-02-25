@@ -64,7 +64,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { bundledThemes } from "shiki/themes";
 import { Toaster, toast } from "sonner";
 import type { SqlLanguage } from "sql-formatter";
 import { format as formatSql } from "sql-formatter";
@@ -465,8 +464,9 @@ const DARK_THEME_ID = "github-dark";
 const LIGHT_THEME_ID = "github-light";
 const DEFAULT_THEME_ID = DARK_THEME_ID;
 const AVAILABLE_THEME_IDS = new Set([DARK_THEME_ID, LIGHT_THEME_ID]);
-const THEME_STORAGE_KEY = "uutil.shiki.theme";
-const THEME_VARS_STORAGE_KEY = "uutil.shiki.theme-vars";
+const THEME_STORAGE_KEY = "uutil.theme.mode";
+const LEGACY_THEME_STORAGE_KEY = "uutil.shiki.theme";
+const LEGACY_THEME_VARS_STORAGE_KEY = "uutil.shiki.theme-vars";
 const NAV_EXPANDED_STORAGE_KEY = "uutil.nav.expanded";
 const UNIX_IO_LAYOUT_COOKIE_KEY = "uutil.layout.unix-io";
 const UNIX_IO_PANEL_IDS = ["unix-input", "unix-output"] as const;
@@ -1301,36 +1301,26 @@ export function ToolingApp({
 			return cookieTheme;
 		}
 
+		const legacyCookieTheme = readCookieValue(LEGACY_THEME_STORAGE_KEY);
+		if (legacyCookieTheme && AVAILABLE_THEME_IDS.has(legacyCookieTheme)) {
+			return legacyCookieTheme;
+		}
+
 		if (typeof window !== "undefined") {
 			const legacyTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
 			if (legacyTheme && AVAILABLE_THEME_IDS.has(legacyTheme)) {
 				return legacyTheme;
 			}
+
+			const oldTheme = window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
+			if (oldTheme && AVAILABLE_THEME_IDS.has(oldTheme)) {
+				return oldTheme;
+			}
 		}
 
 		return DEFAULT_THEME_ID;
 	});
-	const [themeVars, setThemeVars] = useState<AppCssVariables>(() => {
-		const cookieVars = readJsonCookie<AppCssVariables>(THEME_VARS_STORAGE_KEY);
-		if (cookieVars && typeof cookieVars === "object") {
-			return cookieVars;
-		}
-
-		if (typeof window !== "undefined") {
-			const legacyThemeVars = window.localStorage.getItem(
-				THEME_VARS_STORAGE_KEY,
-			);
-			if (legacyThemeVars) {
-				try {
-					return JSON.parse(legacyThemeVars) as AppCssVariables;
-				} catch {
-					// Ignore malformed cache values.
-				}
-			}
-		}
-
-		return getThemeFallbackVars(themeId);
-	});
+	const themeVars = useMemo(() => getThemeFallbackVars(themeId), [themeId]);
 	const [toolTooltip, setToolTooltip] = useState<ToolTooltipState | null>(null);
 	const paletteInputRef = useRef<HTMLInputElement>(null);
 	const toolTooltipTimerRef = useRef<number | null>(null);
@@ -1515,17 +1505,11 @@ export function ToolingApp({
 
 		writeCookieValue(THEME_STORAGE_KEY, themeId);
 		window.localStorage.setItem(THEME_STORAGE_KEY, themeId);
+		window.localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
+		window.localStorage.removeItem(LEGACY_THEME_VARS_STORAGE_KEY);
+		document.cookie = `${LEGACY_THEME_STORAGE_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
+		document.cookie = `${LEGACY_THEME_VARS_STORAGE_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
 	}, [themeId]);
-
-	useEffect(() => {
-		if (typeof window === "undefined") {
-			return;
-		}
-
-		const serializedThemeVars = JSON.stringify(themeVars);
-		writeCookieValue(THEME_VARS_STORAGE_KEY, serializedThemeVars);
-		window.localStorage.setItem(THEME_VARS_STORAGE_KEY, serializedThemeVars);
-	}, [themeVars]);
 
 	useEffect(() => {
 		if (typeof window === "undefined") {
@@ -1546,41 +1530,6 @@ export function ToolingApp({
 			}
 		};
 	}, []);
-
-	useEffect(() => {
-		let cancelled = false;
-
-		const applyTheme = async () => {
-			try {
-				let theme = themeCache.get(themeId);
-				if (!theme) {
-					const loader = bundledThemes[themeId as keyof typeof bundledThemes];
-					if (!loader) {
-						throw new Error(`Shiki theme '${themeId}' is not available.`);
-					}
-
-					const loaded = await loader();
-					const moduleTheme = loaded as { default?: ShikiThemeModel };
-					theme = moduleTheme.default ?? (loaded as ShikiThemeModel);
-					themeCache.set(themeId, theme);
-				}
-
-				if (!cancelled) {
-					setThemeVars(resolveThemeVariables(theme));
-				}
-			} catch {
-				if (!cancelled) {
-					setThemeVars(getThemeFallbackVars(themeId));
-				}
-			}
-		};
-
-		void applyTheme();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [themeId]);
 
 	useEffect(() => {
 		applyThemeVarsToDocument(themeVars);
