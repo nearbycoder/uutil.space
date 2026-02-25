@@ -1,4 +1,3 @@
-import { X509Certificate } from "@peculiar/x509";
 import { parseDiffFromFile } from "@pierre/diffs";
 import { FileDiff as PierreFileDiff } from "@pierre/diffs/react";
 import {
@@ -1956,17 +1955,17 @@ export function ToolingApp({
 
 				<div className="relative">
 					<header className="sticky top-0 z-20 border-b [border-color:var(--app-border)] bg-[color:var(--app-bg)]/92 backdrop-blur">
-						<div className="mx-auto relative flex h-14 max-w-[1680px] items-center gap-2 px-2 sm:px-3.5 lg:px-5">
+						<div className="mx-auto relative flex h-14 max-w-[1680px] items-center gap-1.5 px-2 sm:gap-2 sm:px-3.5 lg:px-5">
 							<button
 								type="button"
 								onClick={() => setMobileNavOpen(true)}
-								className="flex size-8 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] lg:hidden"
+								className="flex size-8 shrink-0 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] lg:hidden"
 								aria-label="Open tools menu"
 							>
 								<Menu className="size-3.5" />
 							</button>
 
-							<div className="flex min-w-0 items-center gap-2 rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] px-2 py-1">
+							<div className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] px-2 py-1 md:flex-none md:justify-start">
 								<div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)]">
 									<Sparkles className="size-3.5" />
 								</div>
@@ -1982,7 +1981,7 @@ export function ToolingApp({
 
 							<div className="hidden h-6 w-px bg-[color:var(--app-border)] md:block" />
 
-							<div className="min-w-0 flex-1">
+							<div className="hidden min-w-0 flex-1 md:block">
 								<p className="hidden truncate text-[9px] uppercase tracking-[0.14em] text-[color:var(--app-fg-muted)] sm:block">
 									{selectedTool.category}
 								</p>
@@ -1991,11 +1990,11 @@ export function ToolingApp({
 								</h2>
 							</div>
 
-							<div className="flex items-center gap-1.5">
+							<div className="flex shrink-0 items-center gap-1.5">
 								<button
 									type="button"
 									onClick={() => setPaletteOpen(true)}
-									className="flex items-center gap-1 rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-2 py-1.5 text-[11px] uppercase tracking-[0.1em] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)]"
+									className="flex size-8 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[11px] uppercase tracking-[0.1em] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:py-1.5"
 								>
 									<Search className="size-3" />
 									<span className="hidden sm:inline">Quick Search</span>
@@ -2143,10 +2142,10 @@ function ThemeModeToggle({
 			type="button"
 			onClick={onToggle}
 			aria-label={`Switch to ${nextModeLabel} mode`}
-			className="flex min-w-[106px] items-center justify-center gap-1.5 rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-2 py-1.5 text-[11px] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)]"
+			className="flex size-8 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[11px] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] sm:h-auto sm:w-auto sm:min-w-[106px] sm:gap-1.5 sm:px-2 sm:py-1.5"
 		>
 			{isLightTheme ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
-			<span>{modeLabel}</span>
+			<span className="hidden sm:inline">{modeLabel}</span>
 		</button>
 	);
 }
@@ -5444,7 +5443,7 @@ function CertificateDecoderTool() {
 	const [output, setOutput] = useState("");
 	const [error, setError] = useState("");
 
-	const decodeCertificate = () => {
+	const decodeCertificate = async () => {
 		try {
 			setError("");
 			const match = input.match(
@@ -5454,6 +5453,7 @@ function CertificateDecoderTool() {
 				throw new Error("Paste a valid PEM certificate block.");
 			}
 
+			const { X509Certificate } = await import("@peculiar/x509");
 			const cert = new X509Certificate(match[0]);
 			setOutput(
 				JSON.stringify(
@@ -5488,7 +5488,7 @@ function CertificateDecoderTool() {
 				<ActionRow>
 					<ActionButton
 						label="Decode Certificate"
-						onClick={decodeCertificate}
+						onClick={() => void decodeCertificate()}
 					/>
 				</ActionRow>
 				<ErrorText text={error} />
