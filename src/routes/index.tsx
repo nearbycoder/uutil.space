@@ -48,7 +48,6 @@ import {
 } from "lucide-react";
 import { marked } from "marked";
 import Papa from "papaparse";
-import PhpParser from "php-parser";
 import { isSerialized, serialize, unserialize } from "php-serialize";
 import * as prettierBabelPlugin from "prettier/plugins/babel";
 import * as prettierEstreePlugin from "prettier/plugins/estree";
@@ -118,17 +117,6 @@ type ToolTooltipState = {
 
 type AppCssVariables = React.CSSProperties &
 	Record<`--${string}`, string | number | undefined>;
-
-const phpEngine = new PhpParser.Engine({
-	parser: {
-		extractDoc: false,
-		php7: true,
-		suppressErrors: true,
-	},
-	ast: {
-		withPositions: false,
-	},
-});
 
 const TOOL_REGISTRY: ToolDefinition[] = [
 	{
@@ -1955,7 +1943,7 @@ export function ToolingApp({
 
 				<div className="relative">
 					<header className="sticky top-0 z-20 border-b [border-color:var(--app-border)] bg-[color:var(--app-bg)]/92 backdrop-blur">
-						<div className="mx-auto relative flex h-14 max-w-[1680px] items-center gap-1.5 px-2 sm:gap-2 sm:px-3.5 lg:px-5">
+						<div className="relative flex h-14 w-full items-center gap-1.5 px-2 sm:gap-2 sm:px-3.5 lg:px-5">
 							<button
 								type="button"
 								onClick={() => setMobileNavOpen(true)}
@@ -2009,7 +1997,7 @@ export function ToolingApp({
 						</div>
 					</header>
 
-					<div className="mx-auto max-w-[1680px]">
+					<div className="w-full">
 						{isMobileViewport ? (
 							<>
 								{mobileNavOpen ? (
@@ -2053,7 +2041,7 @@ export function ToolingApp({
 							<div className="h-[calc(100vh-56px)]">
 								<div className="flex h-full">
 									<aside
-										className="shrink-0 border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] transition-[width] duration-200"
+										className="shrink-0 self-stretch border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] transition-[width] duration-200"
 										style={
 											{
 												width: `${desktopSidebarWidth}px`,
@@ -2768,96 +2756,271 @@ function parseJsonSafely(value: string) {
 	return JSON.parse(value);
 }
 
-type PhpNode = {
-	kind?: string;
-	value?: unknown;
-	items?: PhpNode[];
-	key?: PhpNode | null;
-	expr?: PhpNode | null;
-	expression?: PhpNode | null;
+type PhpArrayEntry = {
+	key: unknown;
+	value: unknown;
 };
 
-function phpNodeToJs(node: PhpNode | null | undefined): unknown {
-	if (!node) {
-		return null;
+class PhpLiteralParser {
+	private readonly source: string;
+	private cursor = 0;
+
+	constructor(source: string) {
+		this.source = source;
 	}
 
-	if (node.kind === "string") {
-		return node.value;
-	}
-
-	if (node.kind === "number") {
-		return Number(node.value);
-	}
-
-	if (node.kind === "boolean") {
-		return Boolean(node.value);
-	}
-
-	if (node.kind === "nullkeyword") {
-		return null;
-	}
-
-	if (node.kind === "array") {
-		const asArray: unknown[] = [];
-		let associative = false;
-		const asObject: Record<string, unknown> = {};
-		const items = Array.isArray(node.items) ? node.items : [];
-
-		items.forEach((item, index) => {
-			if (!item || item.kind !== "entry") {
-				return;
-			}
-
-			const value = phpNodeToJs(
-				(item.value as PhpNode | null | undefined) ?? null,
-			);
-			if (item.key === null && !associative) {
-				asArray.push(value);
-				return;
-			}
-
-			associative = true;
-			const key =
-				item.key === null ? String(index) : String(phpNodeToJs(item.key));
-			asObject[key] = value;
-		});
-
-		if (!associative) {
-			return asArray;
+	parse(): unknown {
+		this.skipWhitespace();
+		if (this.matchKeyword("<?php")) {
+			this.skipWhitespace();
+		}
+		if (this.matchWord("return")) {
+			this.skipWhitespace();
 		}
 
-		asArray.forEach((value, index) => {
-			asObject[String(index)] = value;
-		});
-
-		return asObject;
+		const value = this.parseValue();
+		this.skipWhitespace();
+		this.matchChar(";");
+		this.skipWhitespace();
+		if (!this.isDone()) {
+			throw new Error("Unexpected trailing PHP content.");
+		}
+		return value;
 	}
 
-	throw new Error(`Unsupported PHP node kind: ${node.kind}`);
+	private parseValue(): unknown {
+		this.skipWhitespace();
+		if (this.isDone()) {
+			throw new Error("Expected a PHP value.");
+		}
+
+		const char = this.peek();
+		if (char === "[" || this.peekWord("array")) {
+			return this.parseArray();
+		}
+		if (char === "'" || char === '"') {
+			return this.parseString();
+		}
+		if (char === "-" || this.isDigit(char)) {
+			return this.parseNumber();
+		}
+		if (this.matchWord("true")) {
+			return true;
+		}
+		if (this.matchWord("false")) {
+			return false;
+		}
+		if (this.matchWord("null")) {
+			return null;
+		}
+
+		throw new Error(`Unsupported PHP token near '${this.preview()}'.`);
+	}
+
+	private parseArray(): unknown {
+		this.skipWhitespace();
+		let endChar = "]";
+		if (this.peek() === "[") {
+			this.cursor += 1;
+		} else if (this.matchWord("array")) {
+			this.skipWhitespace();
+			this.expectChar("(");
+			endChar = ")";
+		} else {
+			throw new Error("Invalid PHP array syntax.");
+		}
+
+		const entries: PhpArrayEntry[] = [];
+		while (true) {
+			this.skipWhitespace();
+			if (this.matchChar(endChar)) {
+				break;
+			}
+
+			const first = this.parseValue();
+			this.skipWhitespace();
+
+			if (this.matchOperator("=>")) {
+				const value = this.parseValue();
+				entries.push({ key: first, value });
+			} else {
+				entries.push({ key: null, value: first });
+			}
+
+			this.skipWhitespace();
+			if (this.matchChar(",")) {
+				continue;
+			}
+			if (this.matchChar(endChar)) {
+				break;
+			}
+
+			throw new Error(`Expected ',' or '${endChar}' in PHP array.`);
+		}
+
+		return this.normalizeArray(entries);
+	}
+
+	private normalizeArray(entries: PhpArrayEntry[]): unknown {
+		if (entries.every((entry) => entry.key === null)) {
+			return entries.map((entry) => entry.value);
+		}
+
+		const output: Record<string, unknown> = {};
+		let autoIndex = 0;
+		for (const entry of entries) {
+			let key: string;
+			if (entry.key === null) {
+				key = String(autoIndex++);
+			} else if (typeof entry.key === "number" && Number.isInteger(entry.key)) {
+				key = String(entry.key);
+				autoIndex = Math.max(autoIndex, entry.key + 1);
+			} else {
+				key = String(entry.key);
+			}
+			output[key] = entry.value;
+		}
+		return output;
+	}
+
+	private parseString(): string {
+		const quote = this.peek();
+		if (quote !== "'" && quote !== '"') {
+			throw new Error("Invalid PHP string.");
+		}
+
+		this.cursor += 1;
+		let result = "";
+		while (!this.isDone()) {
+			const char = this.consume();
+			if (char === quote) {
+				return result;
+			}
+			if (char !== "\\") {
+				result += char;
+				continue;
+			}
+
+			const next = this.consume();
+			switch (next) {
+				case "n":
+					result += "\n";
+					break;
+				case "r":
+					result += "\r";
+					break;
+				case "t":
+					result += "\t";
+					break;
+				case "\\":
+				case "'":
+				case '"':
+					result += next;
+					break;
+				default:
+					result += next;
+					break;
+			}
+		}
+
+		throw new Error("Unterminated PHP string literal.");
+	}
+
+	private parseNumber(): number {
+		const remaining = this.source.slice(this.cursor);
+		const match = remaining.match(/^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/);
+		if (!match) {
+			throw new Error("Invalid PHP numeric literal.");
+		}
+		this.cursor += match[0].length;
+		return Number(match[0]);
+	}
+
+	private skipWhitespace() {
+		while (!this.isDone() && /\s/.test(this.peek())) {
+			this.cursor += 1;
+		}
+	}
+
+	private matchWord(word: string): boolean {
+		const segment = this.source.slice(this.cursor, this.cursor + word.length);
+		if (segment.toLowerCase() !== word.toLowerCase()) {
+			return false;
+		}
+
+		const next = this.source[this.cursor + word.length];
+		if (next && /[a-z0-9_]/i.test(next)) {
+			return false;
+		}
+
+		this.cursor += word.length;
+		return true;
+	}
+
+	private matchKeyword(keyword: string): boolean {
+		const segment = this.source.slice(this.cursor, this.cursor + keyword.length);
+		if (segment.toLowerCase() !== keyword.toLowerCase()) {
+			return false;
+		}
+		this.cursor += keyword.length;
+		return true;
+	}
+
+	private peekWord(word: string): boolean {
+		const segment = this.source.slice(this.cursor, this.cursor + word.length);
+		return segment.toLowerCase() === word.toLowerCase();
+	}
+
+	private matchOperator(operator: string): boolean {
+		if (this.source.slice(this.cursor, this.cursor + operator.length) !== operator) {
+			return false;
+		}
+		this.cursor += operator.length;
+		return true;
+	}
+
+	private expectChar(expected: string) {
+		if (!this.matchChar(expected)) {
+			throw new Error(`Expected '${expected}' in PHP source.`);
+		}
+	}
+
+	private matchChar(char: string): boolean {
+		if (this.peek() !== char) {
+			return false;
+		}
+		this.cursor += 1;
+		return true;
+	}
+
+	private peek(): string {
+		return this.source[this.cursor] ?? "";
+	}
+
+	private consume(): string {
+		const value = this.peek();
+		if (!value) {
+			throw new Error("Unexpected end of PHP input.");
+		}
+		this.cursor += 1;
+		return value;
+	}
+
+	private isDigit(value: string): boolean {
+		return value >= "0" && value <= "9";
+	}
+
+	private isDone(): boolean {
+		return this.cursor >= this.source.length;
+	}
+
+	private preview(): string {
+		return this.source.slice(this.cursor, this.cursor + 12);
+	}
 }
 
-function parsePhpToObject(code: string) {
-	const ast = phpEngine.parseCode(code, "inline.php") as {
-		children?: PhpNode[];
-	};
-	const first = ast.children?.[0];
-
-	if (!first) {
-		throw new Error("No PHP expression found.");
-	}
-
-	if (first.kind === "expressionstatement") {
-		return phpNodeToJs(first.expression);
-	}
-
-	if (first.kind === "return") {
-		return phpNodeToJs(first.expr);
-	}
-
-	throw new Error(
-		"Unsupported PHP structure. Provide a PHP array/literal expression.",
-	);
+function parsePhpToObject(code: string): unknown {
+	return new PhpLiteralParser(code).parse();
 }
 
 function jsToPhp(value: unknown, depth = 0): string {
@@ -5453,6 +5616,7 @@ function CertificateDecoderTool() {
 				throw new Error("Paste a valid PEM certificate block.");
 			}
 
+			await import("reflect-metadata");
 			const { X509Certificate } = await import("@peculiar/x509");
 			const cert = new X509Certificate(match[0]);
 			setOutput(
