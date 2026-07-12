@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700&display=swap');
 
 @import 'tailwindcss';
 
@@ -14,8 +14,8 @@ body {
 
 body {
   @apply m-0;
-  font-family: 'Outfit', 'Avenir Next', 'Segoe UI', sans-serif;
-  letter-spacing: 0.01em;
+  font-family: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+  letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--app-bg);
@@ -24,7 +24,7 @@ body {
 }
 
 code {
-  font-family: 'IBM Plex Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
 }
 
 :root {
@@ -61,29 +61,31 @@ code {
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.871 0.006 286.286);
-  --app-bg: #080b10;
-  --app-sidebar-bg: rgba(11, 15, 21, 0.92);
-  --app-sidebar-fg: #e4e8ee;
-  --app-sidebar-fg-muted: #b1bccd;
-  --app-sidebar-fg-soft: #8895a8;
-  --app-panel-bg: rgba(17, 23, 31, 0.84);
-  --app-surface-bg: rgba(21, 28, 38, 0.9);
-  --app-surface-alt: rgba(10, 15, 24, 0.95);
-  --app-border: rgba(96, 112, 132, 0.38);
-  --app-border-strong: rgba(122, 142, 166, 0.5);
-  --app-fg: #e4e8ee;
-  --app-fg-muted: #b1bccd;
-  --app-fg-soft: #8895a8;
-  --app-accent: #5aa8ff;
-  --app-accent-soft: rgba(90, 168, 255, 0.2);
-  --app-accent-strong: #8ec3ff;
-  --app-danger: #ff8b9f;
-  --app-success: #71e4b6;
-  --app-overlay: rgba(2, 8, 18, 0.62);
-  --app-shadow: rgba(2, 8, 18, 0.74);
-  --app-glow-1: rgba(90, 168, 255, 0.23);
-  --app-glow-2: rgba(111, 220, 179, 0.15);
-  --app-ring: rgba(90, 168, 255, 0.6);
+  --app-bg: #0b0d0c;
+  --app-sidebar-bg: rgba(13, 17, 14, 0.96);
+  --app-sidebar-fg: #f3f4ea;
+  --app-sidebar-fg-muted: #bcc4b6;
+  --app-sidebar-fg-soft: #85917f;
+  --app-panel-bg: rgba(19, 25, 20, 0.92);
+  --app-surface-bg: rgba(24, 31, 25, 0.96);
+  --app-surface-alt: rgba(12, 16, 13, 0.98);
+  --app-border: rgba(156, 178, 151, 0.28);
+  --app-border-strong: rgba(177, 202, 169, 0.52);
+  --app-fg: #f3f4ea;
+  --app-fg-muted: #bcc4b6;
+  --app-fg-soft: #85917f;
+  --app-accent: #b7ef5b;
+  --app-accent-soft: rgba(183, 239, 91, 0.15);
+  --app-accent-strong: #d8ff95;
+  --app-accent-contrast: #15200a;
+  --app-warm: #ffb86b;
+  --app-danger: #ff8c7f;
+  --app-success: #73dfa6;
+  --app-overlay: rgba(5, 8, 6, 0.72);
+  --app-shadow: rgba(0, 0, 0, 0.65);
+  --app-glow-1: rgba(183, 239, 91, 0.11);
+  --app-glow-2: rgba(255, 184, 107, 0.08);
+  --app-ring: rgba(183, 239, 91, 0.58);
 }
 
 .dark {
@@ -168,9 +170,54 @@ code {
   body {
     @apply bg-background text-foreground;
   }
+
+  ::selection {
+    color: var(--app-accent-contrast);
+    background: var(--app-accent);
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  textarea,
+  pre,
+  code {
+    font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  }
 }
 
 @layer utilities {
+  .font-display {
+    font-family: 'Syne', 'Manrope', sans-serif;
+  }
+
+  .app-shell {
+    background-image:
+      linear-gradient(var(--app-glow-1) 1px, transparent 1px),
+      linear-gradient(90deg, var(--app-glow-1) 1px, transparent 1px);
+    background-size: 44px 44px;
+    background-position: -1px -1px;
+  }
+
+  .tool-card {
+    position: relative;
+    isolation: isolate;
+    backdrop-filter: blur(16px);
+  }
+
+  .tool-card::after {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--app-glow-1), transparent 34%);
+    content: '';
+    pointer-events: none;
+  }
+
   .uutil-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: rgba(136, 149, 168, 0.55) transparent;
@@ -206,5 +253,16 @@ code {
 
   .uutil-scrollbar-edge {
     scrollbar-gutter: stable;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

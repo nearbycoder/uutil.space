@@ -5,6 +5,7 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
+import { Buffer } from "buffer";
 import Color from "color";
 import { CronExpressionParser } from "cron-parser";
 import CryptoJS from "crypto-js";
@@ -60,6 +61,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useId,
 	useMemo,
 	useRef,
 	useState,
@@ -83,6 +85,28 @@ import {
 	ResizablePanel,
 	ResizablePanelGroup,
 } from "#/components/ui/resizable";
+import {
+	type CurlTarget,
+	decodeHexToAscii,
+	encodeAsciiToHex,
+	formatBigIntToBase,
+	parseBaseToBigInt,
+	parseCurlCommand,
+	parseTimestampInput,
+	renderCurlAsCode,
+	runRegex,
+	toCamelCase,
+	toKebabCase,
+	toPascalCase,
+	toSnakeCase,
+	toTitleCase,
+	unescapeBackslashes,
+} from "#/lib/converters";
+
+const runtimeGlobal = globalThis as typeof globalThis & {
+	Buffer?: typeof Buffer;
+};
+runtimeGlobal.Buffer ??= Buffer;
 
 export const Route = createFileRoute("/")({ component: HomeRouteComponent });
 
@@ -429,16 +453,16 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 	},
 	{
 		id: "hex-to-ascii",
-		name: "Hex to ASCII",
+		name: "Hex to UTF-8",
 		category: "Encoding",
-		summary: "Convert hex bytes into readable text.",
+		summary: "Decode hexadecimal bytes into validated UTF-8 text.",
 		component: HexToAsciiTool,
 	},
 	{
 		id: "ascii-to-hex",
-		name: "ASCII to Hex",
+		name: "UTF-8 to Hex",
 		category: "Encoding",
-		summary: "Convert text into hex bytes.",
+		summary: "Encode text into its UTF-8 hexadecimal bytes.",
 		component: AsciiToHexTool,
 	},
 	{
@@ -471,7 +495,6 @@ const NAV_EXPANDED_STORAGE_KEY = "uutil.nav.expanded";
 const UNIX_IO_LAYOUT_COOKIE_KEY = "uutil.layout.unix-io";
 const UNIX_IO_PANEL_IDS = ["unix-input", "unix-output"] as const;
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
-const themeCache = new Map<string, ShikiThemeModel>();
 type PanelLayout = Record<string, number>;
 
 const CATEGORY_ICONS: Record<ToolCategory, LucideIcon> = {
@@ -594,6 +617,7 @@ function writeCookieValue(name: string, value: string) {
 		return;
 	}
 
+	// biome-ignore lint/suspicious/noDocumentCookie: Cookie Store is not yet available in every supported browser.
 	document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
 }
 
@@ -639,10 +663,13 @@ function usePersistedPanelLayout(
 	cookieKey: string,
 	panelIds: readonly string[],
 ) {
-	const defaultLayout = useMemo(
-		() => normalizePanelLayout(readJsonCookie<unknown>(cookieKey), panelIds),
-		[cookieKey, panelIds],
-	);
+	const [defaultLayout, setDefaultLayout] = useState<PanelLayout>();
+
+	useEffect(() => {
+		setDefaultLayout(
+			normalizePanelLayout(readJsonCookie<unknown>(cookieKey), panelIds),
+		);
+	}, [cookieKey, panelIds]);
 
 	const onLayoutChanged = useCallback(
 		(layout: PanelLayout) => {
@@ -660,60 +687,64 @@ function usePersistedPanelLayout(
 
 const DEFAULT_THEME_VARS = {
 	colorScheme: "dark",
-	backgroundColor: "#060a12",
-	color: "#e7edf6",
-	"--app-bg": "#060a12",
-	"--app-sidebar-bg": "rgba(11, 16, 25, 0.94)",
-	"--app-sidebar-fg": "#e7edf6",
-	"--app-sidebar-fg-muted": "#c5d2e4",
-	"--app-sidebar-fg-soft": "#9eb0c7",
-	"--app-panel-bg": "rgba(16, 23, 34, 0.9)",
-	"--app-surface-bg": "rgba(20, 30, 44, 0.94)",
-	"--app-surface-alt": "rgba(11, 18, 30, 0.97)",
-	"--app-border": "rgba(123, 143, 170, 0.56)",
-	"--app-border-strong": "rgba(140, 161, 188, 0.74)",
-	"--app-fg": "#e7edf6",
-	"--app-fg-muted": "#c5d2e4",
-	"--app-fg-soft": "#9eb0c7",
-	"--app-accent": "#62afff",
-	"--app-accent-soft": "rgba(98, 175, 255, 0.22)",
-	"--app-accent-strong": "#9acbff",
-	"--app-danger": "#ff8b9f",
-	"--app-success": "#71e4b6",
-	"--app-overlay": "rgba(2, 8, 18, 0.62)",
-	"--app-shadow": "rgba(2, 8, 18, 0.78)",
-	"--app-glow-1": "rgba(98, 175, 255, 0.25)",
-	"--app-glow-2": "rgba(111, 220, 179, 0.15)",
-	"--app-ring": "rgba(98, 175, 255, 0.65)",
+	backgroundColor: "#0b0d0c",
+	color: "#f3f4ea",
+	"--app-bg": "#0b0d0c",
+	"--app-sidebar-bg": "rgba(13, 17, 14, 0.96)",
+	"--app-sidebar-fg": "#f3f4ea",
+	"--app-sidebar-fg-muted": "#bcc4b6",
+	"--app-sidebar-fg-soft": "#85917f",
+	"--app-panel-bg": "rgba(19, 25, 20, 0.92)",
+	"--app-surface-bg": "rgba(24, 31, 25, 0.96)",
+	"--app-surface-alt": "rgba(12, 16, 13, 0.98)",
+	"--app-border": "rgba(156, 178, 151, 0.28)",
+	"--app-border-strong": "rgba(177, 202, 169, 0.52)",
+	"--app-fg": "#f3f4ea",
+	"--app-fg-muted": "#bcc4b6",
+	"--app-fg-soft": "#85917f",
+	"--app-accent": "#b7ef5b",
+	"--app-accent-soft": "rgba(183, 239, 91, 0.15)",
+	"--app-accent-strong": "#d8ff95",
+	"--app-accent-contrast": "#15200a",
+	"--app-warm": "#ffb86b",
+	"--app-danger": "#ff8c7f",
+	"--app-success": "#73dfa6",
+	"--app-overlay": "rgba(5, 8, 6, 0.72)",
+	"--app-shadow": "rgba(0, 0, 0, 0.65)",
+	"--app-glow-1": "rgba(183, 239, 91, 0.11)",
+	"--app-glow-2": "rgba(255, 184, 107, 0.08)",
+	"--app-ring": "rgba(183, 239, 91, 0.58)",
 } satisfies AppCssVariables;
 
 const LIGHT_THEME_VARS = {
 	colorScheme: "light",
-	backgroundColor: "#eff4fb",
-	color: "#0f172a",
-	"--app-bg": "#eff4fb",
-	"--app-sidebar-bg": "rgba(229, 238, 248, 0.95)",
-	"--app-sidebar-fg": "#0f172a",
-	"--app-sidebar-fg-muted": "#334155",
-	"--app-sidebar-fg-soft": "#475569",
-	"--app-panel-bg": "rgba(255, 255, 255, 0.97)",
-	"--app-surface-bg": "rgba(255, 255, 255, 0.99)",
-	"--app-surface-alt": "rgba(247, 251, 255, 1)",
-	"--app-border": "rgba(71, 85, 105, 0.52)",
-	"--app-border-strong": "rgba(71, 85, 105, 0.68)",
-	"--app-fg": "#0f172a",
-	"--app-fg-muted": "#334155",
-	"--app-fg-soft": "#475569",
-	"--app-accent": "#2563eb",
-	"--app-accent-soft": "rgba(37, 99, 235, 0.18)",
-	"--app-accent-strong": "#1d4ed8",
-	"--app-danger": "#dc2626",
-	"--app-success": "#047857",
-	"--app-overlay": "rgba(226, 232, 240, 0.6)",
-	"--app-shadow": "rgba(15, 23, 42, 0.24)",
-	"--app-glow-1": "rgba(37, 99, 235, 0.14)",
-	"--app-glow-2": "rgba(4, 120, 87, 0.14)",
-	"--app-ring": "rgba(37, 99, 235, 0.68)",
+	backgroundColor: "#f2f0e7",
+	color: "#1a211a",
+	"--app-bg": "#f2f0e7",
+	"--app-sidebar-bg": "rgba(231, 231, 220, 0.97)",
+	"--app-sidebar-fg": "#1a211a",
+	"--app-sidebar-fg-muted": "#475144",
+	"--app-sidebar-fg-soft": "#667061",
+	"--app-panel-bg": "rgba(250, 249, 242, 0.96)",
+	"--app-surface-bg": "rgba(255, 253, 245, 0.98)",
+	"--app-surface-alt": "rgba(241, 241, 232, 0.98)",
+	"--app-border": "rgba(55, 70, 50, 0.28)",
+	"--app-border-strong": "rgba(55, 70, 50, 0.5)",
+	"--app-fg": "#1a211a",
+	"--app-fg-muted": "#475144",
+	"--app-fg-soft": "#667061",
+	"--app-accent": "#477d16",
+	"--app-accent-soft": "rgba(71, 125, 22, 0.13)",
+	"--app-accent-strong": "#2f5d0d",
+	"--app-accent-contrast": "#f7ffe9",
+	"--app-warm": "#b55b12",
+	"--app-danger": "#b42318",
+	"--app-success": "#18794e",
+	"--app-overlay": "rgba(37, 43, 34, 0.42)",
+	"--app-shadow": "rgba(36, 43, 32, 0.22)",
+	"--app-glow-1": "rgba(98, 155, 44, 0.12)",
+	"--app-glow-2": "rgba(181, 91, 18, 0.08)",
+	"--app-ring": "rgba(71, 125, 22, 0.58)",
 } satisfies AppCssVariables;
 
 function getThemeFallbackVars(themeId: string): AppCssVariables {
@@ -738,8 +769,6 @@ type ToolQueryRuntime = {
 	action: string | null;
 	autoRun: boolean;
 	registerInput: () => number;
-	registerAction: () => number;
-	consumeAutoRun: () => boolean;
 };
 
 const AppThemeContext = createContext<AppThemeState>({
@@ -1136,7 +1165,7 @@ function resolveThemeVariables(theme: ShikiThemeModel): AppCssVariables {
 	const sidebarMutedFallback =
 		mode === "light"
 			? lightMutedFallback
-				: flattenColorOn(
+			: flattenColorOn(
 					withAlpha(sidebarForeground, 0.82, "rgba(197,210,228,0.82)"),
 					sidebarBackground,
 					"#c5d2e4",
@@ -1146,7 +1175,11 @@ function resolveThemeVariables(theme: ShikiThemeModel): AppCssVariables {
 			mode === "light"
 				? pickThemeColor(colors, ["descriptionForeground"], lightMutedFallback)
 				: withAlpha(
-						pickThemeColor(colors, ["descriptionForeground"], sidebarForeground),
+						pickThemeColor(
+							colors,
+							["descriptionForeground"],
+							sidebarForeground,
+						),
 						0.82,
 						"rgba(197,210,228,0.82)",
 					),
@@ -1160,7 +1193,7 @@ function resolveThemeVariables(theme: ShikiThemeModel): AppCssVariables {
 	const sidebarSoftFallback =
 		mode === "light"
 			? lightSoftFallback
-				: flattenColorOn(
+			: flattenColorOn(
 					withAlpha(sidebarForeground, 0.68, "rgba(158,176,199,0.68)"),
 					sidebarBackground,
 					"#9eb0c7",
@@ -1190,13 +1223,21 @@ function resolveThemeVariables(theme: ShikiThemeModel): AppCssVariables {
 		sidebarSoftFallback,
 	);
 	const mutedReadable = enforceContrast(
-		flattenColorOn(muted, background, mode === "light" ? lightMutedFallback : darkMutedFallback),
+		flattenColorOn(
+			muted,
+			background,
+			mode === "light" ? lightMutedFallback : darkMutedFallback,
+		),
 		background,
 		mode === "light" ? 6.6 : 4.2,
 		mode === "light" ? lightMutedFallback : darkMutedFallback,
 	);
 	const softReadable = enforceContrast(
-		flattenColorOn(soft, background, mode === "light" ? lightSoftFallback : darkSoftFallback),
+		flattenColorOn(
+			soft,
+			background,
+			mode === "light" ? lightSoftFallback : darkSoftFallback,
+		),
 		background,
 		mode === "light" ? 5.8 : 3.8,
 		mode === "light" ? lightSoftFallback : darkSoftFallback,
@@ -1274,11 +1315,9 @@ function resolveThemeVariables(theme: ShikiThemeModel): AppCssVariables {
 	} satisfies AppCssVariables;
 }
 
-export function ToolingApp({
-	routedToolId,
-}: {
-	routedToolId?: string;
-}) {
+void resolveThemeVariables;
+
+export function ToolingApp({ routedToolId }: { routedToolId?: string }) {
 	const TOOL_TOOLTIP_DELAY_MS = 2000;
 	const TOOL_TOOLTIP_INSTANT_WINDOW_MS = 2500;
 	const location = useLocation();
@@ -1296,38 +1335,15 @@ export function ToolingApp({
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [paletteQuery, setPaletteQuery] = useState("");
 	const [paletteIndex, setPaletteIndex] = useState(0);
-	const [themeId, setThemeId] = useState(() => {
-		const cookieTheme = readCookieValue(THEME_STORAGE_KEY);
-		if (cookieTheme && AVAILABLE_THEME_IDS.has(cookieTheme)) {
-			return cookieTheme;
-		}
-
-		const legacyCookieTheme = readCookieValue(LEGACY_THEME_STORAGE_KEY);
-		if (legacyCookieTheme && AVAILABLE_THEME_IDS.has(legacyCookieTheme)) {
-			return legacyCookieTheme;
-		}
-
-		if (typeof window !== "undefined") {
-			const legacyTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-			if (legacyTheme && AVAILABLE_THEME_IDS.has(legacyTheme)) {
-				return legacyTheme;
-			}
-
-			const oldTheme = window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
-			if (oldTheme && AVAILABLE_THEME_IDS.has(oldTheme)) {
-				return oldTheme;
-			}
-		}
-
-		return DEFAULT_THEME_ID;
-	});
+	const [themeId, setThemeId] = useState(DEFAULT_THEME_ID);
+	const [themePreferencesLoaded, setThemePreferencesLoaded] = useState(false);
 	const themeVars = useMemo(() => getThemeFallbackVars(themeId), [themeId]);
 	const [toolTooltip, setToolTooltip] = useState<ToolTooltipState | null>(null);
 	const paletteInputRef = useRef<HTMLInputElement>(null);
 	const toolTooltipTimerRef = useRef<number | null>(null);
 	const toolTooltipLastVisibleAtRef = useRef<number>(0);
 	const toolPaneRef = useRef<HTMLElement | null>(null);
-	const lastDomPrefillKeyRef = useRef<string>("");
+	const lastDomAutoRunKeyRef = useRef<string>("");
 
 	const categories = useMemo(
 		() =>
@@ -1358,29 +1374,21 @@ export function ToolingApp({
 		TOOL_REGISTRY.find((tool) => tool.id === selectedToolId) ??
 		TOOL_REGISTRY[0];
 	const SelectedToolComponent = selectedTool.component;
+	const SelectedToolIcon = getToolIcon(selectedTool);
+	const selectedToolPosition =
+		TOOL_REGISTRY.findIndex((tool) => tool.id === selectedTool.id) + 1;
 	const toolQuery = useMemo(
 		() => parseToolQueryState(location.searchStr),
 		[location.searchStr],
 	);
 	const toolQueryRuntime = useMemo<ToolQueryRuntime>(() => {
 		let inputCursor = 0;
-		let actionCursor = 0;
-		let autoRunConsumed = false;
-
 		return {
 			queryKey: `${selectedTool.id}|${toolQuery.key}`,
 			inputs: toolQuery.inputs,
 			action: toolQuery.action,
 			autoRun: toolQuery.autoRun,
 			registerInput: () => inputCursor++,
-			registerAction: () => actionCursor++,
-			consumeAutoRun: () => {
-				if (autoRunConsumed) {
-					return false;
-				}
-				autoRunConsumed = true;
-				return true;
-			},
 		};
 	}, [
 		selectedTool.id,
@@ -1391,11 +1399,13 @@ export function ToolingApp({
 	]);
 
 	useEffect(() => {
-		if (toolQueryRuntime.inputs.length === 0) {
+		if (!toolQueryRuntime.autoRun) {
 			return;
 		}
-
-		if (lastDomPrefillKeyRef.current === toolQueryRuntime.queryKey) {
+		if (toolQueryRuntime.inputs.length === 0 && !toolQueryRuntime.action) {
+			return;
+		}
+		if (lastDomAutoRunKeyRef.current === toolQueryRuntime.queryKey) {
 			return;
 		}
 
@@ -1404,28 +1414,24 @@ export function ToolingApp({
 			return;
 		}
 
-		const textFields = [
-			...pane.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-				"textarea, input[type='text'], input[type='search'], input[type='url'], input[type='number'], input:not([type])",
-			),
-		];
-		if (textFields.length === 0) {
-			return;
-		}
+		lastDomAutoRunKeyRef.current = toolQueryRuntime.queryKey;
+		const timeout = window.setTimeout(() => {
+			const actionButtons = [
+				...pane.querySelectorAll<HTMLButtonElement>("[data-tool-action]"),
+			];
+			const targetAction = toolQueryRuntime.action
+				? normalizeActionLabel(toolQueryRuntime.action)
+				: null;
+			const targetButton = targetAction
+				? actionButtons.find(
+						(button) => button.dataset.toolAction === targetAction,
+					)
+				: actionButtons[0];
+			targetButton?.click();
+		}, 100);
 
-		toolQueryRuntime.inputs.forEach((inputValue, index) => {
-			const field = textFields[index];
-			if (!field) {
-				return;
-			}
-
-			field.value = inputValue;
-			field.dispatchEvent(new Event("input", { bubbles: true }));
-			field.dispatchEvent(new Event("change", { bubbles: true }));
-		});
-
-		lastDomPrefillKeyRef.current = toolQueryRuntime.queryKey;
-	}, [toolQueryRuntime.inputs, toolQueryRuntime.queryKey]);
+		return () => window.clearTimeout(timeout);
+	}, [toolQueryRuntime]);
 
 	const paletteResults = useMemo(() => {
 		const query = paletteQuery.trim().toLowerCase();
@@ -1468,13 +1474,26 @@ export function ToolingApp({
 	);
 
 	useEffect(() => {
-		if (typeof window === "undefined") {
-			return;
-		}
+		const savedTheme = [
+			readCookieValue(THEME_STORAGE_KEY),
+			readCookieValue(LEGACY_THEME_STORAGE_KEY),
+			window.localStorage.getItem(THEME_STORAGE_KEY),
+			window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY),
+		].find(
+			(value): value is string =>
+				typeof value === "string" && AVAILABLE_THEME_IDS.has(value),
+		);
 
+		if (savedTheme) {
+			setThemeId(savedTheme);
+		}
+		setThemePreferencesLoaded(true);
+	}, []);
+
+	useEffect(() => {
 		const savedNavState = window.localStorage.getItem(NAV_EXPANDED_STORAGE_KEY);
 		if (!savedNavState) {
-			setNavExpanded(window.innerWidth < 1024);
+			setNavExpanded(window.innerWidth >= 1024);
 			return;
 		}
 
@@ -1500,7 +1519,7 @@ export function ToolingApp({
 	}, []);
 
 	useEffect(() => {
-		if (typeof window === "undefined") {
+		if (!themePreferencesLoaded) {
 			return;
 		}
 
@@ -1508,9 +1527,11 @@ export function ToolingApp({
 		window.localStorage.setItem(THEME_STORAGE_KEY, themeId);
 		window.localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
 		window.localStorage.removeItem(LEGACY_THEME_VARS_STORAGE_KEY);
+		// biome-ignore lint/suspicious/noDocumentCookie: Remove legacy cookies for backwards compatibility.
 		document.cookie = `${LEGACY_THEME_STORAGE_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
+		// biome-ignore lint/suspicious/noDocumentCookie: Remove legacy cookies for backwards compatibility.
 		document.cookie = `${LEGACY_THEME_VARS_STORAGE_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
-	}, [themeId]);
+	}, [themeId, themePreferencesLoaded]);
 
 	useEffect(() => {
 		if (typeof window === "undefined") {
@@ -1719,7 +1740,7 @@ export function ToolingApp({
 	};
 
 	const effectiveNavExpanded = isMobileViewport ? true : navExpanded;
-	const desktopSidebarWidth = effectiveNavExpanded ? 324 : 72;
+	const desktopSidebarWidth = effectiveNavExpanded ? 316 : 72;
 
 	const selectTool = (toolId: string) => {
 		void navigate({
@@ -1733,13 +1754,11 @@ export function ToolingApp({
 
 	const sidebarContent = (
 		<div
-			className={`flex h-full flex-col ${effectiveNavExpanded ? "p-1" : "p-0.5"}`}
+			className={`flex h-full flex-col ${effectiveNavExpanded ? "p-3" : "p-1.5"}`}
 		>
 			<div
 				className={`flex items-center ${
-					effectiveNavExpanded
-						? "mb-1 gap-1 rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] px-1 py-1"
-						: "mb-0.5 justify-center"
+					effectiveNavExpanded ? "mb-3 gap-2" : "mb-0.5 justify-center"
 				}`}
 			>
 				<button
@@ -1747,16 +1766,23 @@ export function ToolingApp({
 					onClick={() => setNavExpanded((current) => !current)}
 					className={`hidden items-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] lg:flex ${
 						effectiveNavExpanded
-							? "w-full justify-between px-1.5 py-1 text-[10px] uppercase tracking-[0.12em]"
+							? "w-full justify-between px-2.5 py-2 text-[10px] font-bold uppercase tracking-[0.14em]"
 							: "size-8 justify-center"
 					}`}
+					aria-label={
+						effectiveNavExpanded
+							? "Collapse tools sidebar"
+							: "Expand tools sidebar"
+					}
 					title={
 						effectiveNavExpanded
 							? "Collapse to icon view"
 							: "Expand to list view"
 					}
 				>
-					{effectiveNavExpanded ? <span>List View</span> : null}
+					{effectiveNavExpanded ? (
+						<span>{TOOL_REGISTRY.length} utilities</span>
+					) : null}
 					{effectiveNavExpanded ? (
 						<ChevronLeft className="size-3.5" />
 					) : (
@@ -1775,19 +1801,21 @@ export function ToolingApp({
 			</div>
 
 			{effectiveNavExpanded ? (
-				<div className="mb-1.5 space-y-1.5">
+				<div className="mb-3 space-y-2">
 					<div className="relative">
 						<Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-[color:var(--app-fg-soft)]" />
 						<input
 							type="text"
+							aria-label="Search tools"
 							value={search}
 							onChange={(event) => setSearch(event.target.value)}
 							placeholder="Find tool..."
-							className="w-full rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-7 py-1.5 text-xs text-[color:var(--app-fg)] placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-ring)] focus:outline-none"
+							className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] py-2 pl-8 pr-3 text-xs text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
 						/>
 					</div>
 					<CustomSelect
 						value={activeCategory}
+						ariaLabel="Tool category"
 						onChange={(nextValue) =>
 							setActiveCategory(nextValue as "All" | ToolCategory)
 						}
@@ -1804,9 +1832,7 @@ export function ToolingApp({
 			>
 				<div
 					className={`${
-						effectiveNavExpanded
-							? "space-y-1"
-							: "mx-auto w-10 space-y-1.5 py-1"
+						effectiveNavExpanded ? "space-y-1" : "mx-auto w-10 space-y-1.5 py-1"
 					}`}
 				>
 					{filteredTools.map((tool) => {
@@ -1816,6 +1842,9 @@ export function ToolingApp({
 							<button
 								type="button"
 								key={tool.id}
+								aria-label={`${tool.name}: ${tool.summary}`}
+								aria-current={isSelected ? "page" : undefined}
+								title={effectiveNavExpanded ? undefined : tool.name}
 								onClick={() => selectTool(tool.id)}
 								onMouseEnter={(event) => {
 									scheduleToolTooltip(event, tool);
@@ -1827,7 +1856,7 @@ export function ToolingApp({
 								onBlur={clearToolTooltip}
 								className={`border transition ${
 									effectiveNavExpanded
-										? "w-full rounded-lg px-1.5 py-1.5 text-left"
+										? "w-full rounded-lg px-2.5 py-2 text-left"
 										: "mx-auto grid size-10 place-items-center rounded-[10px] p-0"
 								} ${
 									isSelected
@@ -1844,8 +1873,8 @@ export function ToolingApp({
 										<div
 											className={`flex shrink-0 items-center justify-center ${
 												isSelected
-													? "size-8 rounded-md border border-[color:var(--app-accent)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-accent)]"
-													: "size-8 rounded-md border [border-color:var(--app-border)] text-[color:var(--app-fg-muted)]"
+													? "size-9 rounded-lg border border-[color:var(--app-accent)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-accent)]"
+													: "size-9 rounded-lg border [border-color:var(--app-border)] text-[color:var(--app-fg-muted)]"
 											}`}
 										>
 											<ToolIcon className="size-3.5" />
@@ -1884,9 +1913,47 @@ export function ToolingApp({
 		</div>
 	);
 
+	const toolWorkspace = (
+		<div className="mx-auto w-full max-w-[1480px]">
+			<section className="mb-4 overflow-hidden rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] shadow-[0_18px_60px_-45px_var(--app-shadow)]">
+				<div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+					<div className="flex min-w-0 items-start gap-3.5">
+						<div className="grid size-11 shrink-0 place-items-center rounded-xl border border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)] shadow-[inset_0_1px_0_var(--app-glow-1)]">
+							<SelectedToolIcon className="size-5" aria-hidden="true" />
+						</div>
+						<div className="min-w-0">
+							<div className="mb-1 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-soft)]">
+								<span className="text-[color:var(--app-warm)]">
+									{selectedTool.category}
+								</span>
+								<span aria-hidden="true">/</span>
+								<span>
+									Tool {String(selectedToolPosition).padStart(2, "0")} of{" "}
+									{TOOL_REGISTRY.length}
+								</span>
+							</div>
+							<h2 className="font-display text-xl font-bold tracking-[-0.025em] text-[color:var(--app-fg)] sm:text-2xl">
+								{selectedTool.name}
+							</h2>
+							<p className="mt-1 max-w-2xl text-sm leading-6 text-[color:var(--app-fg-muted)]">
+								{selectedTool.summary}
+							</p>
+						</div>
+					</div>
+					<div className="flex shrink-0 items-center gap-2 self-start rounded-full border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.13em] text-[color:var(--app-fg-muted)] sm:self-auto">
+						<span className="size-1.5 rounded-full bg-[color:var(--app-success)] shadow-[0_0_10px_var(--app-success)]" />
+						Runs locally
+					</div>
+				</div>
+				<div className="h-px bg-gradient-to-r from-[color:var(--app-accent)] via-[color:var(--app-warm)] to-transparent opacity-60" />
+			</section>
+			<SelectedToolComponent />
+		</div>
+	);
+
 	return (
 		<AppThemeContext.Provider value={appTheme}>
-			<div className="h-screen overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--app-fg)]">
+			<div className="app-shell h-screen overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--app-fg)]">
 				<div
 					className="pointer-events-none fixed inset-0"
 					style={{
@@ -1896,7 +1963,7 @@ export function ToolingApp({
 				/>
 
 				<div className="relative">
-					<header className="sticky top-0 z-20 border-b [border-color:var(--app-border)] bg-[color:var(--app-bg)]/92 backdrop-blur">
+					<header className="sticky top-0 z-20 border-b [border-color:var(--app-border)] bg-[color:var(--app-bg)]/92 backdrop-blur-xl">
 						<div className="relative flex h-14 w-full items-center gap-1.5 px-2 sm:gap-2 sm:px-3.5 lg:px-5">
 							<button
 								type="button"
@@ -1907,7 +1974,7 @@ export function ToolingApp({
 								<Menu className="size-3.5" />
 							</button>
 
-							<div className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] px-2 py-1 md:flex-none md:justify-start">
+							<div className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] px-2.5 py-1 md:flex-none md:justify-start">
 								<div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)]">
 									<Sparkles className="size-3.5" />
 								</div>
@@ -1915,7 +1982,7 @@ export function ToolingApp({
 									<p className="hidden truncate text-[9px] uppercase tracking-[0.14em] text-[color:var(--app-fg-muted)] sm:block">
 										Developer Tools
 									</p>
-									<h1 className="truncate text-sm font-semibold text-[color:var(--app-fg)]">
+									<h1 className="font-display truncate text-sm font-bold tracking-[-0.02em] text-[color:var(--app-fg)]">
 										uutil.space
 									</h1>
 								</div>
@@ -1927,15 +1994,17 @@ export function ToolingApp({
 								<p className="hidden truncate text-[9px] uppercase tracking-[0.14em] text-[color:var(--app-fg-muted)] sm:block">
 									{selectedTool.category}
 								</p>
-								<h2 className="truncate text-sm font-semibold tracking-tight text-[color:var(--app-fg)] sm:text-base">
+								<p className="truncate text-sm font-semibold tracking-tight text-[color:var(--app-fg)] sm:text-base">
 									{selectedTool.name}
-								</h2>
+								</p>
 							</div>
 
 							<div className="flex shrink-0 items-center gap-1.5">
 								<button
 									type="button"
 									onClick={() => setPaletteOpen(true)}
+									aria-label="Open quick tool search"
+									aria-keyshortcuts="Control+K Meta+K"
 									className="flex size-8 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[11px] uppercase tracking-[0.1em] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:py-1.5"
 								>
 									<Search className="size-3" />
@@ -1987,7 +2056,7 @@ export function ToolingApp({
 										ref={toolPaneRef}
 										className="uutil-scrollbar h-[calc(100vh-56px)] min-w-0 overflow-y-auto overscroll-contain px-2 py-2.5 sm:px-3.5 sm:py-3.5"
 									>
-										<SelectedToolComponent />
+										{toolWorkspace}
 									</main>
 								</ToolQueryContext.Provider>
 							</>
@@ -2013,7 +2082,7 @@ export function ToolingApp({
 												ref={toolPaneRef}
 												className="uutil-scrollbar h-full min-w-0 overflow-y-auto overscroll-contain px-4 py-3 lg:px-5 lg:py-4"
 											>
-												<SelectedToolComponent />
+												{toolWorkspace}
 											</main>
 										</ToolQueryContext.Provider>
 									</div>
@@ -2086,7 +2155,11 @@ function ThemeModeToggle({
 			aria-label={`Switch to ${nextModeLabel} mode`}
 			className="flex size-8 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[11px] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] sm:h-auto sm:w-auto sm:min-w-[106px] sm:gap-1.5 sm:px-2 sm:py-1.5"
 		>
-			{isLightTheme ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+			{isLightTheme ? (
+				<Sun className="size-3.5" />
+			) : (
+				<Moon className="size-3.5" />
+			)}
 			<span className="hidden sm:inline">{modeLabel}</span>
 		</button>
 	);
@@ -2120,10 +2193,6 @@ function CommandPalette({
 	onToolHoverEnd: () => void;
 	inputRef: { current: HTMLInputElement | null };
 }) {
-	if (!open) {
-		return null;
-	}
-
 	const groupedResults = useMemo(() => {
 		const byCategory = new Map<
 			ToolCategory,
@@ -2154,8 +2223,17 @@ function CommandPalette({
 		return grouped;
 	}, [results]);
 
+	if (!open) {
+		return null;
+	}
+
 	return (
-		<div className="fixed inset-0 z-50 flex items-start justify-center px-3 pt-12 sm:px-4 sm:pt-20">
+		<div
+			className="fixed inset-0 z-50 flex items-start justify-center px-3 pt-12 sm:px-4 sm:pt-20"
+			role="dialog"
+			aria-modal="true"
+			aria-label="Tool search"
+		>
 			<button
 				type="button"
 				aria-label="Close command palette"
@@ -2252,7 +2330,7 @@ function CommandPalette({
 function ToolGrid({ children }: { children: React.ReactNode }) {
 	return (
 		<ToolGridContext.Provider value>
-			<div className="grid items-stretch gap-3 xl:grid-cols-2">{children}</div>
+			<div className="grid items-stretch gap-4 xl:grid-cols-2">{children}</div>
 		</ToolGridContext.Provider>
 	);
 }
@@ -2268,32 +2346,22 @@ function ToolCard({
 }) {
 	return (
 		<section
-			className={`flex h-full min-h-0 flex-col rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-3 shadow-[inset_0_1px_0_var(--app-glow-1)] ${className ?? ""}`}
+			className={`tool-card flex h-full min-h-0 flex-col rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 shadow-[inset_0_1px_0_var(--app-glow-1),0_18px_55px_-42px_var(--app-shadow)] ${className ?? ""}`}
 		>
-			<h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--app-fg-muted)]">
-				{title}
+			<h3 className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-muted)]">
+				<span className="size-1.5 rounded-full bg-[color:var(--app-accent)] shadow-[0_0_12px_var(--app-accent)]" />
+				<span>{title}</span>
 			</h3>
 			{children}
 		</section>
 	);
 }
 
-function ToolTextarea({
-	value,
-	onChange,
-	placeholder,
-	rows = 12,
-	className,
-}: {
-	value: string;
-	onChange: (value: string) => void;
-	placeholder: string;
-	rows?: number;
-	className?: string;
-}) {
+function useToolQueryPrefill(value: string, onChange: (value: string) => void) {
 	const queryRuntime = useContext(ToolQueryContext);
 	const queryInputIndexRef = useRef<number | null>(null);
-	const lastAppliedQueryKeyRef = useRef<string>("");
+	const lastAppliedQueryKeyRef = useRef("");
+
 	if (queryRuntime && queryInputIndexRef.current === null) {
 		queryInputIndexRef.current = queryRuntime.registerInput();
 	}
@@ -2302,7 +2370,6 @@ function ToolTextarea({
 		if (!queryRuntime) {
 			return;
 		}
-
 		if (lastAppliedQueryKeyRef.current === queryRuntime.queryKey) {
 			return;
 		}
@@ -2318,6 +2385,22 @@ function ToolTextarea({
 			onChange(nextValue);
 		}
 	}, [onChange, queryRuntime, value]);
+}
+
+function ToolTextarea({
+	value,
+	onChange,
+	placeholder,
+	rows = 12,
+	className,
+}: {
+	value: string;
+	onChange: (value: string) => void;
+	placeholder: string;
+	rows?: number;
+	className?: string;
+}) {
+	useToolQueryPrefill(value, onChange);
 
 	return (
 		<textarea
@@ -2325,23 +2408,49 @@ function ToolTextarea({
 			onChange={(event) => onChange(event.target.value)}
 			placeholder={placeholder}
 			rows={rows}
-			className={`w-full rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-2.5 py-1.5 font-mono text-[13px] text-[color:var(--app-fg)] placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-ring)] focus:outline-none ${className ?? ""}`}
+			spellCheck={false}
+			className={`w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2.5 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] shadow-[inset_0_1px_5px_rgba(0,0,0,0.08)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
 		/>
 	);
 }
 
-function OutputBox({
+function ToolTextInput({
 	value,
-	fill,
-}: {
-	value: string;
-	fill?: boolean;
+	onChange,
+	className,
+	type = "text",
+	...props
+}: Omit<
+	React.InputHTMLAttributes<HTMLInputElement>,
+	"onChange" | "type" | "value"
+> & {
+	value: string | number;
+	onChange: (value: string) => void;
+	type?: "number" | "search" | "text" | "url";
 }) {
+	useToolQueryPrefill(String(value), onChange);
+
+	return (
+		<input
+			{...props}
+			type={type}
+			value={value}
+			onChange={(event) => onChange(event.target.value)}
+			className={`rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] text-[color:var(--app-fg)] transition focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
+		/>
+	);
+}
+
+function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 	const isInToolGrid = useContext(ToolGridContext);
 	const shouldFill = fill ?? isInToolGrid;
 	const [copyState, setCopyState] = useState<"idle" | "done" | "error">("idle");
 
 	const copy = async () => {
+		if (!value) {
+			return;
+		}
+
 		try {
 			await navigator.clipboard.writeText(value);
 			toast.success("Copied to clipboard");
@@ -2359,7 +2468,9 @@ function OutputBox({
 			<button
 				type="button"
 				onClick={copy}
-				className="absolute right-1.5 top-1.5 rounded border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-1.5 py-0.5 text-[11px] text-[color:var(--app-fg-muted)] hover:[border-color:var(--app-border-strong)]"
+				disabled={!value}
+				aria-label={value ? "Copy output" : "No output to copy"}
+				className="absolute right-2 top-2 rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-2 py-1 text-[11px] font-semibold text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] disabled:cursor-not-allowed disabled:opacity-40"
 			>
 				{copyState === "idle"
 					? "Copy"
@@ -2368,9 +2479,9 @@ function OutputBox({
 						: "Failed"}
 			</button>
 			<pre
-				className={`overflow-auto rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-2.5 py-1.5 pr-16 font-mono text-[13px] text-[color:var(--app-fg)] ${
+				className={`uutil-scrollbar overflow-auto whitespace-pre-wrap break-words rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2.5 pr-20 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] ${
 					shouldFill ? "h-full min-h-0" : "min-h-28"
-				}`}
+				} ${value ? "" : "italic text-[color:var(--app-fg-soft)]"}`}
 			>
 				{value || "Output will appear here..."}
 			</pre>
@@ -2379,7 +2490,7 @@ function OutputBox({
 }
 
 function ActionRow({ children }: { children: React.ReactNode }) {
-	return <div className="mb-2 flex flex-wrap gap-1.5">{children}</div>;
+	return <div className="mb-3 flex flex-wrap gap-2">{children}</div>;
 }
 
 function ActionButton({
@@ -2391,67 +2502,28 @@ function ActionButton({
 	onClick: () => void | Promise<void>;
 	variant?: "default" | "ghost";
 }) {
-	const queryRuntime = useContext(ToolQueryContext);
-	const actionIndexRef = useRef<number | null>(null);
-	const lastAutoRunKeyRef = useRef<string>("");
-	if (queryRuntime && actionIndexRef.current === null) {
-		actionIndexRef.current = queryRuntime.registerAction();
-	}
+	const onClickRef = useRef(onClick);
+	onClickRef.current = onClick;
 
 	const handleClick = useCallback(async () => {
 		toast(label);
 		try {
-			await onClick();
+			await onClickRef.current();
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "Action failed";
 			toast.error(message);
 		}
-	}, [label, onClick]);
-
-	useEffect(() => {
-		if (!queryRuntime || !queryRuntime.autoRun) {
-			return;
-		}
-
-		const hasInputs = queryRuntime.inputs.length > 0;
-		if (!hasInputs && !queryRuntime.action) {
-			return;
-		}
-
-		if (lastAutoRunKeyRef.current === queryRuntime.queryKey) {
-			return;
-		}
-
-		const currentActionIndex = actionIndexRef.current ?? 0;
-		const isTargetAction = queryRuntime.action
-			? normalizeActionLabel(queryRuntime.action) === normalizeActionLabel(label)
-			: currentActionIndex === 0;
-		if (!isTargetAction) {
-			return;
-		}
-
-		if (!queryRuntime.consumeAutoRun()) {
-			return;
-		}
-
-		lastAutoRunKeyRef.current = queryRuntime.queryKey;
-		const timeout = window.setTimeout(() => {
-			void handleClick();
-		}, 0);
-
-		return () => {
-			window.clearTimeout(timeout);
-		};
-	}, [handleClick, label, queryRuntime]);
+	}, [label]);
 
 	return (
 		<button
 			type="button"
 			onClick={() => void handleClick()}
-			className={`rounded border px-2.5 py-1 text-xs transition ${
+			data-tool-action={normalizeActionLabel(label)}
+			className={`min-h-9 rounded-lg border px-3 py-2 text-xs font-bold tracking-[0.01em] transition duration-150 active:translate-y-px ${
 				variant === "default"
-					? "border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent-strong)] hover:brightness-110"
-					: "[border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)]"
+					? "border-[color:var(--app-accent)] bg-[color:var(--app-accent)] text-[color:var(--app-accent-contrast)] shadow-[0_8px_24px_-12px_var(--app-accent)] hover:-translate-y-0.5 hover:brightness-105"
+					: "[border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] hover:-translate-y-0.5 hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)]"
 			}`}
 		>
 			{label}
@@ -2465,7 +2537,12 @@ function ErrorText({ text }: { text: string }) {
 	}
 
 	return (
-		<p className="mt-1.5 text-xs text-[color:var(--app-danger)]">{text}</p>
+		<p
+			role="alert"
+			className="mt-2 rounded-lg border border-[color:color-mix(in_srgb,var(--app-danger)_45%,transparent)] bg-[color:color-mix(in_srgb,var(--app-danger)_10%,transparent)] px-3 py-2 text-xs font-medium text-[color:var(--app-danger)]"
+		>
+			{text}
+		</p>
 	);
 }
 
@@ -2505,10 +2582,6 @@ function decodeBytesToText(bytes: Uint8Array) {
 	return new TextDecoder().decode(bytes);
 }
 
-function isLikelyUnixTimestamp(value: string) {
-	return /^-?\d+$/.test(value.trim());
-}
-
 function collapseWhitespaceForStyles(value: string) {
 	return value
 		.replace(/\/\*[\s\S]*?\*\//g, "")
@@ -2524,114 +2597,6 @@ function minifyHtmlMarkup(value: string) {
 		.replace(/>\s+</g, "><")
 		.replace(/\s{2,}/g, " ")
 		.trim();
-}
-
-type ParsedCurl = {
-	url: string;
-	method: string;
-	headers: Record<string, string>;
-	data: string | null;
-};
-
-type CurlTarget = "node-fetch" | "javascript" | "python" | "go" | "php";
-
-function tokenizeShellLike(input: string) {
-	const tokens = input.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g);
-	return tokens ?? [];
-}
-
-function stripQuotes(value: string) {
-	if (
-		(value.startsWith('"') && value.endsWith('"')) ||
-		(value.startsWith("'") && value.endsWith("'"))
-	) {
-		return value.slice(1, -1);
-	}
-
-	return value;
-}
-
-function parseCurlCommand(input: string): ParsedCurl {
-	const tokens = tokenizeShellLike(input.trim());
-	if (!tokens.length || tokens[0] !== "curl") {
-		throw new Error("Input must start with 'curl'.");
-	}
-
-	let method = "GET";
-	let url = "";
-	let data: string | null = null;
-	const headers: Record<string, string> = {};
-
-	for (let index = 1; index < tokens.length; index += 1) {
-		const token = tokens[index];
-		const next = tokens[index + 1];
-
-		if ((token === "-X" || token === "--request") && next) {
-			method = stripQuotes(next).toUpperCase();
-			index += 1;
-			continue;
-		}
-
-		if ((token === "-H" || token === "--header") && next) {
-			const header = stripQuotes(next);
-			const splitIndex = header.indexOf(":");
-			if (splitIndex > -1) {
-				const key = header.slice(0, splitIndex).trim();
-				const value = header.slice(splitIndex + 1).trim();
-				headers[key] = value;
-			}
-			index += 1;
-			continue;
-		}
-
-		if (
-			(token === "-d" || token === "--data" || token === "--data-raw") &&
-			next
-		) {
-			data = stripQuotes(next);
-			index += 1;
-			continue;
-		}
-
-		if (!token.startsWith("-") && /^https?:\/\//i.test(token)) {
-			url = stripQuotes(token);
-		}
-	}
-
-	if (!url) {
-		throw new Error("Could not detect a target URL in the cURL command.");
-	}
-
-	if (data && method === "GET") {
-		method = "POST";
-	}
-
-	return { url, method, headers, data };
-}
-
-function renderCurlAsCode(parsed: ParsedCurl, target: CurlTarget) {
-	const headersLiteral = Object.entries(parsed.headers).length
-		? JSON.stringify(parsed.headers, null, 2)
-		: "{}";
-	const bodyLiteral = parsed.data ? JSON.stringify(parsed.data) : "undefined";
-
-	if (target === "node-fetch") {
-		return `import fetch from "node-fetch";\n\nconst response = await fetch("${parsed.url}", {\n  method: "${parsed.method}",\n  headers: ${headersLiteral},\n  body: ${bodyLiteral}\n});\n\nconst data = await response.text();\nconsole.log(data);`;
-	}
-
-	if (target === "javascript") {
-		return `const response = await fetch("${parsed.url}", {\n  method: "${parsed.method}",\n  headers: ${headersLiteral},\n  body: ${bodyLiteral}\n});\n\nconst data = await response.text();\nconsole.log(data);`;
-	}
-
-	if (target === "python") {
-		return `import requests\n\nheaders = ${headersLiteral.replace(/\n/g, "\n")}\nresponse = requests.request("${parsed.method}", "${parsed.url}", headers=headers, data=${bodyLiteral})\nprint(response.text)`;
-	}
-
-	if (target === "go") {
-		return `package main\n\nimport (\n  "bytes"\n  "fmt"\n  "io"\n  "net/http"\n)\n\nfunc main() {\n  body := bytes.NewBufferString(${bodyLiteral})\n  req, _ := http.NewRequest("${parsed.method}", "${parsed.url}", body)\n\n  req.Header.Set("Content-Type", "application/json")\n\n  client := &http.Client{}\n  res, _ := client.Do(req)\n  defer res.Body.Close()\n  data, _ := io.ReadAll(res.Body)\n  fmt.Println(string(data))\n}`;
-	}
-
-	return `<?php\n\n$ch = curl_init();\ncurl_setopt_array($ch, [\n  CURLOPT_URL => "${parsed.url}",\n  CURLOPT_RETURNTRANSFER => true,\n  CURLOPT_CUSTOMREQUEST => "${parsed.method}",\n  CURLOPT_HTTPHEADER => ${JSON.stringify(Object.entries(parsed.headers).map(([key, value]) => `${key}: ${value}`))},\n  CURLOPT_POSTFIELDS => ${bodyLiteral},\n]);\n\n$response = curl_exec($ch);\ncurl_close($ch);\n\necho $response;`;
 }
 
 function minifyErb(value: string) {
@@ -2669,47 +2634,6 @@ function beautifyErb(value: string) {
 	}
 
 	return result.join("\n");
-}
-
-function parseBaseToBigInt(input: string, base: number) {
-	const digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	const normalized = input.trim().toUpperCase();
-	if (!normalized) {
-		throw new Error("Value is required.");
-	}
-
-	const sign = normalized.startsWith("-") ? -1n : 1n;
-	const body = normalized.replace(/^[+-]/, "");
-	let value = 0n;
-
-	for (const char of body) {
-		const index = digits.indexOf(char);
-		if (index < 0 || index >= base) {
-			throw new Error(`Invalid digit '${char}' for base ${base}.`);
-		}
-		value = value * BigInt(base) + BigInt(index);
-	}
-
-	return sign * value;
-}
-
-function formatBigIntToBase(value: bigint, base: number) {
-	const digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	if (value === 0n) {
-		return "0";
-	}
-
-	const negative = value < 0n;
-	let remainder = negative ? -value : value;
-	let output = "";
-
-	while (remainder > 0n) {
-		const digit = Number(remainder % BigInt(base));
-		output = `${digits[digit]}${output}`;
-		remainder /= BigInt(base);
-	}
-
-	return negative ? `-${output}` : output;
 }
 
 function parseJsonSafely(value: string) {
@@ -2918,7 +2842,10 @@ class PhpLiteralParser {
 	}
 
 	private matchKeyword(keyword: string): boolean {
-		const segment = this.source.slice(this.cursor, this.cursor + keyword.length);
+		const segment = this.source.slice(
+			this.cursor,
+			this.cursor + keyword.length,
+		);
 		if (segment.toLowerCase() !== keyword.toLowerCase()) {
 			return false;
 		}
@@ -2932,7 +2859,9 @@ class PhpLiteralParser {
 	}
 
 	private matchOperator(operator: string): boolean {
-		if (this.source.slice(this.cursor, this.cursor + operator.length) !== operator) {
+		if (
+			this.source.slice(this.cursor, this.cursor + operator.length) !== operator
+		) {
 			return false;
 		}
 		this.cursor += operator.length;
@@ -3113,77 +3042,9 @@ function createLorem(paragraphCount: number) {
 	return nextParagraphs.join("\n\n");
 }
 
-function decodeHexToAscii(value: string) {
-	const clean = value.replace(/0x/g, "").replace(/\s+/g, "");
-	if (!clean || clean.length % 2 !== 0) {
-		throw new Error("Hex string must have an even number of characters.");
-	}
-
-	const bytes = clean.match(/.{2}/g);
-	if (!bytes) {
-		return "";
-	}
-
-	return String.fromCharCode(...bytes.map((pair) => Number.parseInt(pair, 16)));
-}
-
-function encodeAsciiToHex(value: string) {
-	return Array.from(value)
-		.map((char) => char.charCodeAt(0).toString(16).padStart(2, "0"))
-		.join(" ");
-}
-
-function toCamelCase(input: string) {
-	const normalized = input
-		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-		.replace(/[_-]+/g, " ")
-		.toLowerCase()
-		.trim()
-		.split(/\s+/)
-		.filter(Boolean);
-
-	if (!normalized.length) {
-		return "";
-	}
-
-	return normalized
-		.map((word, index) =>
-			index === 0 ? word : `${word[0].toUpperCase()}${word.slice(1)}`,
-		)
-		.join("");
-}
-
-function toPascalCase(input: string) {
-	const camel = toCamelCase(input);
-	return camel ? `${camel[0].toUpperCase()}${camel.slice(1)}` : "";
-}
-
-function toSnakeCase(input: string) {
-	return toCamelCase(input)
-		.replace(/[A-Z]/g, (match) => `_${match.toLowerCase()}`)
-		.replace(/^_/, "");
-}
-
-function toKebabCase(input: string) {
-	return toSnakeCase(input).replace(/_/g, "-");
-}
-
-function toTitleCase(input: string) {
-	return input
-		.replace(/[_-]+/g, " ")
-		.replace(/\s+/g, " ")
-		.trim()
-		.split(" ")
-		.filter(Boolean)
-		.map(
-			(word) => `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`,
-		)
-		.join(" ");
-}
-
 function ToolLabel({ text }: { text: string }) {
 	return (
-		<p className="mb-1 block text-[10px] uppercase tracking-[0.12em] text-[color:var(--app-fg-muted)]">
+		<p className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.13em] text-[color:var(--app-fg-muted)]">
 			{text}
 		</p>
 	);
@@ -3195,6 +3056,7 @@ function CustomSelect({
 	options,
 	className,
 	placeholder = "Select option",
+	ariaLabel = "Select option",
 	size = "md",
 }: {
 	value: string;
@@ -3202,6 +3064,7 @@ function CustomSelect({
 	options: Array<{ value: string; label: string }>;
 	className?: string;
 	placeholder?: string;
+	ariaLabel?: string;
 	size?: "sm" | "md";
 }) {
 	const [open, setOpen] = useState(false);
@@ -3244,6 +3107,7 @@ function CustomSelect({
 				}`}
 				aria-haspopup="listbox"
 				aria-expanded={open}
+				aria-label={`${ariaLabel}: ${selectedOption?.label ?? placeholder}`}
 			>
 				<span className="min-w-0 truncate">
 					{selectedOption?.label ?? placeholder}
@@ -3256,7 +3120,11 @@ function CustomSelect({
 			</button>
 
 			{open ? (
-				<div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-60 overflow-auto rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-1 shadow-[0_18px_64px_var(--app-shadow)]">
+				<div
+					className="absolute left-0 right-0 top-full z-40 mt-1 max-h-60 overflow-auto rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-1 shadow-[0_18px_64px_var(--app-shadow)]"
+					role="listbox"
+					aria-label={`${ariaLabel} options`}
+				>
 					{options.map((option) => {
 						const isActive = option.value === value;
 						return (
@@ -3287,31 +3155,17 @@ function CustomSelect({
 }
 
 function UnixTimeConverterTool() {
-	const [input, setInput] = useState(`${Math.floor(Date.now() / 1000)}`);
+	const panelGroupId = useId();
+	const [input, setInput] = useState("1700000000");
 	const [output, setOutput] = useState("");
 	const [error, setError] = useState("");
 	const { defaultLayout: defaultUnixLayout, onLayoutChanged: onUnixLayout } =
 		usePersistedPanelLayout(UNIX_IO_LAYOUT_COOKIE_KEY, UNIX_IO_PANEL_IDS);
 
-	const convert = () => {
+	const convert = (source = input) => {
 		try {
 			setError("");
-			let date: Date;
-
-			if (isLikelyUnixTimestamp(input)) {
-				const numeric = Number(input.trim());
-				if (input.trim().length > 10) {
-					date = new Date(numeric);
-				} else {
-					date = new Date(numeric * 1000);
-				}
-			} else {
-				date = new Date(input);
-			}
-
-			if (Number.isNaN(date.getTime())) {
-				throw new Error("Could not parse that timestamp/date.");
-			}
+			const date = parseTimestampInput(source);
 
 			const result = {
 				iso: date.toISOString(),
@@ -3328,19 +3182,15 @@ function UnixTimeConverterTool() {
 	};
 
 	return (
-		<div className="min-h-[calc(100vh-170px)]">
+		<div className="min-h-[520px] lg:min-h-[calc(100vh-238px)]">
 			<ResizablePanelGroup
 				direction="vertical"
-				className="h-full min-h-[540px]"
-				id="unix-io-panels"
+				className="h-full min-h-[500px]"
+				id={panelGroupId}
 				defaultLayout={defaultUnixLayout}
 				onLayoutChanged={onUnixLayout}
 			>
-				<ResizablePanel
-					id={UNIX_IO_PANEL_IDS[0]}
-					defaultSize={54}
-					minSize={30}
-				>
+				<ResizablePanel id={UNIX_IO_PANEL_IDS[0]} defaultSize={54} minSize={30}>
 					<section className="flex h-full min-h-0 flex-col gap-2.5 pr-1">
 						<div>
 							<h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--app-fg-muted)]">
@@ -3362,8 +3212,9 @@ function UnixTimeConverterTool() {
 									label="Now"
 									variant="ghost"
 									onClick={() => {
-										setInput(`${Math.floor(Date.now() / 1000)}`);
-										setError("");
+										const now = `${Math.floor(Date.now() / 1000)}`;
+										setInput(now);
+										convert(now);
 									}}
 								/>
 							</ActionRow>
@@ -3372,11 +3223,7 @@ function UnixTimeConverterTool() {
 					</section>
 				</ResizablePanel>
 				<ResizableHandle withHandle />
-				<ResizablePanel
-					id={UNIX_IO_PANEL_IDS[1]}
-					defaultSize={46}
-					minSize={28}
-				>
+				<ResizablePanel id={UNIX_IO_PANEL_IDS[1]} defaultSize={46} minSize={28}>
 					<section className="flex h-full min-h-0 flex-col gap-2.5 pl-1">
 						<h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--app-fg-muted)]">
 							Output
@@ -3525,11 +3372,23 @@ function Base64ImageTool() {
 			}
 
 			if (content.startsWith("data:")) {
+				if (!/^data:image\/[a-z\d.+-]+;base64,/i.test(content)) {
+					throw new Error("Data URL must contain a base64-encoded image.");
+				}
+				const payload = content
+					.slice(content.indexOf(",") + 1)
+					.replace(/\s+/g, "");
+				base64ToBytes(payload);
 				setPreview(content);
 				return;
 			}
 
-			setPreview(`data:${mimeType};base64,${content.replace(/\s+/g, "")}`);
+			if (!/^image\/[a-z\d.+-]+$/i.test(mimeType.trim())) {
+				throw new Error("MIME type must be an image type such as image/png.");
+			}
+			const payload = content.replace(/\s+/g, "");
+			base64ToBytes(payload);
+			setPreview(`data:${mimeType.trim()};base64,${payload}`);
 		} catch (err) {
 			setError((err as Error).message);
 		}
@@ -3554,10 +3413,9 @@ function Base64ImageTool() {
 				</div>
 
 				<ToolLabel text="Mime type" />
-				<input
-					type="text"
+				<ToolTextInput
 					value={mimeType}
-					onChange={(event) => setMimeType(event.target.value)}
+					onChange={setMimeType}
 					className="mb-3 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 text-sm"
 				/>
 
@@ -3676,16 +3534,9 @@ function RegexTesterTool() {
 	const run = () => {
 		try {
 			setError("");
-			const regex = new RegExp(pattern, flags);
-			const matches = Array.from(text.matchAll(regex));
-			const mapped = matches.map((match, index) => ({
-				index,
-				match: match[0],
-				position: match.index,
-				groups: match.groups ?? null,
-			}));
-			setMatchesOutput(JSON.stringify(mapped, null, 2));
-			setReplaceOutput(text.replace(regex, replacement));
+			const result = runRegex(pattern, flags, text, replacement);
+			setMatchesOutput(JSON.stringify(result.matches, null, 2));
+			setReplaceOutput(result.replacement);
 		} catch (err) {
 			setError((err as Error).message);
 		}
@@ -3697,19 +3548,17 @@ function RegexTesterTool() {
 				<div className="grid gap-3 md:grid-cols-[1fr_120px]">
 					<div>
 						<ToolLabel text="Pattern" />
-						<input
-							type="text"
+						<ToolTextInput
 							value={pattern}
-							onChange={(event) => setPattern(event.target.value)}
+							onChange={setPattern}
 							className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
 						/>
 					</div>
 					<div>
 						<ToolLabel text="Flags" />
-						<input
-							type="text"
+						<ToolTextInput
 							value={flags}
-							onChange={(event) => setFlags(event.target.value)}
+							onChange={setFlags}
 							className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
 						/>
 					</div>
@@ -3725,10 +3574,9 @@ function RegexTesterTool() {
 				</div>
 				<div className="mt-3">
 					<ToolLabel text="Replacement string" />
-					<input
-						type="text"
+					<ToolTextInput
 						value={replacement}
-						onChange={(event) => setReplacement(event.target.value)}
+						onChange={setReplacement}
 						className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
 					/>
 				</div>
@@ -3809,11 +3657,18 @@ function UrlParserTool() {
 	const parseUrl = () => {
 		try {
 			setError("");
-			const prepared = /^https?:\/\//i.test(input) ? input : `https://${input}`;
+			const prepared = /^[a-z][a-z\d+.-]*:/i.test(input)
+				? input
+				: `https://${input}`;
 			const parsed = new URL(prepared);
-			const query: Record<string, string> = {};
+			const query: Record<string, string | string[]> = {};
 			parsed.searchParams.forEach((value, key) => {
-				query[key] = value;
+				const current = query[key];
+				query[key] = current
+					? Array.isArray(current)
+						? [...current, value]
+						: [current, value]
+					: value;
 			});
 
 			setOutput(
@@ -3825,6 +3680,8 @@ function UrlParserTool() {
 						host: parsed.host,
 						hostname: parsed.hostname,
 						port: parsed.port,
+						username: parsed.username,
+						passwordPresent: parsed.password.length > 0,
 						pathname: parsed.pathname,
 						search: parsed.search,
 						hash: parsed.hash,
@@ -3921,11 +3778,7 @@ function BackslashTool() {
 						onClick={() => {
 							try {
 								setError("");
-								const escaped = input
-									.replace(/\\/g, "\\\\")
-									.replace(/"/g, '\\"')
-									.replace(/\n/g, "\\n");
-								setOutput(JSON.parse(`"${escaped}"`));
+								setOutput(unescapeBackslashes(input));
 							} catch (err) {
 								setError((err as Error).message);
 							}
@@ -4128,6 +3981,7 @@ function TextDiffTool() {
 				<div className="mb-3 flex flex-wrap gap-2">
 					<CustomSelect
 						value={diffStyle}
+						ariaLabel="Diff layout"
 						onChange={(nextValue) =>
 							setDiffStyle(nextValue as "split" | "unified")
 						}
@@ -4140,6 +3994,7 @@ function TextDiffTool() {
 					/>
 					<CustomSelect
 						value={lineDiffType}
+						ariaLabel="Change granularity"
 						onChange={(nextValue) =>
 							setLineDiffType(nextValue as "word" | "char" | "none")
 						}
@@ -4303,19 +4158,18 @@ function NumberBaseTool() {
 		<ToolGrid>
 			<ToolCard title="Number Input">
 				<ToolLabel text="Value" />
-				<input
-					type="text"
+				<ToolTextInput
 					value={value}
-					onChange={(event) => setValue(event.target.value)}
+					onChange={setValue}
 					className="mb-3 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
 				/>
 				<ToolLabel text="Base (2-36)" />
-				<input
+				<ToolTextInput
 					type="number"
 					min={2}
 					max={36}
 					value={fromBase}
-					onChange={(event) => setFromBase(event.target.value)}
+					onChange={setFromBase}
 					className="mb-3 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
 				/>
 				<ActionRow>
@@ -4609,7 +4463,7 @@ function GenericFormatTool({
 
 function LoremIpsumTool() {
 	const [paragraphs, setParagraphs] = useState(3);
-	const [output, setOutput] = useState(() => createLorem(3));
+	const [output, setOutput] = useState("");
 
 	const generate = () => {
 		setOutput(createLorem(paragraphs));
@@ -4619,13 +4473,13 @@ function LoremIpsumTool() {
 		<ToolGrid>
 			<ToolCard title="Generator">
 				<ToolLabel text="Paragraph count" />
-				<input
+				<ToolTextInput
 					type="number"
 					min={1}
 					max={20}
 					value={paragraphs}
-					onChange={(event) =>
-						setParagraphs(Number.parseInt(event.target.value, 10) || 1)
+					onChange={(nextValue) =>
+						setParagraphs(Number.parseInt(nextValue, 10) || 1)
 					}
 					className="mb-3 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2"
 				/>
@@ -5010,6 +4864,7 @@ function SqlFormatterTool() {
 				<ToolLabel text="Dialect" />
 				<CustomSelect
 					value={dialect}
+					ariaLabel="SQL dialect"
 					onChange={(nextValue) => setDialect(nextValue as SqlLanguage)}
 					options={dialects.map((item) => ({
 						value: item,
@@ -5132,9 +4987,9 @@ function ColorConverterTool() {
 					{
 						hex: color.hex(),
 						rgb: color.rgb().string(),
-						hsl: color.hsl().string(),
-						hsv: color.hsv().string(),
-						cmyk: color.cmyk().array(),
+						hsl: color.hsl().round(2).object(),
+						hsv: color.hsv().round(2).object(),
+						cmyk: color.cmyk().round(2).array(),
 						alpha: color.alpha(),
 					},
 					null,
@@ -5369,13 +5224,13 @@ function RandomStringTool() {
 		<ToolGrid>
 			<ToolCard title="Generator Options">
 				<ToolLabel text="Length" />
-				<input
+				<ToolTextInput
 					type="number"
 					min={1}
 					max={2048}
 					value={length}
-					onChange={(event) =>
-						setLength(Number.parseInt(event.target.value, 10) || 1)
+					onChange={(nextValue) =>
+						setLength(Number.parseInt(nextValue, 10) || 1)
 					}
 					className="mb-3 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2"
 				/>
@@ -5504,6 +5359,7 @@ function CurlToCodeTool() {
 				<ToolLabel text="Target language" />
 				<CustomSelect
 					value={target}
+					ariaLabel="Target language"
 					onChange={(nextValue) => setTarget(nextValue as CurlTarget)}
 					options={[
 						{ value: "node-fetch", label: "Node Fetch" },
@@ -5655,7 +5511,7 @@ function HexToAsciiTool() {
 				</ActionRow>
 				<ErrorText text={error} />
 			</ToolCard>
-			<ToolCard title="ASCII Output">
+			<ToolCard title="UTF-8 Output">
 				<OutputBox value={output} />
 			</ToolCard>
 		</ToolGrid>
@@ -5668,7 +5524,7 @@ function AsciiToHexTool() {
 
 	return (
 		<ToolGrid>
-			<ToolCard title="ASCII Input">
+			<ToolCard title="UTF-8 Text Input">
 				<ToolTextarea
 					rows={10}
 					value={input}

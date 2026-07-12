@@ -22,12 +22,13 @@ cd uutil.space
 
 ## Features
 
-- 40+ developer utilities (JSON/YAML/CSV/PHP/SQL/encoding/hash/diff/preview tools)
+- 47 developer utilities (JSON/YAML/CSV/PHP/SQL/encoding/hash/diff/preview tools)
 - Per-tool routed pages (`/tools/:toolId`)
 - Query-param input prefill + autorun support
 - Command palette quick switch (`Cmd/Ctrl + K`)
 - Fixed icon/list sidebar and responsive/mobile layouts
 - Dark/light mode toggle with persisted preference
+- Local-first processing: utility inputs stay in the browser
 
 ## Development
 
@@ -49,9 +50,10 @@ bun run start
 
 ```bash
 bun run test
+bun run check
+bun run build
 bun run lint
 bun run format
-bun run check
 ```
 
 ## Project Structure

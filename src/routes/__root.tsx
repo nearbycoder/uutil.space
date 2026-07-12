@@ -36,6 +36,14 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content:
 					"uutil.space is a developer tooling hub for API, data, security, frontend, and database workflows.",
 			},
+			{
+				name: "theme-color",
+				content: "#0b0d0c",
+			},
+			{
+				name: "color-scheme",
+				content: "dark light",
+			},
 		],
 		links: [
 			{
@@ -73,11 +81,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 		<html lang="en">
 			<head>
 				<HeadContent />
-				<script
-					defer
-					data-domain="uutil.space"
-					src="https://tic.nrby.xyz/js/script.js"
-				/>
+				{import.meta.env.PROD ? (
+					<script
+						defer
+						data-domain="uutil.space"
+						src="https://tic.nrby.xyz/js/script.js"
+					/>
+				) : null}
 			</head>
 			<body>
 				<TanStackQueryProvider>
