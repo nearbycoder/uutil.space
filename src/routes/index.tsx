@@ -803,64 +803,64 @@ function usePersistedPanelLayout(
 
 const DEFAULT_THEME_VARS = {
 	colorScheme: "dark",
-	backgroundColor: "#0b0d0c",
-	color: "#f3f4ea",
-	"--app-bg": "#0b0d0c",
-	"--app-sidebar-bg": "rgba(13, 17, 14, 0.96)",
-	"--app-sidebar-fg": "#f3f4ea",
-	"--app-sidebar-fg-muted": "#bcc4b6",
-	"--app-sidebar-fg-soft": "#85917f",
-	"--app-panel-bg": "rgba(19, 25, 20, 0.92)",
-	"--app-surface-bg": "rgba(24, 31, 25, 0.96)",
-	"--app-surface-alt": "rgba(12, 16, 13, 0.98)",
-	"--app-border": "rgba(156, 178, 151, 0.28)",
-	"--app-border-strong": "rgba(177, 202, 169, 0.52)",
-	"--app-fg": "#f3f4ea",
-	"--app-fg-muted": "#bcc4b6",
-	"--app-fg-soft": "#85917f",
-	"--app-accent": "#b7ef5b",
-	"--app-accent-soft": "rgba(183, 239, 91, 0.15)",
-	"--app-accent-strong": "#d8ff95",
-	"--app-accent-contrast": "#15200a",
-	"--app-warm": "#ffb86b",
-	"--app-danger": "#ff8c7f",
-	"--app-success": "#73dfa6",
-	"--app-overlay": "rgba(5, 8, 6, 0.72)",
-	"--app-shadow": "rgba(0, 0, 0, 0.65)",
-	"--app-glow-1": "rgba(183, 239, 91, 0.11)",
-	"--app-glow-2": "rgba(255, 184, 107, 0.08)",
-	"--app-ring": "rgba(183, 239, 91, 0.58)",
+	backgroundColor: "#080d19",
+	color: "#f2f7ff",
+	"--app-bg": "#080d19",
+	"--app-sidebar-bg": "rgba(10, 17, 32, 0.96)",
+	"--app-sidebar-fg": "#f2f7ff",
+	"--app-sidebar-fg-muted": "#a9b7cc",
+	"--app-sidebar-fg-soft": "#718199",
+	"--app-panel-bg": "rgba(15, 24, 43, 0.88)",
+	"--app-surface-bg": "rgba(21, 33, 56, 0.94)",
+	"--app-surface-alt": "rgba(7, 13, 25, 0.92)",
+	"--app-border": "rgba(126, 156, 196, 0.22)",
+	"--app-border-strong": "rgba(139, 182, 232, 0.46)",
+	"--app-fg": "#f2f7ff",
+	"--app-fg-muted": "#a9b7cc",
+	"--app-fg-soft": "#718199",
+	"--app-accent": "#65dcff",
+	"--app-accent-soft": "rgba(101, 220, 255, 0.13)",
+	"--app-accent-strong": "#b7f1ff",
+	"--app-accent-contrast": "#04141b",
+	"--app-warm": "#ff8b72",
+	"--app-danger": "#ff8f9b",
+	"--app-success": "#69e3ad",
+	"--app-overlay": "rgba(3, 7, 15, 0.76)",
+	"--app-shadow": "rgba(0, 0, 0, 0.72)",
+	"--app-glow-1": "rgba(101, 220, 255, 0.1)",
+	"--app-glow-2": "rgba(255, 139, 114, 0.07)",
+	"--app-ring": "rgba(101, 220, 255, 0.5)",
 } satisfies AppCssVariables;
 
 const LIGHT_THEME_VARS = {
 	colorScheme: "light",
-	backgroundColor: "#f2f0e7",
-	color: "#1a211a",
-	"--app-bg": "#f2f0e7",
-	"--app-sidebar-bg": "rgba(231, 231, 220, 0.97)",
-	"--app-sidebar-fg": "#1a211a",
-	"--app-sidebar-fg-muted": "#475144",
-	"--app-sidebar-fg-soft": "#667061",
-	"--app-panel-bg": "rgba(250, 249, 242, 0.96)",
-	"--app-surface-bg": "rgba(255, 253, 245, 0.98)",
-	"--app-surface-alt": "rgba(241, 241, 232, 0.98)",
-	"--app-border": "rgba(55, 70, 50, 0.28)",
-	"--app-border-strong": "rgba(55, 70, 50, 0.5)",
-	"--app-fg": "#1a211a",
-	"--app-fg-muted": "#475144",
-	"--app-fg-soft": "#667061",
-	"--app-accent": "#477d16",
-	"--app-accent-soft": "rgba(71, 125, 22, 0.13)",
-	"--app-accent-strong": "#2f5d0d",
-	"--app-accent-contrast": "#f7ffe9",
-	"--app-warm": "#b55b12",
-	"--app-danger": "#b42318",
-	"--app-success": "#18794e",
-	"--app-overlay": "rgba(37, 43, 34, 0.42)",
-	"--app-shadow": "rgba(36, 43, 32, 0.22)",
-	"--app-glow-1": "rgba(98, 155, 44, 0.12)",
-	"--app-glow-2": "rgba(181, 91, 18, 0.08)",
-	"--app-ring": "rgba(71, 125, 22, 0.58)",
+	backgroundColor: "#f2f5f8",
+	color: "#142033",
+	"--app-bg": "#f2f5f8",
+	"--app-sidebar-bg": "rgba(232, 239, 246, 0.97)",
+	"--app-sidebar-fg": "#142033",
+	"--app-sidebar-fg-muted": "#4b5c72",
+	"--app-sidebar-fg-soft": "#6f7e91",
+	"--app-panel-bg": "rgba(252, 253, 255, 0.92)",
+	"--app-surface-bg": "rgba(255, 255, 255, 0.98)",
+	"--app-surface-alt": "rgba(235, 241, 247, 0.98)",
+	"--app-border": "rgba(50, 78, 111, 0.2)",
+	"--app-border-strong": "rgba(34, 93, 132, 0.44)",
+	"--app-fg": "#142033",
+	"--app-fg-muted": "#4b5c72",
+	"--app-fg-soft": "#6f7e91",
+	"--app-accent": "#087da2",
+	"--app-accent-soft": "rgba(8, 125, 162, 0.1)",
+	"--app-accent-strong": "#055d7a",
+	"--app-accent-contrast": "#f5fdff",
+	"--app-warm": "#c64e35",
+	"--app-danger": "#b42335",
+	"--app-success": "#087a50",
+	"--app-overlay": "rgba(18, 31, 48, 0.42)",
+	"--app-shadow": "rgba(26, 46, 68, 0.24)",
+	"--app-glow-1": "rgba(8, 125, 162, 0.1)",
+	"--app-glow-2": "rgba(198, 78, 53, 0.07)",
+	"--app-ring": "rgba(8, 125, 162, 0.46)",
 } satisfies AppCssVariables;
 
 function getThemeFallbackVars(themeId: string): AppCssVariables {
@@ -1642,7 +1642,7 @@ export function ToolingApp({
 		}
 
 		const onResize = () => {
-			const nextIsMobile = window.innerWidth < 1024;
+			const nextIsMobile = window.innerWidth < 1280;
 			setIsMobileViewport(nextIsMobile);
 			if (!nextIsMobile) {
 				setMobileNavOpen(false);
@@ -1881,7 +1881,7 @@ export function ToolingApp({
 	};
 
 	const effectiveNavExpanded = isMobileViewport ? true : navExpanded;
-	const desktopSidebarWidth = effectiveNavExpanded ? 316 : 72;
+	const desktopSidebarWidth = effectiveNavExpanded ? 332 : 84;
 
 	const commitToolSelection = (toolId: string, restoreMenuFocus = false) => {
 		if (toolPaneRef.current) {
@@ -1904,7 +1904,7 @@ export function ToolingApp({
 
 	const selectTool = (toolId: string) => {
 		clearToolTooltip();
-		const isMobileNavigation = window.matchMedia("(max-width: 1023px)").matches;
+		const isMobileNavigation = window.matchMedia("(max-width: 1279px)").matches;
 
 		if (isMobileNavigation && mobileNavOpen) {
 			setMobileNavOpen(false);
@@ -1927,20 +1927,20 @@ export function ToolingApp({
 
 	const sidebarContent = (
 		<div
-			className={`flex h-full flex-col ${effectiveNavExpanded ? "p-3" : "p-1.5"}`}
+			className={`mobile-safe-bottom flex h-full flex-col ${effectiveNavExpanded ? "p-4" : "p-2.5"}`}
 		>
 			<div
 				className={`flex items-center ${
-					effectiveNavExpanded ? "mb-3 gap-2" : "mb-0.5 justify-center"
+					effectiveNavExpanded ? "mb-4 gap-2" : "mb-2 justify-center"
 				}`}
 			>
 				<button
 					type="button"
 					onClick={() => setNavExpanded((current) => !current)}
-					className={`hidden items-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] lg:flex ${
+					className={`control-surface hidden min-h-10 items-center rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] xl:flex ${
 						effectiveNavExpanded
-							? "w-full justify-between px-2.5 py-2 text-[10px] font-bold uppercase tracking-[0.14em]"
-							: "size-8 justify-center"
+							? "w-full justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em]"
+							: "size-11 justify-center"
 					}`}
 					aria-label={
 						effectiveNavExpanded
@@ -1954,7 +1954,10 @@ export function ToolingApp({
 					}
 				>
 					{effectiveNavExpanded ? (
-						<span>{TOOL_REGISTRY.length} utilities</span>
+						<span className="flex items-center gap-2">
+							<span className="size-1.5 rounded-full bg-[color:var(--app-success)]" />
+							{TOOL_REGISTRY.length} tools ready
+						</span>
 					) : null}
 					{effectiveNavExpanded ? (
 						<ChevronLeft className="size-3.5" />
@@ -1966,7 +1969,7 @@ export function ToolingApp({
 				<button
 					type="button"
 					onClick={() => setMobileNavOpen(false)}
-					className="ml-auto flex size-7 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] lg:hidden"
+					className="control-surface ml-auto flex size-11 items-center justify-center rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] xl:hidden"
 					aria-label="Close tools menu"
 				>
 					<X className="size-3.5" />
@@ -1974,16 +1977,16 @@ export function ToolingApp({
 			</div>
 
 			{effectiveNavExpanded ? (
-				<div className="mb-3 space-y-2">
+				<div className="mb-4 space-y-2.5">
 					<div className="relative">
-						<Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-[color:var(--app-fg-soft)]" />
+						<Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-soft)]" />
 						<input
 							type="text"
 							aria-label="Search tools"
 							value={search}
 							onChange={(event) => setSearch(event.target.value)}
-							placeholder="Find tool..."
-							className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] py-2 pl-8 pr-3 text-xs text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
+							placeholder="Search utilities"
+							className="control-surface min-h-11 w-full rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] py-2.5 pl-10 pr-3 text-sm text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
 						/>
 					</div>
 					<CustomSelect
@@ -2005,7 +2008,7 @@ export function ToolingApp({
 			>
 				<div
 					className={`${
-						effectiveNavExpanded ? "space-y-1" : "mx-auto w-10 space-y-1.5 py-1"
+						effectiveNavExpanded ? "space-y-1.5" : "mx-auto w-12 space-y-2 py-1"
 					}`}
 				>
 					{filteredTools.map((tool) => {
@@ -2027,14 +2030,14 @@ export function ToolingApp({
 									scheduleToolTooltip(event, tool);
 								}}
 								onBlur={clearToolTooltip}
-								className={`border transition ${
+								className={`sidebar-tool border transition ${
 									effectiveNavExpanded
-										? "w-full rounded-lg px-2.5 py-2 text-left"
-										: "mx-auto grid size-10 place-items-center rounded-[10px] p-0"
+										? "min-h-[58px] w-full rounded-xl px-3 py-2.5 text-left"
+										: "mx-auto grid size-12 place-items-center rounded-xl p-0"
 								} ${
 									isSelected
-										? "border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)]"
-										: "[border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] hover:[border-color:var(--app-border-strong)] hover:bg-[color:var(--app-panel-bg)]"
+										? "border-[color:var(--app-border-strong)] bg-[color:var(--app-accent-soft)]"
+										: "border-transparent hover:[border-color:var(--app-border)] hover:bg-[color:var(--app-surface-bg)]"
 								}`}
 							>
 								<div
@@ -2046,8 +2049,8 @@ export function ToolingApp({
 										<div
 											className={`flex shrink-0 items-center justify-center ${
 												isSelected
-													? "size-9 rounded-lg border border-[color:var(--app-accent)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-accent)]"
-													: "size-9 rounded-lg border [border-color:var(--app-border)] text-[color:var(--app-fg-muted)]"
+													? "size-9 rounded-lg bg-[color:var(--app-accent)] text-[color:var(--app-accent-contrast)] shadow-[0_8px_22px_-12px_var(--app-accent)]"
+													: "size-9 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] text-[color:var(--app-fg-muted)]"
 											}`}
 										>
 											<ToolIcon className="size-3.5" />
@@ -2063,7 +2066,7 @@ export function ToolingApp({
 									)}
 									{effectiveNavExpanded ? (
 										<div className="min-w-0">
-											<p className="truncate text-[13px] font-medium text-[color:var(--app-fg)]">
+											<p className="truncate text-[13px] font-semibold text-[color:var(--app-fg)]">
 												{tool.name}
 											</p>
 											<p className="truncate text-[11px] text-[color:var(--app-fg-muted)]">
@@ -2083,42 +2086,63 @@ export function ToolingApp({
 					) : null}
 				</div>
 			</nav>
+
+			{effectiveNavExpanded ? (
+				<div className="mt-3 flex items-center justify-between border-t [border-color:var(--app-border)] px-1 pt-3 text-[10px] uppercase tracking-[0.13em] text-[color:var(--app-fg-soft)]">
+					<span>Local-first</span>
+					<span className="flex items-center gap-1.5">
+						<span className="size-1.5 rounded-full bg-[color:var(--app-success)]" />
+						Private
+					</span>
+				</div>
+			) : null}
 		</div>
 	);
 
 	const toolWorkspace = (
-		<div className="mx-auto w-full max-w-[1480px]">
-			<section className="mb-5 overflow-hidden rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] shadow-[0_18px_60px_-45px_var(--app-shadow)]">
-				<div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-					<div className="flex min-w-0 items-start gap-3.5">
-						<div className="grid size-11 shrink-0 place-items-center rounded-xl border border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)] shadow-[inset_0_1px_0_var(--app-glow-1)]">
-							<SelectedToolIcon className="size-5" aria-hidden="true" />
+		<div className="mx-auto w-full max-w-[1520px] pb-8">
+			<section className="workspace-intro mb-5 rounded-[20px] border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] shadow-[0_28px_90px_-68px_var(--app-shadow)] sm:mb-6">
+				<div className="relative flex min-h-[150px] flex-col justify-between gap-5 px-5 py-5 sm:min-h-[168px] sm:px-7 sm:py-6 lg:flex-row lg:items-end">
+					<div className="flex min-w-0 items-start gap-4 sm:gap-5">
+						<div className="brand-mark grid size-12 shrink-0 place-items-center rounded-2xl text-[color:var(--app-accent-contrast)] sm:size-14">
+							<SelectedToolIcon
+								className="size-5 sm:size-6"
+								aria-hidden="true"
+							/>
 						</div>
-						<div className="min-w-0">
-							<div className="mb-1 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-soft)]">
-								<span className="text-[color:var(--app-warm)]">
+						<div className="min-w-0 pt-0.5">
+							<div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--app-fg-soft)]">
+								<span className="rounded-full border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-2.5 py-1 text-[color:var(--app-warm)]">
 									{selectedTool.category}
 								</span>
-								<span aria-hidden="true">/</span>
 								<span>
-									Tool {String(selectedToolPosition).padStart(2, "0")} of{" "}
-									{TOOL_REGISTRY.length}
+									Utility {String(selectedToolPosition).padStart(2, "0")}
 								</span>
 							</div>
-							<h2 className="font-display text-xl font-bold tracking-[-0.025em] text-[color:var(--app-fg)] sm:text-2xl">
+							<h2 className="font-display max-w-4xl text-[clamp(1.65rem,4vw,2.65rem)] font-semibold leading-[1.02] tracking-[-0.045em] text-[color:var(--app-fg)]">
 								{selectedTool.name}
 							</h2>
-							<p className="mt-1 max-w-2xl text-sm leading-6 text-[color:var(--app-fg-muted)]">
+							<p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--app-fg-muted)] sm:text-[15px]">
 								{selectedTool.summary}
 							</p>
 						</div>
 					</div>
-					<div className="flex shrink-0 items-center gap-2 self-start rounded-full border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.13em] text-[color:var(--app-fg-muted)] sm:self-auto">
-						<span className="size-1.5 rounded-full bg-[color:var(--app-success)] shadow-[0_0_10px_var(--app-success)]" />
-						Runs locally
+					<div className="flex shrink-0 flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em]">
+						<div className="flex items-center gap-2 rounded-full border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 text-[color:var(--app-fg-muted)]">
+							<span className="size-1.5 rounded-full bg-[color:var(--app-success)] shadow-[0_0_10px_var(--app-success)]" />
+							Runs in your browser
+						</div>
+						<div className="rounded-full border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 text-[color:var(--app-fg-soft)]">
+							No upload
+						</div>
+					</div>
+					<div
+						className="workspace-index pointer-events-none absolute bottom-[-8px] right-5 hidden select-none text-[112px] font-bold lg:block"
+						aria-hidden="true"
+					>
+						{String(selectedToolPosition).padStart(2, "0")}
 					</div>
 				</div>
-				<div className="h-px bg-gradient-to-r from-[color:var(--app-accent)] via-[color:var(--app-warm)] to-transparent opacity-60" />
 			</section>
 			<SelectedToolComponent />
 		</div>
@@ -2126,7 +2150,7 @@ export function ToolingApp({
 
 	return (
 		<AppThemeContext.Provider value={appTheme}>
-			<div className="app-shell h-screen overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--app-fg)]">
+			<div className="app-shell h-[100dvh] min-h-[100svh] overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--app-fg)]">
 				<div
 					className="pointer-events-none fixed inset-0"
 					style={{
@@ -2136,54 +2160,68 @@ export function ToolingApp({
 				/>
 
 				<div className="relative">
-					<header className="sticky top-0 z-20 border-b [border-color:var(--app-border)] bg-[color:var(--app-bg)]/92 backdrop-blur-xl">
-						<div className="relative flex h-14 w-full items-center gap-1.5 px-2 sm:gap-2 sm:px-3.5 lg:px-5">
+					<header className="app-topbar sticky top-0 z-20 border-b [border-color:var(--app-border)] bg-[color:var(--app-bg)]/90 backdrop-blur-2xl">
+						<div className="relative flex h-16 w-full items-center gap-2 px-3 sm:px-4 xl:h-[72px] xl:px-6">
 							<button
 								ref={mobileMenuButtonRef}
 								type="button"
 								onClick={() => setMobileNavOpen(true)}
-								className="flex size-8 shrink-0 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] lg:hidden"
+								className="control-surface flex size-11 shrink-0 items-center justify-center rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] xl:hidden"
 								aria-label="Open tools menu"
 							>
-								<Menu className="size-3.5" />
+								<Menu className="size-4" />
 							</button>
 
-							<div className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] px-2.5 py-1 md:flex-none md:justify-start">
-								<div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)]">
-									<Sparkles className="size-3.5" />
+							<div className="flex min-w-0 flex-1 items-center gap-2.5 xl:flex-none">
+								<div className="brand-mark flex size-10 shrink-0 items-center justify-center rounded-xl font-mono text-[13px] font-bold tracking-[-0.08em] text-[color:var(--app-accent-contrast)]">
+									u/
 								</div>
 								<div className="min-w-0">
-									<p className="hidden truncate text-[9px] uppercase tracking-[0.14em] text-[color:var(--app-fg-muted)] sm:block">
-										Developer Tools
+									<p className="truncate text-[9px] font-bold uppercase tracking-[0.19em] text-[color:var(--app-fg-soft)]">
+										Developer workbench
 									</p>
-									<h1 className="font-display truncate text-sm font-bold tracking-[-0.02em] text-[color:var(--app-fg)]">
+									<h1 className="font-display truncate text-[17px] font-semibold tracking-[-0.035em] text-[color:var(--app-fg)]">
 										uutil.space
 									</h1>
 								</div>
 							</div>
 
-							<div className="hidden h-6 w-px bg-[color:var(--app-border)] md:block" />
+							<div className="mx-1 hidden h-8 w-px bg-[color:var(--app-border)] xl:block" />
 
-							<div className="hidden min-w-0 flex-1 md:block">
-								<p className="hidden truncate text-[9px] uppercase tracking-[0.14em] text-[color:var(--app-fg-muted)] sm:block">
+							<div className="hidden min-w-0 xl:block">
+								<p className="truncate text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-soft)]">
 									{selectedTool.category}
 								</p>
-								<p className="truncate text-sm font-semibold tracking-tight text-[color:var(--app-fg)] sm:text-base">
+								<p className="max-w-[240px] truncate text-sm font-semibold tracking-tight text-[color:var(--app-fg)]">
 									{selectedTool.name}
 								</p>
 							</div>
 
-							<div className="flex shrink-0 items-center gap-1.5">
+							<button
+								type="button"
+								onClick={() => setPaletteOpen(true)}
+								aria-label="Open quick tool search"
+								aria-keyshortcuts="Control+K Meta+K"
+								className="control-surface mx-auto hidden min-h-11 w-full max-w-[420px] items-center gap-3 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 text-left text-sm text-[color:var(--app-fg-soft)] transition hover:text-[color:var(--app-fg-muted)] md:flex"
+							>
+								<Search className="size-4 shrink-0" />
+								<span className="flex-1">
+									Search {TOOL_REGISTRY.length} utilities
+								</span>
+								<span className="rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-2 py-1 font-mono text-[10px] text-[color:var(--app-fg-muted)]">
+									⌘ K
+								</span>
+							</button>
+
+							<div className="flex shrink-0 items-center gap-2">
 								<button
 									type="button"
 									onClick={() => setPaletteOpen(true)}
 									aria-label="Open quick tool search"
 									aria-keyshortcuts="Control+K Meta+K"
-									className="flex size-8 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[11px] uppercase tracking-[0.1em] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:py-1.5"
+									className="control-surface flex size-11 items-center justify-center rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] md:hidden"
 								>
-									<Search className="size-3" />
-									<span className="hidden sm:inline">Quick Search</span>
-									<span className="hidden md:inline">⌘K</span>
+									<Search className="size-4" />
 								</button>
 
 								<ThemeModeToggle
@@ -2194,23 +2232,25 @@ export function ToolingApp({
 						</div>
 					</header>
 
-					<div className="h-[calc(100vh-56px)] w-full">
-						<div className="h-full lg:flex">
+					<div className="h-[calc(100dvh-64px)] w-full xl:h-[calc(100dvh-72px)]">
+						<div className="h-full xl:flex">
 							{mobileNavOpen ? (
 								<button
 									type="button"
 									aria-label="Close tools menu"
 									onClick={() => setMobileNavOpen(false)}
-									className="fixed inset-x-0 bottom-0 top-14 z-30 lg:hidden"
+									className="fixed inset-x-0 bottom-0 top-16 z-30 backdrop-blur-sm xl:hidden"
 									style={{ backgroundColor: "var(--app-overlay)" }}
 								/>
 							) : null}
 
 							<aside
-								className={`fixed bottom-0 left-0 top-14 z-40 w-[min(86vw,332px)] border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] transition-transform duration-200 lg:static lg:z-auto lg:h-full lg:shrink-0 lg:translate-x-0 lg:transition-[width] lg:duration-200 lg:w-[var(--desktop-sidebar-width)] ${
+								aria-hidden={isMobileViewport && !mobileNavOpen}
+								inert={isMobileViewport && !mobileNavOpen}
+								className={`sidebar-panel fixed bottom-0 left-0 top-16 z-40 w-[min(92vw,360px)] border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] transition-transform duration-200 xl:static xl:z-auto xl:h-full xl:shrink-0 xl:translate-x-0 xl:transition-[width] xl:duration-200 xl:w-[var(--desktop-sidebar-width)] ${
 									mobileNavOpen
 										? "translate-x-0"
-										: "pointer-events-none -translate-x-[105%] lg:pointer-events-auto"
+										: "pointer-events-none -translate-x-[105%] xl:pointer-events-auto"
 								}`}
 								style={
 									{
@@ -2228,7 +2268,7 @@ export function ToolingApp({
 								<ToolQueryContext.Provider value={toolQueryRuntime}>
 									<main
 										ref={toolPaneRef}
-										className="uutil-scrollbar h-full min-w-0 overflow-y-auto overscroll-contain px-2 py-2.5 sm:px-3.5 sm:py-3.5 lg:px-5 lg:py-4"
+										className="uutil-scrollbar h-full min-w-0 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6"
 									>
 										{toolWorkspace}
 									</main>
@@ -2299,7 +2339,7 @@ function ThemeModeToggle({
 			type="button"
 			onClick={onToggle}
 			aria-label={`Switch to ${nextModeLabel} mode`}
-			className="flex size-8 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[11px] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] sm:h-auto sm:w-auto sm:min-w-[106px] sm:gap-1.5 sm:px-2 sm:py-1.5"
+			className="control-surface flex size-11 items-center justify-center rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[11px] font-semibold text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] sm:w-auto sm:min-w-[104px] sm:gap-2 sm:px-3"
 		>
 			{isLightTheme ? (
 				<Sun className="size-3.5" />
@@ -2375,7 +2415,7 @@ function CommandPalette({
 
 	return (
 		<div
-			className="fixed inset-0 z-50 flex items-start justify-center px-3 pt-12 sm:px-4 sm:pt-20"
+			className="fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:px-4 sm:pt-[10vh]"
 			role="dialog"
 			aria-modal="true"
 			aria-label="Tool search"
@@ -2384,26 +2424,34 @@ function CommandPalette({
 				type="button"
 				aria-label="Close command palette"
 				onClick={onClose}
-				className="absolute inset-0 backdrop-blur-[2px]"
+				className="absolute inset-0 backdrop-blur-sm"
 				style={{ backgroundColor: "var(--app-overlay)" }}
 			/>
 
-			<div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] shadow-[0_30px_96px_var(--app-shadow)]">
-				<div className="border-b [border-color:var(--app-border)] px-3 py-2.5">
+			<div className="mobile-safe-bottom relative z-10 w-full max-w-2xl overflow-hidden rounded-t-[24px] border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] shadow-[0_30px_96px_var(--app-shadow)] sm:rounded-[24px]">
+				<div className="border-b [border-color:var(--app-border)] px-4 py-4 sm:px-5">
+					<div className="mb-3 flex items-center justify-between">
+						<p className="font-display text-sm font-semibold text-[color:var(--app-fg)]">
+							Jump to a utility
+						</p>
+						<span className="rounded-md border [border-color:var(--app-border)] px-2 py-1 font-mono text-[10px] text-[color:var(--app-fg-soft)]">
+							ESC
+						</span>
+					</div>
 					<input
 						ref={inputRef}
 						type="text"
 						value={query}
 						onChange={(event) => setQuery(event.target.value)}
-						placeholder="Search all tools..."
-						className="w-full rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-2.5 py-1.5 text-xs text-[color:var(--app-fg)] placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-ring)] focus:outline-none"
+						placeholder={`Search ${TOOL_REGISTRY.length} tools by name or task...`}
+						className="control-surface min-h-12 w-full rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 text-sm text-[color:var(--app-fg)] placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
 					/>
-					<p className="mt-1.5 text-[10px] uppercase tracking-[0.12em] text-[color:var(--app-fg-soft)]">
+					<p className="mt-2 text-[10px] uppercase tracking-[0.13em] text-[color:var(--app-fg-soft)]">
 						Use ↑ ↓ to navigate, Enter to open, Esc to close
 					</p>
 				</div>
 
-				<div className="max-h-[58vh] overflow-auto p-1.5">
+				<div className="uutil-scrollbar max-h-[58vh] overflow-auto p-2.5 sm:p-3">
 					{results.length === 0 ? (
 						<div className="rounded-md border border-dashed [border-color:var(--app-border)] px-2.5 py-3 text-xs text-[color:var(--app-fg-muted)]">
 							No tools found.
@@ -2437,7 +2485,7 @@ function CommandPalette({
 											onFocus={(event) => onToolHoverStart(event, tool)}
 											onBlur={onToolHoverEnd}
 											onClick={() => onSelect(tool.id)}
-											className={`mb-0.5 w-full rounded-md border px-2.5 py-2 text-left transition ${
+											className={`mb-1 w-full rounded-xl border px-3 py-3 text-left transition ${
 												resultIndex === selectedIndex
 													? "border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)]"
 													: "border-transparent hover:[border-color:var(--app-border)] hover:bg-[color:var(--app-surface-bg)]"
@@ -2445,11 +2493,11 @@ function CommandPalette({
 										>
 											<div className="flex items-start justify-between gap-2">
 												<div className="flex min-w-0 items-start gap-2">
-													<div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)]">
-														<ToolIcon className="size-3.5" />
+													<div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)]">
+														<ToolIcon className="size-4" />
 													</div>
 													<div className="min-w-0">
-														<p className="truncate text-xs font-medium text-[color:var(--app-fg)]">
+														<p className="truncate text-sm font-semibold text-[color:var(--app-fg)]">
 															{tool.name}
 														</p>
 														<p className="mt-0.5 text-[11px] text-[color:var(--app-fg-muted)]">
@@ -2476,7 +2524,7 @@ function CommandPalette({
 function ToolGrid({ children }: { children: React.ReactNode }) {
 	return (
 		<ToolGridContext.Provider value>
-			<div className="grid min-w-0 items-stretch gap-5 xl:grid-cols-2">
+			<div className="grid min-w-0 items-stretch gap-4 sm:gap-5 xl:grid-cols-2">
 				{children}
 			</div>
 		</ToolGridContext.Provider>
@@ -2494,10 +2542,10 @@ function ToolCard({
 }) {
 	return (
 		<section
-			className={`tool-card flex h-full min-h-0 min-w-0 flex-col rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 shadow-[inset_0_1px_0_var(--app-glow-1),0_18px_55px_-42px_var(--app-shadow)] sm:p-5 ${className ?? ""}`}
+			className={`tool-card flex h-full min-h-0 min-w-0 flex-col rounded-[20px] border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 shadow-[inset_0_1px_0_var(--app-glow-1),0_24px_70px_-56px_var(--app-shadow)] sm:p-6 ${className ?? ""}`}
 		>
-			<h3 className="mb-4 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-muted)]">
-				<span className="size-1.5 rounded-full bg-[color:var(--app-accent)] shadow-[0_0_12px_var(--app-accent)]" />
+			<h3 className="mb-5 flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.19em] text-[color:var(--app-fg-muted)]">
+				<span className="h-4 w-1 rounded-full bg-[color:var(--app-accent)] shadow-[0_0_12px_var(--app-accent)]" />
 				<span>{title}</span>
 			</h3>
 			{children}
@@ -2557,7 +2605,7 @@ function ToolTextarea({
 			placeholder={placeholder}
 			rows={rows}
 			spellCheck={false}
-			className={`w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 py-3 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] shadow-[inset_0_1px_5px_rgba(0,0,0,0.08)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
+			className={`control-surface w-full rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 py-3.5 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
 		/>
 	);
 }
@@ -2584,7 +2632,7 @@ function ToolTextInput({
 			type={type}
 			value={value}
 			onChange={(event) => onChange(event.target.value)}
-			className={`min-h-10 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 py-2.5 text-sm text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
+			className={`control-surface min-h-12 w-full rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 py-3 text-[16px] text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] sm:text-sm ${className ?? ""}`}
 		/>
 	);
 }
@@ -2620,7 +2668,7 @@ function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 				onClick={copy}
 				disabled={!value}
 				aria-label={value ? "Copy output" : "No output to copy"}
-				className="absolute right-3 top-3 rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-2.5 py-1.5 text-[11px] font-semibold text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] disabled:cursor-not-allowed disabled:opacity-40"
+				className="control-surface absolute right-3 top-3 min-h-9 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-3 text-[11px] font-semibold text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] disabled:cursor-not-allowed disabled:opacity-40"
 			>
 				{copyState === "idle"
 					? "Copy"
@@ -2629,7 +2677,7 @@ function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 						: "Failed"}
 			</button>
 			<pre
-				className={`uutil-scrollbar max-w-full overflow-auto whitespace-pre-wrap break-words rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 py-3 pr-24 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] ${
+				className={`control-surface uutil-scrollbar max-w-full overflow-auto whitespace-pre-wrap break-words rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 py-3.5 pr-24 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] ${
 					shouldFill ? "h-full min-h-0" : "min-h-28"
 				} ${value ? "" : "italic text-[color:var(--app-fg-soft)]"}`}
 			>
@@ -2647,7 +2695,7 @@ function ActionRow({
 	className?: string;
 }) {
 	return (
-		<div className={`flex flex-wrap items-center gap-2.5 ${className}`}>
+		<div className={`flex flex-wrap items-center gap-3 ${className}`}>
 			{children}
 		</div>
 	);
@@ -2680,10 +2728,10 @@ function ActionButton({
 			type="button"
 			onClick={() => void handleClick()}
 			data-tool-action={normalizeActionLabel(label)}
-			className={`min-h-10 rounded-lg border px-3.5 py-2.5 text-xs font-bold tracking-[0.01em] transition duration-150 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-panel-bg)] ${
+			className={`min-h-11 rounded-xl border px-4 py-2.5 text-xs font-bold tracking-[0.015em] transition duration-150 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-panel-bg)] sm:min-h-12 sm:px-5 ${
 				variant === "default"
-					? "border-[color:var(--app-accent)] bg-[color:var(--app-accent)] text-[color:var(--app-accent-contrast)] shadow-[0_8px_24px_-12px_var(--app-accent)] hover:-translate-y-0.5 hover:brightness-105"
-					: "[border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] hover:-translate-y-0.5 hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)]"
+					? "action-primary border-transparent text-[color:var(--app-accent-contrast)] shadow-[0_12px_32px_-17px_var(--app-accent)] hover:-translate-y-0.5 hover:brightness-105"
+					: "control-surface [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] hover:-translate-y-0.5 hover:text-[color:var(--app-fg)]"
 			}`}
 		>
 			{label}
@@ -3204,7 +3252,7 @@ function createLorem(paragraphCount: number) {
 
 function ToolLabel({ text }: { text: string }) {
 	return (
-		<p className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.13em] text-[color:var(--app-fg-muted)]">
+		<p className="mb-2.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-muted)]">
 			{text}
 		</p>
 	);
@@ -3262,8 +3310,10 @@ function CustomSelect({
 			<button
 				type="button"
 				onClick={() => setOpen((current) => !current)}
-				className={`flex w-full items-center justify-between gap-2 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] text-left text-[color:var(--app-fg)] transition hover:[border-color:var(--app-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] ${
-					size === "sm" ? "px-2.5 py-2 text-xs" : "px-3.5 py-2.5 text-sm"
+				className={`control-surface flex w-full items-center justify-between gap-2 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] text-left text-[color:var(--app-fg)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] ${
+					size === "sm"
+						? "min-h-11 px-3 py-2 text-xs"
+						: "min-h-12 px-4 py-2.5 text-sm"
 				}`}
 				aria-haspopup="listbox"
 				aria-expanded={open}
@@ -3281,7 +3331,7 @@ function CustomSelect({
 
 			{open ? (
 				<div
-					className="absolute left-0 right-0 top-full z-40 mt-2 max-h-60 overflow-auto rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-1.5 shadow-[0_18px_64px_var(--app-shadow)]"
+					className="absolute left-0 right-0 top-full z-40 mt-2 max-h-60 overflow-auto rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-1.5 shadow-[0_18px_64px_var(--app-shadow)]"
 					role="listbox"
 					aria-label={`${ariaLabel} options`}
 				>
@@ -3295,7 +3345,7 @@ function CustomSelect({
 									onChange(option.value);
 									setOpen(false);
 								}}
-								className={`mb-0.5 flex w-full items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-left text-xs transition ${
+								className={`mb-0.5 flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs transition ${
 									isActive
 										? "border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)] text-[color:var(--app-fg)]"
 										: "border-transparent text-[color:var(--app-fg-muted)] hover:[border-color:var(--app-border)] hover:bg-[color:var(--app-surface-bg)] hover:text-[color:var(--app-fg)]"
@@ -5461,7 +5511,7 @@ function ToggleBox({
 }) {
 	return (
 		<label
-			className={`flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 transition focus-within:border-[color:var(--app-accent)] focus-within:ring-2 focus-within:ring-[color:var(--app-ring)] ${
+			className={`control-surface flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 transition focus-within:border-[color:var(--app-accent)] focus-within:ring-2 focus-within:ring-[color:var(--app-ring)] ${
 				checked
 					? "border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)]"
 					: "[border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] hover:[border-color:var(--app-border-strong)]"
@@ -5475,17 +5525,19 @@ function ToggleBox({
 			/>
 			<span
 				aria-hidden="true"
-				className={`grid size-4 shrink-0 place-items-center rounded-[4px] border transition ${
+				className={`grid size-5 shrink-0 place-items-center rounded-md border transition ${
 					checked
 						? "border-[color:var(--app-accent)] bg-[color:var(--app-accent)] text-[color:var(--app-accent-contrast)] shadow-[0_0_12px_-4px_var(--app-accent)]"
 						: "[border-color:var(--app-border-strong)] bg-[color:var(--app-surface-bg)]"
 				}`}
 			>
 				{checked ? (
-					<Check aria-hidden="true" className="size-3" strokeWidth={3} />
+					<Check aria-hidden="true" className="size-3.5" strokeWidth={3} />
 				) : null}
 			</span>
-			<span className="text-[color:var(--app-fg)]">{label}</span>
+			<span className="text-sm font-medium text-[color:var(--app-fg)]">
+				{label}
+			</span>
 		</label>
 	);
 }
