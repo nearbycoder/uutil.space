@@ -103,6 +103,22 @@ import {
 	unescapeBackslashes,
 } from "#/lib/converters";
 import {
+	analyzePassword,
+	calculateDateDifference,
+	calculateIpv4Cidr,
+	convertDataSize,
+	createSlug,
+	DATA_SIZE_UNITS,
+	type DataSizeUnit,
+	exploreJsonPath,
+	generateHmac,
+	type HmacAlgorithm,
+	inspectUnicode,
+	jsonToQueryString,
+	queryStringToJson,
+	searchHttpStatuses,
+} from "#/lib/tool-utilities";
+import {
 	getUiPreferences,
 	NAV_EXPANDED_STORAGE_KEY,
 } from "#/lib/ui-preferences";
@@ -479,6 +495,76 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary: "Sort lines, remove duplicates, and clean whitespace.",
 		component: LineSortDedupeTool,
 	},
+	{
+		id: "json-path-explorer",
+		name: "JSON Path Explorer",
+		category: "Parsing",
+		summary: "Extract nested JSON values with dot and bracket paths.",
+		component: JsonPathExplorerTool,
+	},
+	{
+		id: "query-string-converter",
+		name: "Query String Converter",
+		category: "Conversion",
+		summary: "Convert query strings to JSON and JSON objects back to queries.",
+		component: QueryStringConverterTool,
+	},
+	{
+		id: "ipv4-cidr-calculator",
+		name: "IPv4 CIDR Calculator",
+		category: "Parsing",
+		summary: "Calculate IPv4 network ranges, masks, and usable addresses.",
+		component: Ipv4CidrCalculatorTool,
+	},
+	{
+		id: "password-strength",
+		name: "Password Strength Analyzer",
+		category: "Security",
+		summary: "Estimate password entropy and get actionable strength feedback.",
+		component: PasswordStrengthTool,
+	},
+	{
+		id: "slug-generator",
+		name: "Slug Generator",
+		category: "Generators",
+		summary: "Turn titles and phrases into clean URL-safe slugs.",
+		component: SlugGeneratorTool,
+	},
+	{
+		id: "unicode-inspector",
+		name: "Unicode Inspector",
+		category: "Encoding",
+		summary: "Inspect Unicode code points, UTF-8 bytes, and UTF-16 units.",
+		component: UnicodeInspectorTool,
+	},
+	{
+		id: "data-size-converter",
+		name: "Data Size Converter",
+		category: "Conversion",
+		summary: "Convert between decimal and binary data-size units.",
+		component: DataSizeConverterTool,
+	},
+	{
+		id: "date-difference",
+		name: "Date Difference Calculator",
+		category: "Core",
+		summary: "Measure precise elapsed time between two dates.",
+		component: DateDifferenceTool,
+	},
+	{
+		id: "http-status-lookup",
+		name: "HTTP Status Lookup",
+		category: "Parsing",
+		summary: "Search HTTP status codes by number, name, or response class.",
+		component: HttpStatusLookupTool,
+	},
+	{
+		id: "hmac-generator",
+		name: "HMAC Generator",
+		category: "Security",
+		summary: "Create keyed message digests in hexadecimal and base64.",
+		component: HmacGeneratorTool,
+	},
 ];
 
 const TOOL_IDS = new Set(TOOL_REGISTRY.map((tool) => tool.id));
@@ -521,6 +607,18 @@ const PALETTE_CATEGORY_ORDER: ToolCategory[] = [
 	"Conversion",
 	"Generators",
 ];
+const PASSWORD_STRENGTH_LEVELS = ["weak", "fair", "strong", "excellent"];
+const SLUG_SEPARATOR_OPTIONS = [
+	{ value: "-", label: "Hyphen (-)" },
+	{ value: "_", label: "Underscore (_)" },
+];
+const DATA_SIZE_UNIT_OPTIONS = DATA_SIZE_UNITS.map((unit) => ({
+	value: unit,
+	label: unit,
+}));
+const HMAC_ALGORITHM_OPTIONS = ["SHA256", "SHA512", "SHA1", "MD5"].map(
+	(value) => ({ value, label: value }),
+);
 
 function getToolIcon(tool: ToolDefinition): LucideIcon {
 	const id = tool.id;
@@ -543,10 +641,14 @@ function getToolIcon(tool: ToolDefinition): LucideIcon {
 	) {
 		return Binary;
 	}
-	if (id.includes("jwt") || id.includes("certificate")) {
+	if (
+		id.includes("jwt") ||
+		id.includes("certificate") ||
+		id.includes("password")
+	) {
 		return Lock;
 	}
-	if (id.includes("hash")) {
+	if (id.includes("hash") || id.includes("hmac")) {
 		return Fingerprint;
 	}
 	if (id.includes("uuid") || id.includes("random") || id.includes("lorem")) {
@@ -555,8 +657,15 @@ function getToolIcon(tool: ToolDefinition): LucideIcon {
 	if (id.includes("qr")) {
 		return QrCode;
 	}
-	if (id.includes("cron") || id.includes("unix-time")) {
+	if (
+		id.includes("cron") ||
+		id.includes("unix-time") ||
+		id.includes("date-difference")
+	) {
 		return Clock3;
+	}
+	if (id.includes("http") || id.includes("cidr")) {
+		return Globe;
 	}
 	if (id.includes("regex")) {
 		return Regex;
@@ -2453,7 +2562,7 @@ function ToolTextInput({
 > & {
 	value: string | number;
 	onChange: (value: string) => void;
-	type?: "number" | "search" | "text" | "url";
+	type?: "datetime-local" | "number" | "password" | "search" | "text" | "url";
 }) {
 	useToolQueryPrefill(String(value), onChange);
 
@@ -5619,6 +5728,481 @@ function AsciiToHexTool() {
 				</ActionRow>
 			</ToolCard>
 			<ToolCard title="Hex Output">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function JsonPathExplorerTool() {
+	const [json, setJson] = useState(
+		'{"users":[{"name":"Ada","roles":["admin","editor"]}],"build.version":"1.2.3"}',
+	);
+	const [path, setPath] = useState("$.users[0].name");
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const explore = () => {
+		try {
+			setError("");
+			const result = exploreJsonPath(json, path);
+			setOutput(JSON.stringify(result, null, 2) ?? "undefined");
+		} catch (err) {
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="JSON Document">
+				<ToolTextarea
+					rows={12}
+					value={json}
+					onChange={setJson}
+					placeholder='{"items":[{"id":1}]}'
+				/>
+				<div className="mt-4">
+					<ToolLabel text="Path" />
+					<ToolTextInput
+						aria-label="JSON path"
+						value={path}
+						onChange={setPath}
+						placeholder="$.items[0].id"
+						className="font-mono"
+					/>
+				</div>
+				<ActionRow>
+					<ActionButton label="Explore Path" onClick={explore} />
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Selected Value">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function QueryStringConverterTool() {
+	const [input, setInput] = useState(
+		'{"tag":["api","tools"],"page":2,"active":true}',
+	);
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const convert = (direction: "json-to-query" | "query-to-json") => {
+		try {
+			setError("");
+			setOutput(
+				direction === "json-to-query"
+					? jsonToQueryString(input)
+					: JSON.stringify(queryStringToJson(input), null, 2),
+			);
+		} catch (err) {
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="JSON or Query String">
+				<ToolTextarea
+					rows={12}
+					value={input}
+					onChange={setInput}
+					placeholder="?tag=api&tag=tools&page=2"
+				/>
+				<ActionRow>
+					<ActionButton
+						label="JSON → Query"
+						onClick={() => convert("json-to-query")}
+					/>
+					<ActionButton
+						label="Query → JSON"
+						variant="ghost"
+						onClick={() => convert("query-to-json")}
+					/>
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Converted Output">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function Ipv4CidrCalculatorTool() {
+	const [input, setInput] = useState("192.168.10.42/24");
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const calculate = () => {
+		try {
+			setError("");
+			setOutput(JSON.stringify(calculateIpv4Cidr(input), null, 2));
+		} catch (err) {
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="IPv4 Network">
+				<ToolLabel text="Address / Prefix" />
+				<ToolTextInput
+					aria-label="IPv4 CIDR network"
+					value={input}
+					onChange={setInput}
+					placeholder="10.20.30.40/24"
+					className="font-mono"
+				/>
+				<ActionRow>
+					<ActionButton label="Calculate Network" onClick={calculate} />
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Network Details">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function PasswordStrengthTool() {
+	const [password, setPassword] = useState("Correct-Horse-42-Battery!");
+	const [showPassword, setShowPassword] = useState(false);
+	const analysis = analyzePassword(password);
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Password Input">
+				<ToolLabel text="Analyzed locally — never transmitted" />
+				<ToolTextInput
+					aria-label="Password to analyze"
+					type={showPassword ? "text" : "password"}
+					value={password}
+					onChange={setPassword}
+					placeholder="Enter a password"
+					className="font-mono"
+				/>
+				<div className="mt-4">
+					<ToggleBox
+						label="Show password"
+						checked={showPassword}
+						onChange={setShowPassword}
+					/>
+				</div>
+				<div className="mt-5 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] p-4">
+					<div className="flex items-center justify-between gap-4">
+						<span className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--app-fg-muted)]">
+							Strength
+						</span>
+						<span className="text-sm font-semibold text-[color:var(--app-accent-strong)]">
+							{analysis.label}
+						</span>
+					</div>
+					<div className="mt-3 grid grid-cols-4 gap-2" aria-hidden="true">
+						{PASSWORD_STRENGTH_LEVELS.map((level, index) => (
+							<span
+								key={level}
+								className={`h-1.5 rounded-full transition ${
+									index < analysis.score
+										? "bg-[color:var(--app-accent)] shadow-[0_0_10px_-3px_var(--app-accent)]"
+										: "bg-[color:var(--app-border)]"
+								}`}
+							/>
+						))}
+					</div>
+				</div>
+			</ToolCard>
+			<ToolCard title="Strength Report">
+				<OutputBox value={JSON.stringify(analysis, null, 2)} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function SlugGeneratorTool() {
+	const [input, setInput] = useState("Crème & API Launch: Summer 2026");
+	const [separator, setSeparator] = useState<"-" | "_">("-");
+	const slug = createSlug(input, separator);
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Source Text">
+				<ToolTextarea
+					rows={10}
+					value={input}
+					onChange={setInput}
+					placeholder="Article title or phrase"
+				/>
+				<div className="mt-4">
+					<ToolLabel text="Separator" />
+					<CustomSelect
+						value={separator}
+						onChange={(value) => setSeparator(value as "-" | "_")}
+						ariaLabel="Slug separator"
+						options={SLUG_SEPARATOR_OPTIONS}
+					/>
+				</div>
+			</ToolCard>
+			<ToolCard title="Generated Slug">
+				<OutputBox value={slug} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function UnicodeInspectorTool() {
+	const [input, setInput] = useState("Hello 👋 café");
+	const [output, setOutput] = useState("");
+
+	const inspect = () => {
+		setOutput(JSON.stringify(inspectUnicode(input), null, 2));
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Unicode Text">
+				<ToolTextarea
+					rows={12}
+					value={input}
+					onChange={setInput}
+					placeholder="Text, emoji, or symbols"
+				/>
+				<ActionRow>
+					<ActionButton label="Inspect Characters" onClick={inspect} />
+				</ActionRow>
+			</ToolCard>
+			<ToolCard title="Code Points & Encodings">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function DataSizeConverterTool() {
+	const [value, setValue] = useState("1");
+	const [unit, setUnit] = useState<DataSizeUnit>("MiB");
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const convert = () => {
+		try {
+			setError("");
+			const result = convertDataSize(Number(value), unit);
+			setOutput(
+				JSON.stringify(
+					{
+						input: `${value} ${unit}`,
+						bytes: result.bytes,
+						conversions: result.values,
+					},
+					null,
+					2,
+				),
+			);
+		} catch (err) {
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Data Size">
+				<div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px]">
+					<div>
+						<ToolLabel text="Value" />
+						<ToolTextInput
+							aria-label="Data size value"
+							type="number"
+							min={0}
+							step="any"
+							value={value}
+							onChange={setValue}
+						/>
+					</div>
+					<div>
+						<ToolLabel text="Source Unit" />
+						<CustomSelect
+							value={unit}
+							onChange={(nextUnit) => setUnit(nextUnit as DataSizeUnit)}
+							ariaLabel="Data size source unit"
+							options={DATA_SIZE_UNIT_OPTIONS}
+						/>
+					</div>
+				</div>
+				<ActionRow>
+					<ActionButton label="Convert Size" onClick={convert} />
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Decimal & Binary Units">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function DateDifferenceTool() {
+	const [start, setStart] = useState("2026-01-01T09:00");
+	const [end, setEnd] = useState("2026-01-03T11:30");
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const calculate = () => {
+		try {
+			setError("");
+			setOutput(JSON.stringify(calculateDateDifference(start, end), null, 2));
+		} catch (err) {
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Date Range">
+				<div className="space-y-4">
+					<div>
+						<ToolLabel text="Start" />
+						<ToolTextInput
+							aria-label="Start date"
+							type="datetime-local"
+							value={start}
+							onChange={setStart}
+						/>
+					</div>
+					<div>
+						<ToolLabel text="End" />
+						<ToolTextInput
+							aria-label="End date"
+							type="datetime-local"
+							value={end}
+							onChange={setEnd}
+						/>
+					</div>
+				</div>
+				<ActionRow>
+					<ActionButton label="Calculate Difference" onClick={calculate} />
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Elapsed Time">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function HttpStatusLookupTool() {
+	const [query, setQuery] = useState("gateway");
+	const results = searchHttpStatuses(query);
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Status Search">
+				<ToolLabel text="Code, name, or response class" />
+				<ToolTextInput
+					aria-label="HTTP status search"
+					value={query}
+					onChange={setQuery}
+					placeholder="404, gateway, client error..."
+				/>
+				<p className="mt-4 text-sm text-[color:var(--app-fg-muted)]">
+					{results.length} {results.length === 1 ? "status" : "statuses"} found
+				</p>
+			</ToolCard>
+			<ToolCard title="HTTP Reference">
+				<div className="uutil-scrollbar max-h-[440px] space-y-2 overflow-auto pr-1">
+					{results.length ? (
+						results.map((status) => (
+							<div
+								key={status.code}
+								className="flex items-center gap-3 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] p-3"
+							>
+								<span className="grid min-w-14 place-items-center rounded-md border border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)] px-2 py-1.5 font-mono text-sm font-bold text-[color:var(--app-accent-strong)]">
+									{status.code}
+								</span>
+								<div className="min-w-0">
+									<p className="truncate text-sm font-semibold text-[color:var(--app-fg)]">
+										{status.name}
+									</p>
+									<p className="mt-0.5 text-xs text-[color:var(--app-fg-soft)]">
+										{status.category}
+									</p>
+								</div>
+							</div>
+						))
+					) : (
+						<div className="rounded-lg border border-dashed [border-color:var(--app-border)] p-6 text-center text-sm text-[color:var(--app-fg-soft)]">
+							No matching HTTP statuses.
+						</div>
+					)}
+				</div>
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function HmacGeneratorTool() {
+	const [message, setMessage] = useState(
+		"The quick brown fox jumps over the lazy dog",
+	);
+	const [secret, setSecret] = useState("key");
+	const [algorithm, setAlgorithm] = useState<HmacAlgorithm>("SHA256");
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const generate = () => {
+		try {
+			setError("");
+			setOutput(
+				JSON.stringify(generateHmac(message, secret, algorithm), null, 2),
+			);
+		} catch (err) {
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Message & Secret">
+				<ToolLabel text="Message" />
+				<ToolTextarea
+					rows={8}
+					value={message}
+					onChange={setMessage}
+					placeholder="Message to authenticate"
+				/>
+				<div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px]">
+					<div>
+						<ToolLabel text="Secret Key" />
+						<ToolTextInput
+							aria-label="HMAC secret key"
+							type="password"
+							value={secret}
+							onChange={setSecret}
+							placeholder="Secret key"
+							className="font-mono"
+						/>
+					</div>
+					<div>
+						<ToolLabel text="Algorithm" />
+						<CustomSelect
+							value={algorithm}
+							onChange={(value) => setAlgorithm(value as HmacAlgorithm)}
+							ariaLabel="HMAC algorithm"
+							options={HMAC_ALGORITHM_OPTIONS}
+						/>
+					</div>
+				</div>
+				<ActionRow>
+					<ActionButton label="Generate HMAC" onClick={generate} />
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Message Authentication Code">
 				<OutputBox value={output} />
 			</ToolCard>
 		</ToolGrid>
