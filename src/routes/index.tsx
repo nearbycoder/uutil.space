@@ -10,7 +10,7 @@ import Color from "color";
 import { CronExpressionParser } from "cron-parser";
 import CryptoJS from "crypto-js";
 import he from "he";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import JsonToTS from "json-to-ts";
 import jsQR from "jsqr";
 import {
@@ -102,16 +102,23 @@ import {
 	toTitleCase,
 	unescapeBackslashes,
 } from "#/lib/converters";
+import {
+	getUiPreferences,
+	NAV_EXPANDED_STORAGE_KEY,
+} from "#/lib/ui-preferences";
 
 const runtimeGlobal = globalThis as typeof globalThis & {
 	Buffer?: typeof Buffer;
 };
 runtimeGlobal.Buffer ??= Buffer;
 
-export const Route = createFileRoute("/")({ component: HomeRouteComponent });
+export const Route = createFileRoute("/")({
+	loader: () => getUiPreferences(),
+	component: HomeRouteComponent,
+});
 
 function HomeRouteComponent() {
-	return <ToolingApp />;
+	return <ToolingApp initialUiPreferences={Route.useLoaderData()} />;
 }
 
 type ToolCategory =
@@ -491,7 +498,6 @@ const AVAILABLE_THEME_IDS = new Set([DARK_THEME_ID, LIGHT_THEME_ID]);
 const THEME_STORAGE_KEY = "uutil.theme.mode";
 const LEGACY_THEME_STORAGE_KEY = "uutil.shiki.theme";
 const LEGACY_THEME_VARS_STORAGE_KEY = "uutil.shiki.theme-vars";
-const NAV_EXPANDED_STORAGE_KEY = "uutil.nav.expanded";
 const UNIX_IO_LAYOUT_COOKIE_KEY = "uutil.layout.unix-io";
 const UNIX_IO_PANEL_IDS = ["unix-input", "unix-output"] as const;
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
@@ -1317,7 +1323,15 @@ function resolveThemeVariables(theme: ShikiThemeModel): AppCssVariables {
 
 void resolveThemeVariables;
 
-export function ToolingApp({ routedToolId }: { routedToolId?: string }) {
+type ToolingAppProps = {
+	routedToolId?: string;
+	initialUiPreferences: Awaited<ReturnType<typeof getUiPreferences>>;
+};
+
+export function ToolingApp({
+	routedToolId,
+	initialUiPreferences,
+}: ToolingAppProps) {
 	const TOOL_TOOLTIP_DELAY_MS = 2000;
 	const TOOL_TOOLTIP_INSTANT_WINDOW_MS = 2500;
 	const location = useLocation();
@@ -1329,7 +1343,12 @@ export function ToolingApp({ routedToolId }: { routedToolId?: string }) {
 	const [selectedToolId, setSelectedToolId] = useState(() =>
 		routedToolId && TOOL_IDS.has(routedToolId) ? routedToolId : DEFAULT_TOOL_ID,
 	);
-	const [navExpanded, setNavExpanded] = useState(false);
+	const [navExpanded, setNavExpanded] = useState(
+		initialUiPreferences.navExpanded,
+	);
+	const [navPreferenceLoaded, setNavPreferenceLoaded] = useState(
+		initialUiPreferences.hasNavExpandedPreference,
+	);
 	const [isMobileViewport, setIsMobileViewport] = useState(false);
 	const [mobileNavOpen, setMobileNavOpen] = useState(false);
 	const [paletteOpen, setPaletteOpen] = useState(false);
@@ -1491,14 +1510,19 @@ export function ToolingApp({ routedToolId }: { routedToolId?: string }) {
 	}, []);
 
 	useEffect(() => {
-		const savedNavState = window.localStorage.getItem(NAV_EXPANDED_STORAGE_KEY);
-		if (!savedNavState) {
-			setNavExpanded(window.innerWidth >= 1024);
+		if (initialUiPreferences.hasNavExpandedPreference) {
 			return;
 		}
 
-		setNavExpanded(savedNavState === "1");
-	}, []);
+		const savedNavState = window.localStorage.getItem(NAV_EXPANDED_STORAGE_KEY);
+		if (!savedNavState) {
+			setNavExpanded(window.innerWidth >= 1024);
+		} else {
+			setNavExpanded(savedNavState === "1");
+		}
+
+		setNavPreferenceLoaded(true);
+	}, [initialUiPreferences.hasNavExpandedPreference]);
 
 	useEffect(() => {
 		if (typeof window === "undefined") {
@@ -1534,15 +1558,16 @@ export function ToolingApp({ routedToolId }: { routedToolId?: string }) {
 	}, [themeId, themePreferencesLoaded]);
 
 	useEffect(() => {
-		if (typeof window === "undefined") {
+		if (typeof window === "undefined" || !navPreferenceLoaded) {
 			return;
 		}
 
+		writeCookieValue(NAV_EXPANDED_STORAGE_KEY, navExpanded ? "1" : "0");
 		window.localStorage.setItem(
 			NAV_EXPANDED_STORAGE_KEY,
 			navExpanded ? "1" : "0",
 		);
-	}, [navExpanded]);
+	}, [navExpanded, navPreferenceLoaded]);
 
 	useEffect(() => {
 		return () => {
@@ -1915,7 +1940,7 @@ export function ToolingApp({ routedToolId }: { routedToolId?: string }) {
 
 	const toolWorkspace = (
 		<div className="mx-auto w-full max-w-[1480px]">
-			<section className="mb-4 overflow-hidden rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] shadow-[0_18px_60px_-45px_var(--app-shadow)]">
+			<section className="mb-5 overflow-hidden rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] shadow-[0_18px_60px_-45px_var(--app-shadow)]">
 				<div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
 					<div className="flex min-w-0 items-start gap-3.5">
 						<div className="grid size-11 shrink-0 place-items-center rounded-xl border border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)] shadow-[inset_0_1px_0_var(--app-glow-1)]">
@@ -2330,7 +2355,9 @@ function CommandPalette({
 function ToolGrid({ children }: { children: React.ReactNode }) {
 	return (
 		<ToolGridContext.Provider value>
-			<div className="grid items-stretch gap-4 xl:grid-cols-2">{children}</div>
+			<div className="grid min-w-0 items-stretch gap-5 xl:grid-cols-2">
+				{children}
+			</div>
 		</ToolGridContext.Provider>
 	);
 }
@@ -2346,9 +2373,9 @@ function ToolCard({
 }) {
 	return (
 		<section
-			className={`tool-card flex h-full min-h-0 flex-col rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 shadow-[inset_0_1px_0_var(--app-glow-1),0_18px_55px_-42px_var(--app-shadow)] ${className ?? ""}`}
+			className={`tool-card flex h-full min-h-0 min-w-0 flex-col rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 shadow-[inset_0_1px_0_var(--app-glow-1),0_18px_55px_-42px_var(--app-shadow)] sm:p-5 ${className ?? ""}`}
 		>
-			<h3 className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-muted)]">
+			<h3 className="mb-4 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-muted)]">
 				<span className="size-1.5 rounded-full bg-[color:var(--app-accent)] shadow-[0_0_12px_var(--app-accent)]" />
 				<span>{title}</span>
 			</h3>
@@ -2409,7 +2436,7 @@ function ToolTextarea({
 			placeholder={placeholder}
 			rows={rows}
 			spellCheck={false}
-			className={`w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2.5 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] shadow-[inset_0_1px_5px_rgba(0,0,0,0.08)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
+			className={`w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 py-3 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] shadow-[inset_0_1px_5px_rgba(0,0,0,0.08)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
 		/>
 	);
 }
@@ -2436,7 +2463,7 @@ function ToolTextInput({
 			type={type}
 			value={value}
 			onChange={(event) => onChange(event.target.value)}
-			className={`rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] text-[color:var(--app-fg)] transition focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
+			className={`min-h-10 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 py-2.5 text-sm text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
 		/>
 	);
 }
@@ -2464,13 +2491,15 @@ function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 	};
 
 	return (
-		<div className={`relative ${shouldFill ? "h-full min-h-0 flex-1" : ""}`}>
+		<div
+			className={`relative min-w-0 max-w-full ${shouldFill ? "h-full min-h-0 flex-1" : ""}`}
+		>
 			<button
 				type="button"
 				onClick={copy}
 				disabled={!value}
 				aria-label={value ? "Copy output" : "No output to copy"}
-				className="absolute right-2 top-2 rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-2 py-1 text-[11px] font-semibold text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] disabled:cursor-not-allowed disabled:opacity-40"
+				className="absolute right-3 top-3 rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-2.5 py-1.5 text-[11px] font-semibold text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] disabled:cursor-not-allowed disabled:opacity-40"
 			>
 				{copyState === "idle"
 					? "Copy"
@@ -2479,7 +2508,7 @@ function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 						: "Failed"}
 			</button>
 			<pre
-				className={`uutil-scrollbar overflow-auto whitespace-pre-wrap break-words rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2.5 pr-20 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] ${
+				className={`uutil-scrollbar max-w-full overflow-auto whitespace-pre-wrap break-words rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 py-3 pr-24 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] ${
 					shouldFill ? "h-full min-h-0" : "min-h-28"
 				} ${value ? "" : "italic text-[color:var(--app-fg-soft)]"}`}
 			>
@@ -2489,8 +2518,18 @@ function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 	);
 }
 
-function ActionRow({ children }: { children: React.ReactNode }) {
-	return <div className="mb-3 flex flex-wrap gap-2">{children}</div>;
+function ActionRow({
+	children,
+	className = "mt-4",
+}: {
+	children: React.ReactNode;
+	className?: string;
+}) {
+	return (
+		<div className={`flex flex-wrap items-center gap-2.5 ${className}`}>
+			{children}
+		</div>
+	);
 }
 
 function ActionButton({
@@ -2520,7 +2559,7 @@ function ActionButton({
 			type="button"
 			onClick={() => void handleClick()}
 			data-tool-action={normalizeActionLabel(label)}
-			className={`min-h-9 rounded-lg border px-3 py-2 text-xs font-bold tracking-[0.01em] transition duration-150 active:translate-y-px ${
+			className={`min-h-10 rounded-lg border px-3.5 py-2.5 text-xs font-bold tracking-[0.01em] transition duration-150 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-panel-bg)] ${
 				variant === "default"
 					? "border-[color:var(--app-accent)] bg-[color:var(--app-accent)] text-[color:var(--app-accent-contrast)] shadow-[0_8px_24px_-12px_var(--app-accent)] hover:-translate-y-0.5 hover:brightness-105"
 					: "[border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] hover:-translate-y-0.5 hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)]"
@@ -2539,7 +2578,7 @@ function ErrorText({ text }: { text: string }) {
 	return (
 		<p
 			role="alert"
-			className="mt-2 rounded-lg border border-[color:color-mix(in_srgb,var(--app-danger)_45%,transparent)] bg-[color:color-mix(in_srgb,var(--app-danger)_10%,transparent)] px-3 py-2 text-xs font-medium text-[color:var(--app-danger)]"
+			className="mt-3 rounded-lg border border-[color:color-mix(in_srgb,var(--app-danger)_45%,transparent)] bg-[color:color-mix(in_srgb,var(--app-danger)_10%,transparent)] px-3 py-2.5 text-xs font-medium text-[color:var(--app-danger)]"
 		>
 			{text}
 		</p>
@@ -3044,7 +3083,7 @@ function createLorem(paragraphCount: number) {
 
 function ToolLabel({ text }: { text: string }) {
 	return (
-		<p className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.13em] text-[color:var(--app-fg-muted)]">
+		<p className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.13em] text-[color:var(--app-fg-muted)]">
 			{text}
 		</p>
 	);
@@ -3102,8 +3141,8 @@ function CustomSelect({
 			<button
 				type="button"
 				onClick={() => setOpen((current) => !current)}
-				className={`flex w-full items-center justify-between gap-2 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] text-left text-[color:var(--app-fg)] transition hover:[border-color:var(--app-border-strong)] ${
-					size === "sm" ? "px-2.5 py-1.5 text-xs" : "px-3 py-2 text-sm"
+				className={`flex w-full items-center justify-between gap-2 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] text-left text-[color:var(--app-fg)] transition hover:[border-color:var(--app-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] ${
+					size === "sm" ? "px-2.5 py-2 text-xs" : "px-3.5 py-2.5 text-sm"
 				}`}
 				aria-haspopup="listbox"
 				aria-expanded={open}
@@ -3121,7 +3160,7 @@ function CustomSelect({
 
 			{open ? (
 				<div
-					className="absolute left-0 right-0 top-full z-40 mt-1 max-h-60 overflow-auto rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-1 shadow-[0_18px_64px_var(--app-shadow)]"
+					className="absolute left-0 right-0 top-full z-40 mt-2 max-h-60 overflow-auto rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-1.5 shadow-[0_18px_64px_var(--app-shadow)]"
 					role="listbox"
 					aria-label={`${ariaLabel} options`}
 				>
@@ -3397,34 +3436,39 @@ function Base64ImageTool() {
 	return (
 		<div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
 			<ToolCard title="Base64 Image Data">
-				<div className="mb-3">
-					<ToolLabel text="Upload image" />
-					<input
-						type="file"
-						accept="image/*"
-						onChange={(event) => {
-							const file = event.target.files?.[0];
-							if (file) {
-								void handleFile(file);
-							}
-						}}
-						className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 text-sm"
+				<div className="space-y-4">
+					<div>
+						<ToolLabel text="Upload image" />
+						<input
+							type="file"
+							aria-label="Upload image"
+							accept="image/*"
+							onChange={(event) => {
+								const file = event.target.files?.[0];
+								if (file) {
+									void handleFile(file);
+								}
+							}}
+							className="min-h-10 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 py-2.5 text-sm text-[color:var(--app-fg-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)]"
+						/>
+					</div>
+
+					<div>
+						<ToolLabel text="Mime type" />
+						<ToolTextInput
+							aria-label="MIME type"
+							value={mimeType}
+							onChange={setMimeType}
+						/>
+					</div>
+
+					<ToolTextarea
+						rows={10}
+						value={base64}
+						onChange={setBase64}
+						placeholder="Paste a base64 string or data URL"
 					/>
 				</div>
-
-				<ToolLabel text="Mime type" />
-				<ToolTextInput
-					value={mimeType}
-					onChange={setMimeType}
-					className="mb-3 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 text-sm"
-				/>
-
-				<ToolTextarea
-					rows={10}
-					value={base64}
-					onChange={setBase64}
-					placeholder="Paste a base64 string or data URL"
-				/>
 
 				<ActionRow>
 					<ActionButton label="Decode to Preview" onClick={decodeImage} />
@@ -3545,10 +3589,11 @@ function RegexTesterTool() {
 	return (
 		<div className="space-y-4">
 			<ToolCard title="Pattern Setup">
-				<div className="grid gap-3 md:grid-cols-[1fr_120px]">
+				<div className="grid gap-4 md:grid-cols-[1fr_120px]">
 					<div>
 						<ToolLabel text="Pattern" />
 						<ToolTextInput
+							aria-label="Regular expression pattern"
 							value={pattern}
 							onChange={setPattern}
 							className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
@@ -3557,13 +3602,14 @@ function RegexTesterTool() {
 					<div>
 						<ToolLabel text="Flags" />
 						<ToolTextInput
+							aria-label="Regular expression flags"
 							value={flags}
 							onChange={setFlags}
 							className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
 						/>
 					</div>
 				</div>
-				<div className="mt-3">
+				<div className="mt-4">
 					<ToolLabel text="Test text" />
 					<ToolTextarea
 						rows={7}
@@ -3572,19 +3618,18 @@ function RegexTesterTool() {
 						placeholder="Text to test against"
 					/>
 				</div>
-				<div className="mt-3">
+				<div className="mt-4">
 					<ToolLabel text="Replacement string" />
 					<ToolTextInput
+						aria-label="Replacement string"
 						value={replacement}
 						onChange={setReplacement}
 						className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
 					/>
 				</div>
-				<div className="mt-3">
-					<ActionRow>
-						<ActionButton label="Run Regex" onClick={run} />
-					</ActionRow>
-				</div>
+				<ActionRow>
+					<ActionButton label="Run Regex" onClick={run} />
+				</ActionRow>
 				<ErrorText text={error} />
 			</ToolCard>
 
@@ -3856,7 +3901,7 @@ function UuidUlidTool() {
 	return (
 		<ToolGrid>
 			<ToolCard title="Generate">
-				<ActionRow>
+				<ActionRow className="mb-4">
 					<ActionButton label="UUID v4" onClick={() => setOutput(v4())} />
 					<ActionButton
 						label="UUID v7"
@@ -3978,7 +4023,7 @@ function TextDiffTool() {
 			</ToolGrid>
 
 			<ToolCard title="Diff Output">
-				<div className="mb-3 flex flex-wrap gap-2">
+				<div className="mb-4 flex flex-wrap items-center gap-2.5">
 					<CustomSelect
 						value={diffStyle}
 						ariaLabel="Diff layout"
@@ -4037,7 +4082,7 @@ function TextDiffTool() {
 						className="block min-h-20"
 					/>
 				</div>
-				<p className="text-xs text-[color:var(--app-fg-soft)]">
+				<p className="mt-3 text-xs leading-5 text-[color:var(--app-fg-soft)]">
 					{copyState === "idle"
 						? "Rendered with @pierre/diffs."
 						: copyState === "left"
@@ -4157,21 +4202,29 @@ function NumberBaseTool() {
 	return (
 		<ToolGrid>
 			<ToolCard title="Number Input">
-				<ToolLabel text="Value" />
-				<ToolTextInput
-					value={value}
-					onChange={setValue}
-					className="mb-3 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
-				/>
-				<ToolLabel text="Base (2-36)" />
-				<ToolTextInput
-					type="number"
-					min={2}
-					max={36}
-					value={fromBase}
-					onChange={setFromBase}
-					className="mb-3 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
-				/>
+				<div className="space-y-4">
+					<div>
+						<ToolLabel text="Value" />
+						<ToolTextInput
+							aria-label="Number value"
+							value={value}
+							onChange={setValue}
+							className="font-mono"
+						/>
+					</div>
+					<div>
+						<ToolLabel text="Base (2-36)" />
+						<ToolTextInput
+							aria-label="Source base"
+							type="number"
+							min={2}
+							max={36}
+							value={fromBase}
+							onChange={setFromBase}
+							className="font-mono"
+						/>
+					</div>
+				</div>
 				<ActionRow>
 					<ActionButton label="Convert" onClick={convert} />
 				</ActionRow>
@@ -4474,6 +4527,7 @@ function LoremIpsumTool() {
 			<ToolCard title="Generator">
 				<ToolLabel text="Paragraph count" />
 				<ToolTextInput
+					aria-label="Paragraph count"
 					type="number"
 					min={1}
 					max={20}
@@ -4481,7 +4535,6 @@ function LoremIpsumTool() {
 					onChange={(nextValue) =>
 						setParagraphs(Number.parseInt(nextValue, 10) || 1)
 					}
-					className="mb-3 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2"
 				/>
 				<ActionRow>
 					<ActionButton label="Generate" onClick={generate} />
@@ -4568,7 +4621,7 @@ function QrCodeTool() {
 						<img
 							src={qrDataUrl}
 							alt="QR Code"
-							className="mx-auto mt-2 rounded-lg border [border-color:var(--app-border)] bg-white p-3"
+							className="mx-auto mt-4 rounded-lg border [border-color:var(--app-border)] bg-white p-3"
 						/>
 					) : null}
 				</ToolCard>
@@ -4577,6 +4630,7 @@ function QrCodeTool() {
 					<ToolLabel text="Upload QR image" />
 					<input
 						type="file"
+						aria-label="Upload QR image"
 						accept="image/*"
 						onChange={(event) => {
 							const file = event.target.files?.[0];
@@ -4584,9 +4638,11 @@ function QrCodeTool() {
 								void decodeQrFromFile(file);
 							}
 						}}
-						className="mb-3 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 text-sm"
+						className="min-h-10 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 py-2.5 text-sm text-[color:var(--app-fg-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)]"
 					/>
-					<OutputBox value={decodedOutput} />
+					<div className="mt-4">
+						<OutputBox value={decodedOutput} />
+					</div>
 				</ToolCard>
 			</ToolGrid>
 			<ErrorText text={error} />
@@ -4746,13 +4802,14 @@ function HashGeneratorTool() {
 					onChange={setInput}
 					placeholder="Text to hash"
 				/>
-				<div className="mb-3 flex gap-2">
+				<div className="mt-4 flex flex-wrap gap-2.5">
 					{(["MD5", "SHA1", "SHA256", "SHA512"] as const).map((value) => (
 						<button
 							key={value}
 							type="button"
 							onClick={() => setAlgorithm(value)}
-							className={`rounded-md border px-2.5 py-1 text-xs ${
+							aria-pressed={value === algorithm}
+							className={`min-h-9 rounded-md border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] ${
 								value === algorithm
 									? "border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent-strong)]"
 									: "[border-color:var(--app-border)] text-[color:var(--app-fg-muted)]"
@@ -4861,17 +4918,19 @@ function SqlFormatterTool() {
 					onChange={setInput}
 					placeholder="SELECT * FROM ..."
 				/>
-				<ToolLabel text="Dialect" />
-				<CustomSelect
-					value={dialect}
-					ariaLabel="SQL dialect"
-					onChange={(nextValue) => setDialect(nextValue as SqlLanguage)}
-					options={dialects.map((item) => ({
-						value: item,
-						label: item,
-					}))}
-					className="mb-3 w-full"
-				/>
+				<div className="mt-4">
+					<ToolLabel text="Dialect" />
+					<CustomSelect
+						value={dialect}
+						ariaLabel="SQL dialect"
+						onChange={(nextValue) => setDialect(nextValue as SqlLanguage)}
+						options={dialects.map((item) => ({
+							value: item,
+							label: item,
+						}))}
+						className="w-full"
+					/>
+				</div>
 				<ActionRow>
 					<ActionButton
 						label="Format SQL"
@@ -5225,6 +5284,7 @@ function RandomStringTool() {
 			<ToolCard title="Generator Options">
 				<ToolLabel text="Length" />
 				<ToolTextInput
+					aria-label="Random string length"
 					type="number"
 					min={1}
 					max={2048}
@@ -5232,10 +5292,9 @@ function RandomStringTool() {
 					onChange={(nextValue) =>
 						setLength(Number.parseInt(nextValue, 10) || 1)
 					}
-					className="mb-3 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2"
 				/>
 
-				<div className="mb-3 grid grid-cols-2 gap-2 text-sm">
+				<div className="mt-4 grid grid-cols-1 gap-2.5 text-sm sm:grid-cols-2">
 					<ToggleBox
 						label="Lowercase"
 						checked={includeLower}
@@ -5280,13 +5339,32 @@ function ToggleBox({
 	onChange: (checked: boolean) => void;
 }) {
 	return (
-		<label className="flex items-center gap-2 rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-2 py-2">
+		<label
+			className={`flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 transition focus-within:border-[color:var(--app-accent)] focus-within:ring-2 focus-within:ring-[color:var(--app-ring)] ${
+				checked
+					? "border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)]"
+					: "[border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] hover:[border-color:var(--app-border-strong)]"
+			}`}
+		>
 			<input
 				type="checkbox"
 				checked={checked}
 				onChange={(event) => onChange(event.target.checked)}
+				className="sr-only"
 			/>
-			<span>{label}</span>
+			<span
+				aria-hidden="true"
+				className={`grid size-4 shrink-0 place-items-center rounded-[4px] border transition ${
+					checked
+						? "border-[color:var(--app-accent)] bg-[color:var(--app-accent)] text-[color:var(--app-accent-contrast)] shadow-[0_0_12px_-4px_var(--app-accent)]"
+						: "[border-color:var(--app-border-strong)] bg-[color:var(--app-surface-bg)]"
+				}`}
+			>
+				{checked ? (
+					<Check aria-hidden="true" className="size-3" strokeWidth={3} />
+				) : null}
+			</span>
+			<span className="text-[color:var(--app-fg)]">{label}</span>
 		</label>
 	);
 }
@@ -5356,20 +5434,22 @@ function CurlToCodeTool() {
 					onChange={setInput}
 					placeholder="curl ..."
 				/>
-				<ToolLabel text="Target language" />
-				<CustomSelect
-					value={target}
-					ariaLabel="Target language"
-					onChange={(nextValue) => setTarget(nextValue as CurlTarget)}
-					options={[
-						{ value: "node-fetch", label: "Node Fetch" },
-						{ value: "javascript", label: "JavaScript (fetch)" },
-						{ value: "python", label: "Python (requests)" },
-						{ value: "go", label: "Go" },
-						{ value: "php", label: "PHP" },
-					]}
-					className="mb-3 w-full"
-				/>
+				<div className="mt-4">
+					<ToolLabel text="Target language" />
+					<CustomSelect
+						value={target}
+						ariaLabel="Target language"
+						onChange={(nextValue) => setTarget(nextValue as CurlTarget)}
+						options={[
+							{ value: "node-fetch", label: "Node Fetch" },
+							{ value: "javascript", label: "JavaScript (fetch)" },
+							{ value: "python", label: "Python (requests)" },
+							{ value: "go", label: "Go" },
+							{ value: "php", label: "PHP" },
+						]}
+						className="w-full"
+					/>
+				</div>
 				<ActionRow>
 					<ActionButton label="Convert" onClick={convert} />
 				</ActionRow>
@@ -5594,7 +5674,7 @@ function LineSortDedupeTool() {
 					onChange={setInput}
 					placeholder="One value per line"
 				/>
-				<div className="mb-3 grid grid-cols-2 gap-2 text-sm">
+				<div className="mt-4 grid grid-cols-1 gap-2.5 text-sm sm:grid-cols-2">
 					<ToggleBox
 						label="Ignore case"
 						checked={ignoreCase}
