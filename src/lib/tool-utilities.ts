@@ -599,3 +599,537 @@ export function generateHmac(
 		base64: digest.toString(CryptoJS.enc.Base64),
 	};
 }
+
+const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+export function encodeBase32(input: string): string {
+	const bytes = new TextEncoder().encode(input);
+	let buffer = 0;
+	let bits = 0;
+	let output = "";
+
+	for (const byte of bytes) {
+		buffer = (buffer << 8) | byte;
+		bits += 8;
+		while (bits >= 5) {
+			bits -= 5;
+			output += BASE32_ALPHABET[(buffer >>> bits) & 31];
+		}
+	}
+
+	if (bits > 0) {
+		output += BASE32_ALPHABET[(buffer << (5 - bits)) & 31];
+	}
+
+	return output.padEnd(Math.ceil(output.length / 8) * 8, "=");
+}
+
+export function decodeBase32(input: string): string {
+	const normalized = input.toUpperCase().replace(/[\s=-]/g, "");
+	if (!normalized) return "";
+	if (
+		[...normalized].some((character) => !BASE32_ALPHABET.includes(character))
+	) {
+		throw new Error("Base32 input contains unsupported characters.");
+	}
+
+	let buffer = 0;
+	let bits = 0;
+	const bytes: number[] = [];
+	for (const character of normalized) {
+		buffer = (buffer << 5) | BASE32_ALPHABET.indexOf(character);
+		bits += 5;
+		if (bits >= 8) {
+			bits -= 8;
+			bytes.push((buffer >>> bits) & 255);
+		}
+	}
+
+	try {
+		return new TextDecoder("utf-8", { fatal: true }).decode(
+			new Uint8Array(bytes),
+		);
+	} catch {
+		throw new Error("Decoded Base32 bytes are not valid UTF-8 text.");
+	}
+}
+
+type ParsedSemVer = {
+	major: number;
+	minor: number;
+	patch: number;
+	prerelease: string[];
+};
+
+function parseSemVer(input: string): ParsedSemVer {
+	const match = input
+		.trim()
+		.match(
+			/^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/,
+		);
+	if (!match) {
+		throw new Error("Enter a valid semantic version such as 2.1.0-beta.1.");
+	}
+
+	return {
+		major: Number(match[1]),
+		minor: Number(match[2]),
+		patch: Number(match[3]),
+		prerelease: match[4]?.split(".") ?? [],
+	};
+}
+
+export type SemVerComparison = {
+	result: -1 | 0 | 1;
+	relation: "older" | "equal" | "newer";
+	summary: string;
+};
+
+export function compareSemVer(
+	leftInput: string,
+	rightInput: string,
+): SemVerComparison {
+	const left = parseSemVer(leftInput);
+	const right = parseSemVer(rightInput);
+	let result: -1 | 0 | 1 = 0;
+
+	for (const key of ["major", "minor", "patch"] as const) {
+		if (left[key] !== right[key]) {
+			result = left[key] < right[key] ? -1 : 1;
+			break;
+		}
+	}
+
+	if (result === 0 && left.prerelease.length !== right.prerelease.length) {
+		if (left.prerelease.length === 0) result = 1;
+		else if (right.prerelease.length === 0) result = -1;
+	}
+
+	if (result === 0) {
+		const length = Math.max(left.prerelease.length, right.prerelease.length);
+		for (let index = 0; index < length; index += 1) {
+			const leftPart = left.prerelease[index];
+			const rightPart = right.prerelease[index];
+			if (leftPart === rightPart) continue;
+			if (leftPart === undefined) result = -1;
+			else if (rightPart === undefined) result = 1;
+			else {
+				const leftNumeric = /^\d+$/.test(leftPart);
+				const rightNumeric = /^\d+$/.test(rightPart);
+				if (leftNumeric && rightNumeric) {
+					result = Number(leftPart) < Number(rightPart) ? -1 : 1;
+				} else if (leftNumeric !== rightNumeric) {
+					result = leftNumeric ? -1 : 1;
+				} else {
+					result = leftPart < rightPart ? -1 : 1;
+				}
+			}
+			break;
+		}
+	}
+
+	const relation = result === 0 ? "equal" : result < 0 ? "older" : "newer";
+	return {
+		result,
+		relation,
+		summary:
+			result === 0
+				? `${leftInput.trim()} and ${rightInput.trim()} have equal precedence.`
+				: `${leftInput.trim()} is ${relation} than ${rightInput.trim()}.`,
+	};
+}
+
+function unquoteEnvValue(value: string): string {
+	if (value.startsWith('"') && value.endsWith('"')) {
+		try {
+			return JSON.parse(value) as string;
+		} catch {
+			throw new Error("A double-quoted environment value is malformed.");
+		}
+	}
+	if (value.startsWith("'") && value.endsWith("'")) {
+		return value.slice(1, -1).replace(/\\'/g, "'");
+	}
+	return value.replace(/\s+#.*$/, "").trim();
+}
+
+export function envToJson(input: string): Record<string, string> {
+	const output: Record<string, string> = {};
+	input.split(/\r?\n/).forEach((rawLine, index) => {
+		const line = rawLine.trim();
+		if (!line || line.startsWith("#")) return;
+		const normalized = line.startsWith("export ") ? line.slice(7).trim() : line;
+		const equalsIndex = normalized.indexOf("=");
+		if (equalsIndex < 1) {
+			throw new Error(`Line ${index + 1} is not a KEY=value assignment.`);
+		}
+		const key = normalized.slice(0, equalsIndex).trim();
+		if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+			throw new Error(`Line ${index + 1} contains an invalid variable name.`);
+		}
+		output[key] = unquoteEnvValue(normalized.slice(equalsIndex + 1).trim());
+	});
+	return output;
+}
+
+export function jsonToEnv(input: string): string {
+	const value = JSON.parse(input) as unknown;
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		throw new Error("Environment conversion requires a JSON object.");
+	}
+
+	return Object.entries(value)
+		.map(([key, entry]) => {
+			if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+				throw new Error(`'${key}' is not a valid environment variable name.`);
+			}
+			const normalized =
+				entry === null
+					? ""
+					: typeof entry === "object"
+						? JSON.stringify(entry)
+						: String(entry);
+			return `${key}=${JSON.stringify(normalized)}`;
+		})
+		.join("\n");
+}
+
+export function jsonLinesToJson(input: string): unknown[] {
+	return input
+		.split(/\r?\n/)
+		.map((line) => line.trim())
+		.filter(Boolean)
+		.map((line, index) => {
+			try {
+				return JSON.parse(line) as unknown;
+			} catch {
+				throw new Error(`Line ${index + 1} is not valid JSON.`);
+			}
+		});
+}
+
+export function jsonToJsonLines(input: string): string {
+	const value = JSON.parse(input) as unknown;
+	const entries = Array.isArray(value) ? value : [value];
+	return entries.map((entry) => JSON.stringify(entry)).join("\n");
+}
+
+const CHMOD_SYMBOLS = ["---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"];
+
+export type ChmodDetails = {
+	octal: string;
+	symbolic: string;
+	owner: string;
+	group: string;
+	others: string;
+};
+
+export function calculateChmod(input: string): ChmodDetails {
+	const normalized = input.trim();
+	let octal: string;
+	if (/^[0-7]{3}$/.test(normalized)) {
+		octal = normalized;
+	} else if (/^[r-][w-][x-][r-][w-][x-][r-][w-][x-]$/.test(normalized)) {
+		octal = [
+			normalized.slice(0, 3),
+			normalized.slice(3, 6),
+			normalized.slice(6, 9),
+		]
+			.map((segment) => String(CHMOD_SYMBOLS.indexOf(segment)))
+			.join("");
+	} else {
+		throw new Error(
+			"Enter a three-digit octal mode or a nine-character symbolic mode.",
+		);
+	}
+
+	const labels = octal.split("").map((digit) => CHMOD_SYMBOLS[Number(digit)]);
+	return {
+		octal,
+		symbolic: labels.join(""),
+		owner: labels[0],
+		group: labels[1],
+		others: labels[2],
+	};
+}
+
+const TRACKING_QUERY_PARAMS = new Set([
+	"fbclid",
+	"gclid",
+	"mc_cid",
+	"mc_eid",
+	"ref",
+]);
+
+export type CanonicalUrlOptions = {
+	removeTracking?: boolean;
+	removeFragment?: boolean;
+	removeTrailingSlash?: boolean;
+};
+
+export function canonicalizeUrl(
+	input: string,
+	options: CanonicalUrlOptions = {},
+): string {
+	const url = new URL(input.trim());
+	if (!["http:", "https:"].includes(url.protocol)) {
+		throw new Error("Only HTTP and HTTPS URLs can be canonicalized.");
+	}
+	if (url.username || url.password) {
+		throw new Error("URLs containing embedded credentials are not accepted.");
+	}
+
+	if (options.removeTracking ?? true) {
+		for (const key of [...url.searchParams.keys()]) {
+			if (
+				key.toLowerCase().startsWith("utm_") ||
+				TRACKING_QUERY_PARAMS.has(key.toLowerCase())
+			) {
+				url.searchParams.delete(key);
+			}
+		}
+	}
+	url.searchParams.sort();
+	if (options.removeFragment ?? true) url.hash = "";
+	if ((options.removeTrailingSlash ?? true) && url.pathname !== "/") {
+		url.pathname = url.pathname.replace(/\/+$/, "");
+	}
+	return url.toString();
+}
+
+export type MacAddressDetails = {
+	normalized: string;
+	compact: string;
+	isUnicast: boolean;
+	isMulticast: boolean;
+	isLocallyAdministered: boolean;
+	isUniversallyAdministered: boolean;
+};
+
+export function inspectMacAddress(input: string): MacAddressDetails {
+	const compact = input.trim().replace(/[.:-]/g, "").toUpperCase();
+	if (!/^[0-9A-F]{12}$/.test(compact)) {
+		throw new Error("Enter a valid 48-bit MAC address.");
+	}
+	const firstOctet = Number.parseInt(compact.slice(0, 2), 16);
+	const isMulticast = Boolean(firstOctet & 1);
+	const isLocallyAdministered = Boolean(firstOctet & 2);
+	return {
+		normalized: compact.match(/.{2}/g)?.join(":") ?? compact,
+		compact,
+		isUnicast: !isMulticast,
+		isMulticast,
+		isLocallyAdministered,
+		isUniversallyAdministered: !isLocallyAdministered,
+	};
+}
+
+const MIME_ENTRIES = [
+	["application/json", ["json"]],
+	["application/ld+json", ["jsonld"]],
+	["application/pdf", ["pdf"]],
+	["application/wasm", ["wasm"]],
+	["application/xml", ["xml"]],
+	["application/zip", ["zip"]],
+	["application/gzip", ["gz"]],
+	["application/octet-stream", ["bin"]],
+	["application/vnd.api+json", ["jsonapi"]],
+	["application/x-tar", ["tar"]],
+	["application/x-www-form-urlencoded", []],
+	["font/otf", ["otf"]],
+	["font/ttf", ["ttf"]],
+	["font/woff", ["woff"]],
+	["font/woff2", ["woff2"]],
+	["image/avif", ["avif"]],
+	["image/gif", ["gif"]],
+	["image/jpeg", ["jpg", "jpeg"]],
+	["image/png", ["png"]],
+	["image/svg+xml", ["svg"]],
+	["image/webp", ["webp"]],
+	["text/css", ["css"]],
+	["text/csv", ["csv"]],
+	["text/html", ["html", "htm"]],
+	["text/javascript", ["js", "mjs"]],
+	["text/markdown", ["md", "markdown"]],
+	["text/plain", ["txt", "log"]],
+	["video/mp4", ["mp4"]],
+	["video/webm", ["webm"]],
+	["audio/mpeg", ["mp3"]],
+	["audio/ogg", ["ogg"]],
+] as const;
+
+export type MimeTypeDetails = { mime: string; extensions: readonly string[] };
+
+export function lookupMimeTypes(query: string): MimeTypeDetails[] {
+	const normalized = query.trim().toLowerCase().replace(/^\./, "");
+	return MIME_ENTRIES.filter(
+		([mime, extensions]) =>
+			!normalized ||
+			mime.includes(normalized) ||
+			extensions.some((extension) => extension.includes(normalized)),
+	).map(([mime, extensions]) => ({ mime, extensions }));
+}
+
+function estimateSyllables(word: string): number {
+	const normalized = word.toLowerCase().replace(/[^a-z]/g, "");
+	if (!normalized) return 0;
+	if (normalized.length <= 3) return 1;
+	const withoutSilentEnding = normalized.replace(/(?:es|ed|e)$/, "");
+	return Math.max(1, withoutSilentEnding.match(/[aeiouy]+/g)?.length ?? 1);
+}
+
+export type ReadabilityAnalysis = {
+	characters: number;
+	words: number;
+	sentences: number;
+	paragraphs: number;
+	readingMinutes: number;
+	readingEase: number;
+	gradeLevel: number;
+	label: string;
+};
+
+export function analyzeReadability(input: string): ReadabilityAnalysis {
+	const text = input.trim();
+	const words = text.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) ?? [];
+	const sentences = text
+		? Math.max(1, (text.match(/[.!?]+(?=\s|$)/g) ?? []).length)
+		: 0;
+	const paragraphs = text
+		? text.split(/\n\s*\n/).filter((entry) => entry.trim()).length
+		: 0;
+	const syllables = words.reduce(
+		(sum, word) => sum + estimateSyllables(word),
+		0,
+	);
+	const readingEase =
+		words.length && sentences
+			? 206.835 -
+				1.015 * (words.length / sentences) -
+				84.6 * (syllables / words.length)
+			: 0;
+	const gradeLevel =
+		words.length && sentences
+			? 0.39 * (words.length / sentences) +
+				11.8 * (syllables / words.length) -
+				15.59
+			: 0;
+	const roundedEase = Math.round(readingEase * 10) / 10;
+
+	return {
+		characters: Array.from(text).length,
+		words: words.length,
+		sentences,
+		paragraphs,
+		readingMinutes: Math.round((words.length / 200) * 10) / 10,
+		readingEase: roundedEase,
+		gradeLevel: Math.max(0, Math.round(gradeLevel * 10) / 10),
+		label:
+			roundedEase >= 80
+				? "Easy"
+				: roundedEase >= 60
+					? "Standard"
+					: roundedEase >= 30
+						? "Difficult"
+						: "Very difficult",
+	};
+}
+
+const SECURITY_HEADER_RULES = [
+	{
+		name: "content-security-policy",
+		label: "Content-Security-Policy",
+		recommendation:
+			"Restrict permitted script, style, image, and connection sources.",
+	},
+	{
+		name: "strict-transport-security",
+		label: "Strict-Transport-Security",
+		recommendation:
+			"Enforce HTTPS with a long max-age after validating every subdomain.",
+	},
+	{
+		name: "x-content-type-options",
+		label: "X-Content-Type-Options",
+		recommendation: "Set the value to nosniff.",
+	},
+	{
+		name: "referrer-policy",
+		label: "Referrer-Policy",
+		recommendation:
+			"Limit cross-origin referrer data, such as strict-origin-when-cross-origin.",
+	},
+	{
+		name: "permissions-policy",
+		label: "Permissions-Policy",
+		recommendation:
+			"Disable browser capabilities that the application does not use.",
+	},
+	{
+		name: "x-frame-options",
+		label: "X-Frame-Options",
+		recommendation: "Set DENY or SAMEORIGIN, or use CSP frame-ancestors.",
+	},
+] as const;
+
+export type SecurityHeadersAnalysis = {
+	score: number;
+	present: string[];
+	missing: string[];
+	findings: string[];
+};
+
+export function analyzeSecurityHeaders(input: string): SecurityHeadersAnalysis {
+	const headers = new Map<string, string>();
+	for (const rawLine of input.split(/\r?\n/)) {
+		const line = rawLine.trim();
+		if (!line || /^HTTP\/\d(?:\.\d)?\s+\d{3}/i.test(line)) continue;
+		const separator = line.indexOf(":");
+		if (separator < 1) continue;
+		headers.set(
+			line.slice(0, separator).trim().toLowerCase(),
+			line.slice(separator + 1).trim(),
+		);
+	}
+
+	const present: string[] = [];
+	const missing: string[] = [];
+	const findings: string[] = [];
+	for (const rule of SECURITY_HEADER_RULES) {
+		const value = headers.get(rule.name);
+		if (value) present.push(rule.label);
+		else {
+			missing.push(rule.label);
+			findings.push(`${rule.label}: ${rule.recommendation}`);
+		}
+	}
+
+	const contentSecurityPolicy = headers
+		.get("content-security-policy")
+		?.toLowerCase();
+	if (contentSecurityPolicy?.includes("unsafe-inline")) {
+		findings.push(
+			"Content-Security-Policy contains unsafe-inline; prefer nonces or hashes where possible.",
+		);
+	}
+	if (contentSecurityPolicy?.includes("unsafe-eval")) {
+		findings.push(
+			"Content-Security-Policy contains unsafe-eval, which weakens script protections.",
+		);
+	}
+	const contentTypeOptions = headers
+		.get("x-content-type-options")
+		?.toLowerCase();
+	if (contentTypeOptions && contentTypeOptions !== "nosniff") {
+		findings.push("X-Content-Type-Options should be exactly nosniff.");
+	}
+
+	return {
+		score: Math.round((present.length / SECURITY_HEADER_RULES.length) * 100),
+		present,
+		missing,
+		findings: findings.length
+			? findings
+			: ["All baseline security headers are present."],
+	};
+}

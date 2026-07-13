@@ -104,17 +104,30 @@ import {
 } from "#/lib/converters";
 import {
 	analyzePassword,
+	analyzeReadability,
+	analyzeSecurityHeaders,
+	calculateChmod,
 	calculateDateDifference,
 	calculateIpv4Cidr,
+	canonicalizeUrl,
+	compareSemVer,
 	convertDataSize,
 	createSlug,
 	DATA_SIZE_UNITS,
 	type DataSizeUnit,
+	decodeBase32,
+	encodeBase32,
+	envToJson,
 	exploreJsonPath,
 	generateHmac,
 	type HmacAlgorithm,
+	inspectMacAddress,
 	inspectUnicode,
+	jsonLinesToJson,
+	jsonToEnv,
+	jsonToJsonLines,
 	jsonToQueryString,
+	lookupMimeTypes,
 	queryStringToJson,
 	searchHttpStatuses,
 } from "#/lib/tool-utilities";
@@ -565,6 +578,78 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary: "Create keyed message digests in hexadecimal and base64.",
 		component: HmacGeneratorTool,
 	},
+	{
+		id: "base32-codec",
+		name: "Base32 Encode/Decode",
+		category: "Encoding",
+		summary: "Encode UTF-8 text as RFC 4648 Base32 and decode it safely.",
+		component: Base32CodecTool,
+	},
+	{
+		id: "semver-compare",
+		name: "Semantic Version Compare",
+		category: "Parsing",
+		summary: "Compare releases and prereleases using SemVer precedence rules.",
+		component: SemVerCompareTool,
+	},
+	{
+		id: "env-json-converter",
+		name: ".env / JSON Converter",
+		category: "Conversion",
+		summary: "Move environment assignments to and from structured JSON.",
+		component: EnvJsonConverterTool,
+	},
+	{
+		id: "json-lines-converter",
+		name: "JSON Lines Converter",
+		category: "Conversion",
+		summary: "Convert newline-delimited JSON records to and from JSON arrays.",
+		component: JsonLinesConverterTool,
+	},
+	{
+		id: "chmod-calculator",
+		name: "Chmod Calculator",
+		category: "Security",
+		summary:
+			"Translate Unix file permissions between octal and symbolic forms.",
+		component: ChmodCalculatorTool,
+	},
+	{
+		id: "url-canonicalizer",
+		name: "URL Canonicalizer",
+		category: "Parsing",
+		summary: "Normalize safe web URLs and remove tracking noise.",
+		component: UrlCanonicalizerTool,
+	},
+	{
+		id: "mac-address-inspector",
+		name: "MAC Address Inspector",
+		category: "Parsing",
+		summary: "Normalize 48-bit MAC addresses and inspect their address flags.",
+		component: MacAddressInspectorTool,
+	},
+	{
+		id: "mime-type-lookup",
+		name: "MIME Type Lookup",
+		category: "Parsing",
+		summary: "Find common media types by extension, family, or exact name.",
+		component: MimeTypeLookupTool,
+	},
+	{
+		id: "readability-analyzer",
+		name: "Readability Analyzer",
+		category: "Core",
+		summary: "Measure reading time, document structure, ease, and grade level.",
+		component: ReadabilityAnalyzerTool,
+	},
+	{
+		id: "security-headers-auditor",
+		name: "Security Headers Auditor",
+		category: "Security",
+		summary:
+			"Audit baseline browser security headers and surface risky values.",
+		component: SecurityHeadersAuditorTool,
+	},
 ];
 
 const TOOL_IDS = new Set(TOOL_REGISTRY.map((tool) => tool.id));
@@ -588,6 +673,8 @@ const UNIX_IO_LAYOUT_COOKIE_KEY = "uutil.layout.unix-io";
 const UNIX_IO_PANEL_IDS = ["unix-input", "unix-output"] as const;
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 const MOBILE_NAV_EXIT_MS = 200;
+const MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_QR_IMAGE_DIMENSION = 4096;
 type PanelLayout = Record<string, number>;
 
 const CATEGORY_ICONS: Record<ToolCategory, LucideIcon> = {
@@ -3557,20 +3644,31 @@ function Base64ImageTool() {
 	const [error, setError] = useState("");
 
 	const handleFile = async (file: File) => {
-		const dataUrl = await new Promise<string>((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onload = () => resolve(String(reader.result ?? ""));
-			reader.onerror = () => reject(new Error("Failed reading file."));
-			reader.readAsDataURL(file);
-		});
+		try {
+			setError("");
+			if (!file.type.startsWith("image/")) {
+				throw new Error("Choose a recognized image file.");
+			}
+			if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+				throw new Error("Images must be 10 MB or smaller.");
+			}
+			const dataUrl = await new Promise<string>((resolve, reject) => {
+				const reader = new FileReader();
+				reader.onload = () => resolve(String(reader.result ?? ""));
+				reader.onerror = () => reject(new Error("Failed reading file."));
+				reader.readAsDataURL(file);
+			});
 
-		const [prefix, payload] = dataUrl.split(",");
-		setBase64(payload ?? "");
-		const detected = prefix.match(/data:(.*?);base64/);
-		if (detected?.[1]) {
-			setMimeType(detected[1]);
+			const [prefix, payload] = dataUrl.split(",");
+			setBase64(payload ?? "");
+			const detected = prefix.match(/data:(.*?);base64/);
+			if (detected?.[1]) {
+				setMimeType(detected[1]);
+			}
+			setPreview(dataUrl);
+		} catch (err) {
+			setError((err as Error).message);
 		}
-		setPreview(dataUrl);
 	};
 
 	const decodeImage = () => {
@@ -3718,6 +3816,10 @@ function JwtDebuggerTool() {
 				<ActionRow>
 					<ActionButton label="Decode JWT" onClick={decodeToken} />
 				</ActionRow>
+				<p className="mt-3 rounded-xl border border-[color:color-mix(in_srgb,var(--app-warm)_38%,transparent)] bg-[color:color-mix(in_srgb,var(--app-warm)_8%,transparent)] px-3.5 py-3 text-xs leading-5 text-[color:var(--app-fg-muted)]">
+					Decoding does not verify the signature. Treat claims as untrusted
+					until a trusted server validates the token.
+				</p>
 				<ErrorText text={error} />
 			</ToolCard>
 
@@ -4736,6 +4838,12 @@ function QrCodeTool() {
 	const decodeQrFromFile = async (file: File) => {
 		try {
 			setError("");
+			if (!file.type.startsWith("image/")) {
+				throw new Error("Choose a recognized image file.");
+			}
+			if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+				throw new Error("QR images must be 10 MB or smaller.");
+			}
 			const url = await new Promise<string>((resolve, reject) => {
 				const reader = new FileReader();
 				reader.onload = () => resolve(String(reader.result ?? ""));
@@ -4750,6 +4858,12 @@ function QrCodeTool() {
 					reject(new Error("Could not decode uploaded image."));
 				img.src = url;
 			});
+			if (
+				image.width > MAX_QR_IMAGE_DIMENSION ||
+				image.height > MAX_QR_IMAGE_DIMENSION
+			) {
+				throw new Error("QR images must be no larger than 4096 × 4096 pixels.");
+			}
 
 			const canvas = document.createElement("canvas");
 			canvas.width = image.width;
@@ -6346,6 +6460,543 @@ function LineSortDedupeTool() {
 			</ToolCard>
 			<ToolCard title="Output">
 				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function MetricTile({
+	label,
+	value,
+}: {
+	label: string;
+	value: string | number;
+}) {
+	return (
+		<div className="rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] p-3.5">
+			<p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-soft)]">
+				{label}
+			</p>
+			<p className="mt-1.5 font-mono text-base font-semibold text-[color:var(--app-accent-strong)]">
+				{value}
+			</p>
+		</div>
+	);
+}
+
+function Base32CodecTool() {
+	const [input, setInput] = useState("Ship it 🚀");
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const run = (mode: "encode" | "decode") => {
+		try {
+			setError("");
+			setOutput(mode === "encode" ? encodeBase32(input) : decodeBase32(input));
+		} catch (err) {
+			setOutput("");
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="UTF-8 / Base32 Input">
+				<ToolTextarea
+					rows={10}
+					value={input}
+					onChange={setInput}
+					placeholder="Enter UTF-8 text or RFC 4648 Base32"
+				/>
+				<ActionRow>
+					<ActionButton label="Encode Base32" onClick={() => run("encode")} />
+					<ActionButton
+						label="Decode Base32"
+						onClick={() => run("decode")}
+						variant="ghost"
+					/>
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Converted Value">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function SemVerCompareTool() {
+	const [left, setLeft] = useState("2.0.0-beta.2");
+	const [right, setRight] = useState("2.0.0");
+	const [output, setOutput] = useState("");
+	const [relation, setRelation] = useState("");
+	const [error, setError] = useState("");
+
+	const compare = () => {
+		try {
+			const result = compareSemVer(left, right);
+			setError("");
+			setRelation(result.relation);
+			setOutput(JSON.stringify(result, null, 2));
+		} catch (err) {
+			setOutput("");
+			setRelation("");
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Versions">
+				<div className="grid gap-4 sm:grid-cols-2">
+					<div>
+						<ToolLabel text="Version A" />
+						<ToolTextInput
+							aria-label="First semantic version"
+							value={left}
+							onChange={setLeft}
+							placeholder="1.0.0-beta.1"
+							className="font-mono"
+						/>
+					</div>
+					<div>
+						<ToolLabel text="Version B" />
+						<ToolTextInput
+							aria-label="Second semantic version"
+							value={right}
+							onChange={setRight}
+							placeholder="1.0.0"
+							className="font-mono"
+						/>
+					</div>
+				</div>
+				<ActionRow>
+					<ActionButton label="Compare Versions" onClick={compare} />
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Precedence Result">
+				{relation ? (
+					<div className="mb-3 inline-flex rounded-full border border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-accent-strong)]">
+						Version A is {relation}
+					</div>
+				) : null}
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function EnvJsonConverterTool() {
+	const [input, setInput] = useState(
+		'API_URL="https://api.example.com"\nPORT=3000\nFEATURE_FLAG=true',
+	);
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const convert = (mode: "env" | "json") => {
+		try {
+			setError("");
+			setOutput(
+				mode === "env"
+					? JSON.stringify(envToJson(input), null, 2)
+					: jsonToEnv(input),
+			);
+		} catch (err) {
+			setOutput("");
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Configuration Input">
+				<ToolTextarea
+					rows={12}
+					value={input}
+					onChange={setInput}
+					placeholder="Paste .env assignments or a JSON object"
+				/>
+				<ActionRow>
+					<ActionButton label=".env to JSON" onClick={() => convert("env")} />
+					<ActionButton
+						label="JSON to .env"
+						onClick={() => convert("json")}
+						variant="ghost"
+					/>
+				</ActionRow>
+				<p className="mt-3 text-xs leading-5 text-[color:var(--app-fg-soft)]">
+					Values are parsed as text and substitutions are never executed.
+				</p>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Converted Configuration">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function JsonLinesConverterTool() {
+	const [input, setInput] = useState(
+		'{"event":"deploy","status":"started"}\n{"event":"deploy","status":"complete"}',
+	);
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const convert = (mode: "lines" | "json") => {
+		try {
+			setError("");
+			setOutput(
+				mode === "lines"
+					? JSON.stringify(jsonLinesToJson(input), null, 2)
+					: jsonToJsonLines(input),
+			);
+		} catch (err) {
+			setOutput("");
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="JSON / JSONL Input">
+				<ToolTextarea
+					rows={13}
+					value={input}
+					onChange={setInput}
+					placeholder="One JSON value per line or a JSON array"
+				/>
+				<ActionRow>
+					<ActionButton
+						label="JSONL to JSON"
+						onClick={() => convert("lines")}
+					/>
+					<ActionButton
+						label="JSON to JSONL"
+						onClick={() => convert("json")}
+						variant="ghost"
+					/>
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Stream-Friendly Output">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function ChmodCalculatorTool() {
+	const [input, setInput] = useState("754");
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const calculate = () => {
+		try {
+			setError("");
+			setOutput(JSON.stringify(calculateChmod(input), null, 2));
+		} catch (err) {
+			setOutput("");
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Permission Mode">
+				<ToolLabel text="Octal or symbolic" />
+				<ToolTextInput
+					aria-label="Unix permission mode"
+					value={input}
+					onChange={setInput}
+					placeholder="754 or rwxr-xr--"
+					className="font-mono"
+				/>
+				<div className="mt-4 grid grid-cols-3 gap-2">
+					{["600", "644", "755"].map((mode) => (
+						<button
+							type="button"
+							key={mode}
+							onClick={() => setInput(mode)}
+							className="control-surface min-h-10 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] font-mono text-xs text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)]"
+						>
+							{mode}
+						</button>
+					))}
+				</div>
+				<ActionRow>
+					<ActionButton label="Calculate Permissions" onClick={calculate} />
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Permission Breakdown">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function UrlCanonicalizerTool() {
+	const [input, setInput] = useState(
+		"https://Example.com/docs/?utm_source=newsletter&b=2&a=1#install",
+	);
+	const [removeTracking, setRemoveTracking] = useState(true);
+	const [removeFragment, setRemoveFragment] = useState(true);
+	const [removeTrailingSlash, setRemoveTrailingSlash] = useState(true);
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const canonicalize = () => {
+		try {
+			setError("");
+			setOutput(
+				canonicalizeUrl(input, {
+					removeTracking,
+					removeFragment,
+					removeTrailingSlash,
+				}),
+			);
+		} catch (err) {
+			setOutput("");
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Source URL">
+				<ToolTextInput
+					aria-label="URL to canonicalize"
+					type="url"
+					value={input}
+					onChange={setInput}
+					placeholder="https://example.com/path?b=2&a=1"
+					className="font-mono"
+				/>
+				<div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+					<ToggleBox
+						label="Remove tracking"
+						checked={removeTracking}
+						onChange={setRemoveTracking}
+					/>
+					<ToggleBox
+						label="Remove fragment"
+						checked={removeFragment}
+						onChange={setRemoveFragment}
+					/>
+					<ToggleBox
+						label="Trim trailing slash"
+						checked={removeTrailingSlash}
+						onChange={setRemoveTrailingSlash}
+					/>
+				</div>
+				<ActionRow>
+					<ActionButton label="Canonicalize URL" onClick={canonicalize} />
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Canonical URL">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function MacAddressInspectorTool() {
+	const [input, setInput] = useState("02-42-ac-11-00-02");
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+
+	const inspect = () => {
+		try {
+			setError("");
+			setOutput(JSON.stringify(inspectMacAddress(input), null, 2));
+		} catch (err) {
+			setOutput("");
+			setError((err as Error).message);
+		}
+	};
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Hardware Address">
+				<ToolLabel text="48-bit MAC address" />
+				<ToolTextInput
+					aria-label="MAC address"
+					value={input}
+					onChange={setInput}
+					placeholder="00:1A:2B:3C:4D:5E"
+					className="font-mono uppercase"
+				/>
+				<p className="mt-3 text-xs leading-5 text-[color:var(--app-fg-soft)]">
+					Colon, hyphen, Cisco dot, and compact formats are supported.
+				</p>
+				<ActionRow>
+					<ActionButton label="Inspect Address" onClick={inspect} />
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Address Flags">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function MimeTypeLookupTool() {
+	const [query, setQuery] = useState("json");
+	const results = useMemo(() => lookupMimeTypes(query), [query]);
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Media Type Search">
+				<ToolTextInput
+					aria-label="MIME type search"
+					type="search"
+					value={query}
+					onChange={setQuery}
+					placeholder=".svg, application, markdown..."
+				/>
+				<p className="mt-4 text-sm text-[color:var(--app-fg-muted)]">
+					{results.length} {results.length === 1 ? "match" : "matches"} in the
+					local reference
+				</p>
+			</ToolCard>
+			<ToolCard title="MIME Reference">
+				<div className="uutil-scrollbar max-h-[440px] space-y-2 overflow-auto pr-1">
+					{results.length ? (
+						results.map((entry) => (
+							<div
+								key={entry.mime}
+								className="rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] p-3.5"
+							>
+								<p className="break-all font-mono text-sm font-semibold text-[color:var(--app-fg)]">
+									{entry.mime}
+								</p>
+								<p className="mt-1.5 text-xs text-[color:var(--app-fg-soft)]">
+									{entry.extensions.length
+										? entry.extensions
+												.map((extension) => `.${extension}`)
+												.join(", ")
+										: "No conventional file extension"}
+								</p>
+							</div>
+						))
+					) : (
+						<div className="rounded-xl border border-dashed [border-color:var(--app-border)] p-6 text-center text-sm text-[color:var(--app-fg-soft)]">
+							No matching MIME types.
+						</div>
+					)}
+				</div>
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function ReadabilityAnalyzerTool() {
+	const [input, setInput] = useState(
+		"Clear writing helps people move quickly. Short sentences make technical ideas easier to understand. Good documentation respects the reader's time.",
+	);
+	const analysis = useMemo(() => analyzeReadability(input), [input]);
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Document Input">
+				<ToolTextarea
+					rows={14}
+					value={input}
+					onChange={setInput}
+					placeholder="Paste prose, documentation, or interface copy"
+				/>
+				<p className="mt-3 text-xs leading-5 text-[color:var(--app-fg-soft)]">
+					Metrics update as you type. Scores are estimates for English prose.
+				</p>
+			</ToolCard>
+			<ToolCard title="Reading Profile">
+				<div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+					<MetricTile label="Words" value={analysis.words} />
+					<MetricTile label="Sentences" value={analysis.sentences} />
+					<MetricTile label="Paragraphs" value={analysis.paragraphs} />
+					<MetricTile
+						label="Reading time"
+						value={`${analysis.readingMinutes} min`}
+					/>
+					<MetricTile label="Reading ease" value={analysis.readingEase} />
+					<MetricTile label="Grade level" value={analysis.gradeLevel} />
+				</div>
+				<div className="mt-3 rounded-xl border border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--app-accent-strong)]">
+					Overall: {analysis.label}
+				</div>
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function SecurityHeadersAuditorTool() {
+	const [input, setInput] = useState(
+		"HTTP/2 200\nContent-Security-Policy: default-src 'self'; script-src 'self'\nStrict-Transport-Security: max-age=31536000; includeSubDomains\nX-Content-Type-Options: nosniff\nReferrer-Policy: strict-origin-when-cross-origin",
+	);
+	const [analysis, setAnalysis] = useState<ReturnType<
+		typeof analyzeSecurityHeaders
+	> | null>(null);
+
+	const audit = () => setAnalysis(analyzeSecurityHeaders(input));
+
+	return (
+		<ToolGrid>
+			<ToolCard title="Response Headers">
+				<ToolTextarea
+					rows={14}
+					value={input}
+					onChange={setInput}
+					placeholder="Paste an HTTP status line and response headers"
+				/>
+				<ActionRow>
+					<ActionButton label="Audit Headers" onClick={audit} />
+				</ActionRow>
+				<p className="mt-3 text-xs leading-5 text-[color:var(--app-fg-soft)]">
+					This tool analyzes pasted text locally and never requests the target
+					server.
+				</p>
+			</ToolCard>
+			<ToolCard title="Baseline Security Report">
+				{analysis ? (
+					<div className="space-y-4">
+						<div className="flex items-center justify-between rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] p-4">
+							<div>
+								<p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-soft)]">
+									Baseline score
+								</p>
+								<p className="mt-1 text-sm text-[color:var(--app-fg-muted)]">
+									{analysis.present.length} of{" "}
+									{analysis.present.length + analysis.missing.length}{" "}
+									protections present
+								</p>
+							</div>
+							<p className="font-display text-4xl font-semibold text-[color:var(--app-accent-strong)]">
+								{analysis.score}
+							</p>
+						</div>
+						<div>
+							<ToolLabel text="Findings" />
+							<div className="space-y-2">
+								{analysis.findings.map((finding) => (
+									<div
+										key={finding}
+										className="rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 py-3 text-xs leading-5 text-[color:var(--app-fg-muted)]"
+									>
+										{finding}
+									</div>
+								))}
+							</div>
+						</div>
+					</div>
+				) : (
+					<div className="rounded-xl border border-dashed [border-color:var(--app-border)] p-6 text-center text-sm text-[color:var(--app-fg-soft)]">
+						Run the audit to review the baseline response protections.
+					</div>
+				)}
 			</ToolCard>
 		</ToolGrid>
 	);
