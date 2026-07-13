@@ -587,6 +587,7 @@ const LEGACY_THEME_VARS_STORAGE_KEY = "uutil.shiki.theme-vars";
 const UNIX_IO_LAYOUT_COOKIE_KEY = "uutil.layout.unix-io";
 const UNIX_IO_PANEL_IDS = ["unix-input", "unix-output"] as const;
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+const MOBILE_NAV_EXIT_MS = 200;
 type PanelLayout = Record<string, number>;
 
 const CATEGORY_ICONS: Record<ToolCategory, LucideIcon> = {
@@ -1468,6 +1469,8 @@ export function ToolingApp({
 	const themeVars = useMemo(() => getThemeFallbackVars(themeId), [themeId]);
 	const [toolTooltip, setToolTooltip] = useState<ToolTooltipState | null>(null);
 	const paletteInputRef = useRef<HTMLInputElement>(null);
+	const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+	const mobileNavigationTimerRef = useRef<number | null>(null);
 	const toolTooltipTimerRef = useRef<number | null>(null);
 	const toolTooltipLastVisibleAtRef = useRef<number>(0);
 	const toolPaneRef = useRef<HTMLElement | null>(null);
@@ -1680,6 +1683,10 @@ export function ToolingApp({
 
 	useEffect(() => {
 		return () => {
+			if (mobileNavigationTimerRef.current !== null) {
+				window.clearTimeout(mobileNavigationTimerRef.current);
+				mobileNavigationTimerRef.current = null;
+			}
 			if (toolTooltipTimerRef.current !== null) {
 				window.clearTimeout(toolTooltipTimerRef.current);
 				toolTooltipTimerRef.current = null;
@@ -1876,14 +1883,46 @@ export function ToolingApp({
 	const effectiveNavExpanded = isMobileViewport ? true : navExpanded;
 	const desktopSidebarWidth = effectiveNavExpanded ? 316 : 72;
 
-	const selectTool = (toolId: string) => {
-		void navigate({
+	const commitToolSelection = (toolId: string, restoreMenuFocus = false) => {
+		if (toolPaneRef.current) {
+			toolPaneRef.current.scrollTop = 0;
+		}
+		const navigation = navigate({
 			to: "/tools/$toolId",
 			params: { toolId },
 		});
 		setSelectedToolId(toolId);
-		setMobileNavOpen(false);
+
+		if (restoreMenuFocus) {
+			void navigation.then(() => {
+				window.requestAnimationFrame(() => {
+					mobileMenuButtonRef.current?.focus({ preventScroll: true });
+				});
+			});
+		}
+	};
+
+	const selectTool = (toolId: string) => {
 		clearToolTooltip();
+		const isMobileNavigation = window.matchMedia("(max-width: 1023px)").matches;
+
+		if (isMobileNavigation && mobileNavOpen) {
+			setMobileNavOpen(false);
+			window.requestAnimationFrame(() => {
+				mobileMenuButtonRef.current?.focus({ preventScroll: true });
+			});
+
+			if (mobileNavigationTimerRef.current !== null) {
+				window.clearTimeout(mobileNavigationTimerRef.current);
+			}
+			mobileNavigationTimerRef.current = window.setTimeout(() => {
+				commitToolSelection(toolId, true);
+				mobileNavigationTimerRef.current = null;
+			}, MOBILE_NAV_EXIT_MS);
+			return;
+		}
+
+		commitToolSelection(toolId);
 	};
 
 	const sidebarContent = (
@@ -2100,6 +2139,7 @@ export function ToolingApp({
 					<header className="sticky top-0 z-20 border-b [border-color:var(--app-border)] bg-[color:var(--app-bg)]/92 backdrop-blur-xl">
 						<div className="relative flex h-14 w-full items-center gap-1.5 px-2 sm:gap-2 sm:px-3.5 lg:px-5">
 							<button
+								ref={mobileMenuButtonRef}
 								type="button"
 								onClick={() => setMobileNavOpen(true)}
 								className="flex size-8 shrink-0 items-center justify-center rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:[border-color:var(--app-border-strong)] hover:text-[color:var(--app-fg)] lg:hidden"
@@ -2154,75 +2194,47 @@ export function ToolingApp({
 						</div>
 					</header>
 
-					<div className="w-full">
-						{isMobileViewport ? (
-							<>
-								{mobileNavOpen ? (
-									<button
-										type="button"
-										aria-label="Close tools menu"
-										onClick={() => setMobileNavOpen(false)}
-										className="fixed inset-x-0 bottom-0 top-14 z-30"
-										style={{ backgroundColor: "var(--app-overlay)" }}
-									/>
-								) : null}
+					<div className="h-[calc(100vh-56px)] w-full">
+						<div className="h-full lg:flex">
+							{mobileNavOpen ? (
+								<button
+									type="button"
+									aria-label="Close tools menu"
+									onClick={() => setMobileNavOpen(false)}
+									className="fixed inset-x-0 bottom-0 top-14 z-30 lg:hidden"
+									style={{ backgroundColor: "var(--app-overlay)" }}
+								/>
+							) : null}
 
-								<aside
-									className={`fixed bottom-0 left-0 top-14 z-40 border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] transition-transform duration-200 ${
-										mobileNavOpen
-											? "translate-x-0"
-											: "pointer-events-none -translate-x-[105%]"
-									}`}
-									style={
-										{
-											width: "min(86vw, 332px)",
-											"--app-fg": "var(--app-sidebar-fg)",
-											"--app-fg-muted": "var(--app-sidebar-fg-muted)",
-											"--app-fg-soft": "var(--app-sidebar-fg-soft)",
-										} as AppCssVariables
-									}
-								>
-									{sidebarContent}
-								</aside>
+							<aside
+								className={`fixed bottom-0 left-0 top-14 z-40 w-[min(86vw,332px)] border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] transition-transform duration-200 lg:static lg:z-auto lg:h-full lg:shrink-0 lg:translate-x-0 lg:transition-[width] lg:duration-200 lg:w-[var(--desktop-sidebar-width)] ${
+									mobileNavOpen
+										? "translate-x-0"
+										: "pointer-events-none -translate-x-[105%] lg:pointer-events-auto"
+								}`}
+								style={
+									{
+										"--desktop-sidebar-width": `${desktopSidebarWidth}px`,
+										"--app-fg": "var(--app-sidebar-fg)",
+										"--app-fg-muted": "var(--app-sidebar-fg-muted)",
+										"--app-fg-soft": "var(--app-sidebar-fg-soft)",
+									} as AppCssVariables
+								}
+							>
+								{sidebarContent}
+							</aside>
 
+							<div className="h-full min-w-0 flex-1">
 								<ToolQueryContext.Provider value={toolQueryRuntime}>
 									<main
 										ref={toolPaneRef}
-										className="uutil-scrollbar h-[calc(100vh-56px)] min-w-0 overflow-y-auto overscroll-contain px-2 py-2.5 sm:px-3.5 sm:py-3.5"
+										className="uutil-scrollbar h-full min-w-0 overflow-y-auto overscroll-contain px-2 py-2.5 sm:px-3.5 sm:py-3.5 lg:px-5 lg:py-4"
 									>
 										{toolWorkspace}
 									</main>
 								</ToolQueryContext.Provider>
-							</>
-						) : (
-							<div className="h-[calc(100vh-56px)]">
-								<div className="flex h-full">
-									<aside
-										className="shrink-0 self-stretch border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] transition-[width] duration-200"
-										style={
-											{
-												width: `${desktopSidebarWidth}px`,
-												"--app-fg": "var(--app-sidebar-fg)",
-												"--app-fg-muted": "var(--app-sidebar-fg-muted)",
-												"--app-fg-soft": "var(--app-sidebar-fg-soft)",
-											} as AppCssVariables
-										}
-									>
-										{sidebarContent}
-									</aside>
-									<div className="min-w-0 flex-1">
-										<ToolQueryContext.Provider value={toolQueryRuntime}>
-											<main
-												ref={toolPaneRef}
-												className="uutil-scrollbar h-full min-w-0 overflow-y-auto overscroll-contain px-4 py-3 lg:px-5 lg:py-4"
-											>
-												{toolWorkspace}
-											</main>
-										</ToolQueryContext.Provider>
-									</div>
-								</div>
 							</div>
-						)}
+						</div>
 					</div>
 				</div>
 
