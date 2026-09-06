@@ -23,6 +23,7 @@ import {
 	ChevronRight,
 	Clock3,
 	Command,
+	Copy,
 	Diff,
 	FileSearch,
 	Fingerprint,
@@ -135,6 +136,7 @@ import {
 	getUiPreferences,
 	NAV_EXPANDED_STORAGE_KEY,
 } from "#/lib/ui-preferences";
+import { WORKBENCH_DARK, WORKBENCH_LIGHT } from "#/lib/workbench-theme";
 
 const runtimeGlobal = globalThis as typeof globalThis & {
 	Buffer?: typeof Buffer;
@@ -888,70 +890,8 @@ function usePersistedPanelLayout(
 	return { defaultLayout, onLayoutChanged };
 }
 
-const DEFAULT_THEME_VARS = {
-	colorScheme: "dark",
-	backgroundColor: "#080d19",
-	color: "#f2f7ff",
-	"--app-bg": "#080d19",
-	"--app-sidebar-bg": "rgba(10, 17, 32, 0.96)",
-	"--app-sidebar-fg": "#f2f7ff",
-	"--app-sidebar-fg-muted": "#a9b7cc",
-	"--app-sidebar-fg-soft": "#718199",
-	"--app-panel-bg": "rgba(15, 24, 43, 0.88)",
-	"--app-surface-bg": "rgba(21, 33, 56, 0.94)",
-	"--app-surface-alt": "rgba(7, 13, 25, 0.92)",
-	"--app-border": "rgba(126, 156, 196, 0.22)",
-	"--app-border-strong": "rgba(139, 182, 232, 0.46)",
-	"--app-fg": "#f2f7ff",
-	"--app-fg-muted": "#a9b7cc",
-	"--app-fg-soft": "#718199",
-	"--app-accent": "#65dcff",
-	"--app-accent-soft": "rgba(101, 220, 255, 0.13)",
-	"--app-accent-strong": "#b7f1ff",
-	"--app-accent-contrast": "#04141b",
-	"--app-warm": "#ff8b72",
-	"--app-danger": "#ff8f9b",
-	"--app-success": "#69e3ad",
-	"--app-overlay": "rgba(3, 7, 15, 0.76)",
-	"--app-shadow": "rgba(0, 0, 0, 0.72)",
-	"--app-glow-1": "rgba(101, 220, 255, 0.1)",
-	"--app-glow-2": "rgba(255, 139, 114, 0.07)",
-	"--app-ring": "rgba(101, 220, 255, 0.5)",
-} satisfies AppCssVariables;
-
-const LIGHT_THEME_VARS = {
-	colorScheme: "light",
-	backgroundColor: "#f2f5f8",
-	color: "#142033",
-	"--app-bg": "#f2f5f8",
-	"--app-sidebar-bg": "rgba(232, 239, 246, 0.97)",
-	"--app-sidebar-fg": "#142033",
-	"--app-sidebar-fg-muted": "#4b5c72",
-	"--app-sidebar-fg-soft": "#6f7e91",
-	"--app-panel-bg": "rgba(252, 253, 255, 0.92)",
-	"--app-surface-bg": "rgba(255, 255, 255, 0.98)",
-	"--app-surface-alt": "rgba(235, 241, 247, 0.98)",
-	"--app-border": "rgba(50, 78, 111, 0.2)",
-	"--app-border-strong": "rgba(34, 93, 132, 0.44)",
-	"--app-fg": "#142033",
-	"--app-fg-muted": "#4b5c72",
-	"--app-fg-soft": "#6f7e91",
-	"--app-accent": "#087da2",
-	"--app-accent-soft": "rgba(8, 125, 162, 0.1)",
-	"--app-accent-strong": "#055d7a",
-	"--app-accent-contrast": "#f5fdff",
-	"--app-warm": "#c64e35",
-	"--app-danger": "#b42335",
-	"--app-success": "#087a50",
-	"--app-overlay": "rgba(18, 31, 48, 0.42)",
-	"--app-shadow": "rgba(26, 46, 68, 0.24)",
-	"--app-glow-1": "rgba(8, 125, 162, 0.1)",
-	"--app-glow-2": "rgba(198, 78, 53, 0.07)",
-	"--app-ring": "rgba(8, 125, 162, 0.46)",
-} satisfies AppCssVariables;
-
 function getThemeFallbackVars(themeId: string): AppCssVariables {
-	return themeId === LIGHT_THEME_ID ? LIGHT_THEME_VARS : DEFAULT_THEME_VARS;
+	return themeId === LIGHT_THEME_ID ? WORKBENCH_LIGHT : WORKBENCH_DARK;
 }
 
 type AppThemeState = {
@@ -1551,7 +1491,7 @@ export function ToolingApp({
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [paletteQuery, setPaletteQuery] = useState("");
 	const [paletteIndex, setPaletteIndex] = useState(0);
-	const [themeId, setThemeId] = useState(DEFAULT_THEME_ID);
+	const [themeId, setThemeId] = useState<string>(initialUiPreferences.themeId);
 	const [themePreferencesLoaded, setThemePreferencesLoaded] = useState(false);
 	const themeVars = useMemo(() => getThemeFallbackVars(themeId), [themeId]);
 	const [toolTooltip, setToolTooltip] = useState<ToolTooltipState | null>(null);
@@ -1593,8 +1533,6 @@ export function ToolingApp({
 		TOOL_REGISTRY[0];
 	const SelectedToolComponent = selectedTool.component;
 	const SelectedToolIcon = getToolIcon(selectedTool);
-	const selectedToolPosition =
-		TOOL_REGISTRY.findIndex((tool) => tool.id === selectedTool.id) + 1;
 	const toolQuery = useMemo(
 		() => parseToolQueryState(location.searchStr),
 		[location.searchStr],
@@ -1968,7 +1906,7 @@ export function ToolingApp({
 	};
 
 	const effectiveNavExpanded = isMobileViewport ? true : navExpanded;
-	const desktopSidebarWidth = effectiveNavExpanded ? 332 : 84;
+	const desktopSidebarWidth = effectiveNavExpanded ? 280 : 72;
 
 	const commitToolSelection = (toolId: string, restoreMenuFocus = false) => {
 		if (toolPaneRef.current) {
@@ -2014,21 +1952,21 @@ export function ToolingApp({
 
 	const sidebarContent = (
 		<div
-			className={`mobile-safe-bottom flex h-full flex-col ${effectiveNavExpanded ? "p-4" : "p-2.5"}`}
+			className={`mobile-safe-bottom flex h-full flex-col ${effectiveNavExpanded ? "px-3 py-5" : "px-2 py-4"}`}
 		>
-			<div
-				className={`flex items-center ${
-					effectiveNavExpanded ? "mb-4 gap-2" : "mb-2 justify-center"
-				}`}
-			>
+			<div className="mb-4 flex min-h-9 items-center justify-between gap-2 px-2">
+				{effectiveNavExpanded ? (
+					<span className="text-sm font-semibold">
+						Tool library{" "}
+						<span className="ml-1.5 font-mono text-xs font-normal text-[color:var(--app-fg-soft)]">
+							{TOOL_REGISTRY.length}
+						</span>
+					</span>
+				) : null}
 				<button
 					type="button"
 					onClick={() => setNavExpanded((current) => !current)}
-					className={`control-surface hidden min-h-10 items-center rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] xl:flex ${
-						effectiveNavExpanded
-							? "w-full justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em]"
-							: "size-11 justify-center"
-					}`}
+					className="nav-icon-button hidden xl:flex"
 					aria-label={
 						effectiveNavExpanded
 							? "Collapse tools sidebar"
@@ -2036,44 +1974,36 @@ export function ToolingApp({
 					}
 					title={
 						effectiveNavExpanded
-							? "Collapse to icon view"
-							: "Expand to list view"
+							? "Collapse tools sidebar"
+							: "Expand tools sidebar"
 					}
 				>
 					{effectiveNavExpanded ? (
-						<span className="flex items-center gap-2">
-							<span className="size-1.5 rounded-full bg-[color:var(--app-success)]" />
-							{TOOL_REGISTRY.length} tools ready
-						</span>
-					) : null}
-					{effectiveNavExpanded ? (
-						<ChevronLeft className="size-3.5" />
+						<ChevronLeft className="size-4" />
 					) : (
-						<ChevronRight className="size-3.5" />
+						<ChevronRight className="size-4" />
 					)}
 				</button>
-
 				<button
 					type="button"
 					onClick={() => setMobileNavOpen(false)}
-					className="control-surface ml-auto flex size-11 items-center justify-center rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] xl:hidden"
+					className="nav-icon-button flex xl:hidden"
 					aria-label="Close tools menu"
 				>
-					<X className="size-3.5" />
+					<X className="size-4" />
 				</button>
 			</div>
-
 			{effectiveNavExpanded ? (
-				<div className="mb-4 space-y-2.5">
+				<div className="mb-5 space-y-3 px-1">
 					<div className="relative">
 						<Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-soft)]" />
 						<input
-							type="text"
+							type="search"
 							aria-label="Search tools"
 							value={search}
 							onChange={(event) => setSearch(event.target.value)}
-							placeholder="Search utilities"
-							className="control-surface min-h-11 w-full rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] py-2.5 pl-10 pr-3 text-sm text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
+							placeholder="Filter tools..."
+							className="control-surface min-h-11 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] py-2.5 pl-10 pr-3 text-sm text-[color:var(--app-fg)] placeholder:text-[color:var(--app-fg-soft)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
 						/>
 					</div>
 					<CustomSelect
@@ -2085,19 +2015,21 @@ export function ToolingApp({
 						options={categoryOptions}
 						size="sm"
 					/>
+					{search || activeCategory !== "All" ? (
+						<p
+							className="px-1 text-xs text-[color:var(--app-fg-soft)]"
+							role="status"
+						>
+							{filteredTools.length} matching tools
+						</p>
+					) : null}
 				</div>
 			) : null}
-
 			<nav
-				className={`uutil-scrollbar uutil-scrollbar-edge flex-1 overflow-x-hidden overflow-y-auto overscroll-contain ${
-					effectiveNavExpanded ? "-mr-1 pr-1" : "-mr-0.5 pr-0"
-				}`}
+				aria-label="Utilities"
+				className="uutil-scrollbar flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
 			>
-				<div
-					className={`${
-						effectiveNavExpanded ? "space-y-1.5" : "mx-auto w-12 space-y-2 py-1"
-					}`}
-				>
+				<div className="space-y-0.5">
 					{filteredTools.map((tool) => {
 						const ToolIcon = getToolIcon(tool);
 						const isSelected = selectedTool.id === tool.id;
@@ -2107,261 +2039,191 @@ export function ToolingApp({
 								key={tool.id}
 								aria-label={`${tool.name}: ${tool.summary}`}
 								aria-current={isSelected ? "page" : undefined}
-								title={effectiveNavExpanded ? undefined : tool.name}
+								title={tool.name}
 								onClick={() => selectTool(tool.id)}
-								onMouseEnter={(event) => {
-									scheduleToolTooltip(event, tool);
-								}}
+								onMouseEnter={(event) => scheduleToolTooltip(event, tool)}
 								onMouseLeave={clearToolTooltip}
-								onFocus={(event) => {
-									scheduleToolTooltip(event, tool);
-								}}
+								onFocus={(event) => scheduleToolTooltip(event, tool)}
 								onBlur={clearToolTooltip}
-								className={`sidebar-tool border transition ${
-									effectiveNavExpanded
-										? "min-h-[58px] w-full rounded-xl px-3 py-2.5 text-left"
-										: "mx-auto grid size-12 place-items-center rounded-xl p-0"
-								} ${
-									isSelected
-										? "border-[color:var(--app-border-strong)] bg-[color:var(--app-accent-soft)]"
-										: "border-transparent hover:[border-color:var(--app-border)] hover:bg-[color:var(--app-surface-bg)]"
-								}`}
+								className={`sidebar-tool flex min-h-11 w-full items-center rounded-lg text-left transition-colors ${effectiveNavExpanded ? "gap-3 px-3 py-2" : "justify-center p-2"} ${isSelected ? "bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)]" : "text-[color:var(--app-fg-muted)] hover:bg-[color:var(--app-surface-bg)] hover:text-[color:var(--app-fg)]"}`}
 							>
-								<div
-									className={`flex items-center ${
-										effectiveNavExpanded ? "gap-2.5" : "justify-center"
-									}`}
-								>
-									{effectiveNavExpanded ? (
-										<div
-											className={`flex shrink-0 items-center justify-center ${
-												isSelected
-													? "size-9 rounded-lg bg-[color:var(--app-accent)] text-[color:var(--app-accent-contrast)] shadow-[0_8px_22px_-12px_var(--app-accent)]"
-													: "size-9 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] text-[color:var(--app-fg-muted)]"
-											}`}
-										>
-											<ToolIcon className="size-3.5" />
-										</div>
-									) : (
-										<ToolIcon
-											className={`size-4 ${
-												isSelected
-													? "text-[color:var(--app-accent)]"
-													: "text-[color:var(--app-fg-muted)]"
-											}`}
-										/>
-									)}
-									{effectiveNavExpanded ? (
-										<div className="min-w-0">
-											<p className="truncate text-[13px] font-semibold text-[color:var(--app-fg)]">
-												{tool.name}
-											</p>
-											<p className="truncate text-[11px] text-[color:var(--app-fg-muted)]">
-												{tool.summary}
-											</p>
-										</div>
-									) : null}
-								</div>
+								<ToolIcon className="size-4 shrink-0" aria-hidden="true" />
+								{effectiveNavExpanded ? (
+									<span className="min-w-0 truncate text-[13px] font-medium">
+										{tool.name}
+									</span>
+								) : null}
 							</button>
 						);
 					})}
-
 					{filteredTools.length === 0 ? (
-						<div className="rounded-md border border-dashed [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-2 py-3 text-[11px] text-[color:var(--app-fg-muted)]">
+						<div className="px-3 py-7 text-sm text-[color:var(--app-fg-muted)]">
 							No matching tools.
+							<button
+								type="button"
+								onClick={() => {
+									setSearch("");
+									setActiveCategory("All");
+								}}
+								className="mt-3 block text-[color:var(--app-accent)] underline underline-offset-4"
+							>
+								Clear filters
+							</button>
 						</div>
 					) : null}
 				</div>
 			</nav>
-
-			{effectiveNavExpanded ? (
-				<div className="mt-3 flex items-center justify-between border-t [border-color:var(--app-border)] px-1 pt-3 text-[10px] uppercase tracking-[0.13em] text-[color:var(--app-fg-soft)]">
-					<span>Local-first</span>
-					<span className="flex items-center gap-1.5">
-						<span className="size-1.5 rounded-full bg-[color:var(--app-success)]" />
-						Private
-					</span>
-				</div>
-			) : null}
+			<div
+				className={`mt-4 flex items-center border-t [border-color:var(--app-border)] pt-4 ${effectiveNavExpanded ? "gap-2 px-2" : "justify-center"}`}
+			>
+				<Shield
+					className="size-4 shrink-0 text-[color:var(--app-fg-soft)]"
+					aria-hidden="true"
+				/>
+				{effectiveNavExpanded ? (
+					<p className="text-xs text-[color:var(--app-fg-muted)]">
+						Your data stays in your browser.
+					</p>
+				) : null}
+			</div>
 		</div>
 	);
 
 	const toolWorkspace = (
-		<div className="mx-auto w-full max-w-[1520px] pb-8">
-			<section className="workspace-intro mb-5 rounded-[20px] border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] shadow-[0_28px_90px_-68px_var(--app-shadow)] sm:mb-6">
-				<div className="relative flex min-h-[150px] flex-col justify-between gap-5 px-5 py-5 sm:min-h-[168px] sm:px-7 sm:py-6 lg:flex-row lg:items-end">
-					<div className="flex min-w-0 items-start gap-4 sm:gap-5">
-						<div className="brand-mark grid size-12 shrink-0 place-items-center rounded-2xl text-[color:var(--app-accent-contrast)] sm:size-14">
-							<SelectedToolIcon
-								className="size-5 sm:size-6"
-								aria-hidden="true"
-							/>
-						</div>
-						<div className="min-w-0 pt-0.5">
-							<div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--app-fg-soft)]">
-								<span className="rounded-full border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-2.5 py-1 text-[color:var(--app-warm)]">
-									{selectedTool.category}
-								</span>
-								<span>
-									Utility {String(selectedToolPosition).padStart(2, "0")}
-								</span>
-							</div>
-							<h2 className="font-display max-w-4xl text-[clamp(1.65rem,4vw,2.65rem)] font-semibold leading-[1.02] tracking-[-0.045em] text-[color:var(--app-fg)]">
-								{selectedTool.name}
-							</h2>
-							<p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--app-fg-muted)] sm:text-[15px]">
-								{selectedTool.summary}
-							</p>
-						</div>
+		<div className="workspace-content mx-auto w-full max-w-[1440px] pb-8">
+			<section className="workspace-intro">
+				<div className="mb-4 flex items-center gap-2 text-xs text-[color:var(--app-fg-soft)]">
+					<span>Tools</span>
+					<ChevronRight className="size-3" aria-hidden="true" />
+					<span>{selectedTool.category}</span>
+				</div>
+				<div className="flex items-start gap-3">
+					<div className="workspace-symbol">
+						<SelectedToolIcon className="size-5" aria-hidden="true" />
 					</div>
-					<div className="flex shrink-0 flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em]">
-						<div className="flex items-center gap-2 rounded-full border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 text-[color:var(--app-fg-muted)]">
-							<span className="size-1.5 rounded-full bg-[color:var(--app-success)] shadow-[0_0_10px_var(--app-success)]" />
-							Runs in your browser
-						</div>
-						<div className="rounded-full border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 text-[color:var(--app-fg-soft)]">
-							No upload
-						</div>
-					</div>
-					<div
-						className="workspace-index pointer-events-none absolute bottom-[-8px] right-5 hidden select-none text-[112px] font-bold lg:block"
-						aria-hidden="true"
-					>
-						{String(selectedToolPosition).padStart(2, "0")}
+					<div className="min-w-0">
+						<h2 className="font-display text-[clamp(1.5rem,2.8vw,2rem)] font-semibold leading-tight tracking-[-0.04em]">
+							{selectedTool.name}
+						</h2>
+						<p className="mt-2 max-w-3xl text-sm leading-6 text-[color:var(--app-fg-muted)]">
+							{selectedTool.summary}
+						</p>
 					</div>
 				</div>
 			</section>
 			<SelectedToolComponent />
+			<footer className="workspace-footer">
+				<Lock className="size-3.5" aria-hidden="true" />
+				<span>Processed locally. Nothing to install, nothing to upload.</span>
+				<span className="ml-auto hidden sm:inline">uutil.space</span>
+			</footer>
 		</div>
 	);
 
 	return (
 		<AppThemeContext.Provider value={appTheme}>
-			<div className="app-shell h-[100dvh] min-h-[100svh] overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--app-fg)]">
-				<div
-					className="pointer-events-none fixed inset-0"
-					style={{
-						background:
-							"radial-gradient(circle_at_8%_5%, var(--app-glow-1), transparent 28%), radial-gradient(circle_at_90%_0%, var(--app-glow-2), transparent 24%)",
-					}}
-				/>
-
-				<div className="relative">
-					<header className="app-topbar sticky top-0 z-20 border-b [border-color:var(--app-border)] bg-[color:var(--app-bg)]/90 backdrop-blur-2xl">
-						<div className="relative flex h-16 w-full items-center gap-2 px-3 sm:px-4 xl:h-[72px] xl:px-6">
-							<button
-								ref={mobileMenuButtonRef}
-								type="button"
-								onClick={() => setMobileNavOpen(true)}
-								className="control-surface flex size-11 shrink-0 items-center justify-center rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] xl:hidden"
-								aria-label="Open tools menu"
-							>
-								<Menu className="size-4" />
-							</button>
-
-							<div className="flex min-w-0 flex-1 items-center gap-2.5 xl:flex-none">
-								<div className="brand-mark flex size-10 shrink-0 items-center justify-center rounded-xl font-mono text-[13px] font-bold tracking-[-0.08em] text-[color:var(--app-accent-contrast)]">
-									u/
-								</div>
-								<div className="min-w-0">
-									<p className="truncate text-[9px] font-bold uppercase tracking-[0.19em] text-[color:var(--app-fg-soft)]">
-										Developer workbench
-									</p>
-									<h1 className="font-display truncate text-[17px] font-semibold tracking-[-0.035em] text-[color:var(--app-fg)]">
-										uutil.space
-									</h1>
-								</div>
-							</div>
-
-							<div className="mx-1 hidden h-8 w-px bg-[color:var(--app-border)] xl:block" />
-
-							<div className="hidden min-w-0 xl:block">
-								<p className="truncate text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-soft)]">
-									{selectedTool.category}
-								</p>
-								<p className="max-w-[240px] truncate text-sm font-semibold tracking-tight text-[color:var(--app-fg)]">
-									{selectedTool.name}
-								</p>
-							</div>
-
+			<div
+				className="app-shell h-[100dvh] min-h-[100svh] overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--app-fg)]"
+				style={themeVars}
+				data-theme={appTheme.themeType}
+				data-ready={themePreferencesLoaded}
+			>
+				<a href="#workspace" className="skip-link">
+					Skip to workspace
+				</a>
+				<header className="app-topbar relative z-20">
+					<div className="flex h-16 w-full items-center gap-3 px-4 lg:px-6">
+						<button
+							ref={mobileMenuButtonRef}
+							type="button"
+							onClick={() => setMobileNavOpen(true)}
+							className="nav-icon-button flex xl:hidden"
+							aria-label="Open tools menu"
+						>
+							<Menu className="size-5" />
+						</button>
+						<a
+							href="/"
+							className="flex min-w-0 shrink-0 items-center gap-2.5 text-[color:var(--app-fg)] no-underline xl:w-[232px]"
+							aria-label="uutil.space home"
+						>
+							<span className="brand-mark grid size-8 place-items-center rounded-lg font-mono text-sm font-semibold">
+								u/
+							</span>
+							<span className="font-display text-lg font-semibold tracking-[-0.05em]">
+								uutil
+								<span className="font-normal text-[color:var(--app-fg-soft)]">
+									.space
+								</span>
+							</span>
+						</a>
+						<span className="hidden text-xs text-[color:var(--app-fg-soft)] lg:block">
+							The everyday developer toolkit
+						</span>
+						<button
+							type="button"
+							onClick={() => setPaletteOpen(true)}
+							aria-label="Open quick tool search"
+							aria-keyshortcuts="Control+K Meta+K"
+							className="topbar-search ml-auto hidden w-full max-w-[300px] items-center gap-2.5 md:flex"
+						>
+							<Search className="size-4" />
+							<span className="flex-1 text-left">Find a tool...</span>
+							<kbd>⌘ K</kbd>
+						</button>
+						<div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
 							<button
 								type="button"
 								onClick={() => setPaletteOpen(true)}
 								aria-label="Open quick tool search"
 								aria-keyshortcuts="Control+K Meta+K"
-								className="control-surface mx-auto hidden min-h-11 w-full max-w-[420px] items-center gap-3 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 text-left text-sm text-[color:var(--app-fg-soft)] transition hover:text-[color:var(--app-fg-muted)] md:flex"
+								className="nav-icon-button flex md:hidden"
 							>
-								<Search className="size-4 shrink-0" />
-								<span className="flex-1">
-									Search {TOOL_REGISTRY.length} utilities
-								</span>
-								<span className="rounded-md border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-2 py-1 font-mono text-[10px] text-[color:var(--app-fg-muted)]">
-									⌘ K
-								</span>
+								<Search className="size-5" />
 							</button>
-
-							<div className="flex shrink-0 items-center gap-2">
-								<button
-									type="button"
-									onClick={() => setPaletteOpen(true)}
-									aria-label="Open quick tool search"
-									aria-keyshortcuts="Control+K Meta+K"
-									className="control-surface flex size-11 items-center justify-center rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] md:hidden"
-								>
-									<Search className="size-4" />
-								</button>
-
-								<ThemeModeToggle
-									isLightTheme={isLightTheme}
-									onToggle={toggleThemeMode}
-								/>
-							</div>
+							<ThemeModeToggle
+								isLightTheme={isLightTheme}
+								onToggle={toggleThemeMode}
+							/>
 						</div>
-					</header>
-
-					<div className="h-[calc(100dvh-64px)] w-full xl:h-[calc(100dvh-72px)]">
-						<div className="h-full xl:flex">
-							{mobileNavOpen ? (
-								<button
-									type="button"
-									aria-label="Close tools menu"
-									onClick={() => setMobileNavOpen(false)}
-									className="fixed inset-x-0 bottom-0 top-16 z-30 backdrop-blur-sm xl:hidden"
-									style={{ backgroundColor: "var(--app-overlay)" }}
-								/>
-							) : null}
-
-							<aside
-								aria-hidden={isMobileViewport && !mobileNavOpen}
-								inert={isMobileViewport && !mobileNavOpen}
-								className={`sidebar-panel fixed bottom-0 left-0 top-16 z-40 w-[min(92vw,360px)] border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] transition-transform duration-200 xl:static xl:z-auto xl:h-full xl:shrink-0 xl:translate-x-0 xl:transition-[width] xl:duration-200 xl:w-[var(--desktop-sidebar-width)] ${
-									mobileNavOpen
-										? "translate-x-0"
-										: "pointer-events-none -translate-x-[105%] xl:pointer-events-auto"
-								}`}
-								style={
-									{
-										"--desktop-sidebar-width": `${desktopSidebarWidth}px`,
-										"--app-fg": "var(--app-sidebar-fg)",
-										"--app-fg-muted": "var(--app-sidebar-fg-muted)",
-										"--app-fg-soft": "var(--app-sidebar-fg-soft)",
-									} as AppCssVariables
-								}
+					</div>
+				</header>
+				<div className="h-[calc(100dvh-64px)] w-full xl:flex">
+					{mobileNavOpen ? (
+						<button
+							type="button"
+							aria-label="Close tools menu"
+							onClick={() => setMobileNavOpen(false)}
+							className="fixed inset-x-0 bottom-0 top-16 z-30 xl:hidden"
+							style={{ backgroundColor: "var(--app-overlay)" }}
+						/>
+					) : null}
+					<aside
+						aria-hidden={isMobileViewport && !mobileNavOpen}
+						inert={isMobileViewport && !mobileNavOpen}
+						className={`sidebar-panel fixed bottom-0 left-0 top-16 z-40 w-[min(88vw,320px)] border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] transition-transform duration-200 xl:static xl:z-auto xl:h-full xl:shrink-0 xl:translate-x-0 xl:w-[var(--desktop-sidebar-width)] ${mobileNavOpen ? "translate-x-0" : "pointer-events-none -translate-x-[105%] xl:pointer-events-auto"}`}
+						style={
+							{
+								"--desktop-sidebar-width": `${desktopSidebarWidth}px`,
+								"--app-fg": "var(--app-sidebar-fg)",
+								"--app-fg-muted": "var(--app-sidebar-fg-muted)",
+								"--app-fg-soft": "var(--app-sidebar-fg-soft)",
+							} as AppCssVariables
+						}
+					>
+						{sidebarContent}
+					</aside>
+					<div className="h-full min-w-0 flex-1">
+						<ToolQueryContext.Provider value={toolQueryRuntime}>
+							<main
+								id="workspace"
+								tabIndex={-1}
+								ref={toolPaneRef}
+								className="uutil-scrollbar h-full min-w-0 overflow-y-auto overscroll-contain px-4 py-5 outline-none sm:px-6 sm:py-6 lg:px-9 lg:py-7"
 							>
-								{sidebarContent}
-							</aside>
-
-							<div className="h-full min-w-0 flex-1">
-								<ToolQueryContext.Provider value={toolQueryRuntime}>
-									<main
-										ref={toolPaneRef}
-										className="uutil-scrollbar h-full min-w-0 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6"
-									>
-										{toolWorkspace}
-									</main>
-								</ToolQueryContext.Provider>
-							</div>
-						</div>
+								{toolWorkspace}
+							</main>
+						</ToolQueryContext.Provider>
 					</div>
 				</div>
 
@@ -2426,7 +2288,7 @@ function ThemeModeToggle({
 			type="button"
 			onClick={onToggle}
 			aria-label={`Switch to ${nextModeLabel} mode`}
-			className="control-surface flex size-11 items-center justify-center rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[11px] font-semibold text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] sm:w-auto sm:min-w-[104px] sm:gap-2 sm:px-3"
+			className="nav-icon-button flex sm:w-auto sm:gap-2 sm:px-3"
 		>
 			{isLightTheme ? (
 				<Sun className="size-3.5" />
@@ -2515,7 +2377,7 @@ function CommandPalette({
 				style={{ backgroundColor: "var(--app-overlay)" }}
 			/>
 
-			<div className="mobile-safe-bottom relative z-10 w-full max-w-2xl overflow-hidden rounded-t-[24px] border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] shadow-[0_30px_96px_var(--app-shadow)] sm:rounded-[24px]">
+			<div className="command-dialog mobile-safe-bottom relative z-10 w-full max-w-2xl overflow-hidden rounded-t-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] shadow-[0_30px_96px_var(--app-shadow)] sm:rounded-xl">
 				<div className="border-b [border-color:var(--app-border)] px-4 py-4 sm:px-5">
 					<div className="mb-3 flex items-center justify-between">
 						<p className="font-display text-sm font-semibold text-[color:var(--app-fg)]">
@@ -2527,6 +2389,7 @@ function CommandPalette({
 					</div>
 					<input
 						ref={inputRef}
+						aria-label="Search all tools"
 						type="text"
 						value={query}
 						onChange={(event) => setQuery(event.target.value)}
@@ -2611,7 +2474,7 @@ function CommandPalette({
 function ToolGrid({ children }: { children: React.ReactNode }) {
 	return (
 		<ToolGridContext.Provider value>
-			<div className="grid min-w-0 items-stretch gap-4 sm:gap-5 xl:grid-cols-2">
+			<div className="tool-grid grid min-w-0 items-stretch gap-5 lg:grid-cols-2">
 				{children}
 			</div>
 		</ToolGridContext.Provider>
@@ -2629,10 +2492,9 @@ function ToolCard({
 }) {
 	return (
 		<section
-			className={`tool-card flex h-full min-h-0 min-w-0 flex-col rounded-[20px] border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 shadow-[inset_0_1px_0_var(--app-glow-1),0_24px_70px_-56px_var(--app-shadow)] sm:p-6 ${className ?? ""}`}
+			className={`tool-card flex h-full min-h-0 min-w-0 flex-col rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 sm:p-5 ${className ?? ""}`}
 		>
-			<h3 className="mb-5 flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.19em] text-[color:var(--app-fg-muted)]">
-				<span className="h-4 w-1 rounded-full bg-[color:var(--app-accent)] shadow-[0_0_12px_var(--app-accent)]" />
+			<h3 className="tool-card-title mb-4 flex items-center gap-2 text-sm font-semibold text-[color:var(--app-fg)]">
 				<span>{title}</span>
 			</h3>
 			{children}
@@ -2690,9 +2552,10 @@ function ToolTextarea({
 			value={value}
 			onChange={(event) => onChange(event.target.value)}
 			placeholder={placeholder}
+			aria-label={placeholder}
 			rows={rows}
 			spellCheck={false}
-			className={`control-surface w-full rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 py-3.5 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
+			className={`tool-textarea control-surface w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 py-3.5 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
 		/>
 	);
 }
@@ -2748,28 +2611,50 @@ function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 
 	return (
 		<div
-			className={`relative min-w-0 max-w-full ${shouldFill ? "h-full min-h-0 flex-1" : ""}`}
+			className={`output-panel flex min-w-0 max-w-full flex-col overflow-hidden rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] ${shouldFill ? "min-h-[240px] flex-1" : "min-h-28"}`}
 		>
-			<button
-				type="button"
-				onClick={copy}
-				disabled={!value}
-				aria-label={value ? "Copy output" : "No output to copy"}
-				className="control-surface absolute right-3 top-3 min-h-9 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] px-3 text-[11px] font-semibold text-[color:var(--app-fg-muted)] transition hover:text-[color:var(--app-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] disabled:cursor-not-allowed disabled:opacity-40"
-			>
-				{copyState === "idle"
-					? "Copy"
-					: copyState === "done"
-						? "Copied"
-						: "Failed"}
-			</button>
-			<pre
-				className={`control-surface uutil-scrollbar max-w-full overflow-auto whitespace-pre-wrap break-words rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 py-3.5 pr-24 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] ${
-					shouldFill ? "h-full min-h-0" : "min-h-28"
-				} ${value ? "" : "italic text-[color:var(--app-fg-soft)]"}`}
-			>
-				{value || "Output will appear here..."}
-			</pre>
+			<div className="output-toolbar flex min-h-11 items-center justify-between gap-3 border-b [border-color:var(--app-border)] px-3">
+				<span className="font-mono text-[11px] text-[color:var(--app-fg-soft)]">
+					{value
+						? `${value.length.toLocaleString()} characters`
+						: "Awaiting output"}
+				</span>
+				<button
+					type="button"
+					onClick={copy}
+					disabled={!value}
+					aria-label={value ? "Copy output" : "No output to copy"}
+					className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-[color:var(--app-fg-muted)] hover:bg-[color:var(--app-surface-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] disabled:cursor-not-allowed disabled:opacity-40"
+				>
+					{copyState === "done" ? (
+						<Check className="size-3.5" />
+					) : (
+						<Copy className="size-3.5" />
+					)}
+					{copyState === "idle"
+						? "Copy"
+						: copyState === "done"
+							? "Copied"
+							: "Retry"}
+				</button>
+			</div>
+			{value ? (
+				<pre className="uutil-scrollbar min-h-0 max-w-full flex-1 overflow-auto whitespace-pre-wrap break-words px-4 py-4 font-mono text-[13px] leading-6 text-[color:var(--app-fg)]">
+					{value}
+				</pre>
+			) : (
+				<div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 text-center text-[color:var(--app-fg-soft)]">
+					<Braces
+						className="size-7 opacity-60"
+						strokeWidth={1.25}
+						aria-hidden="true"
+					/>
+					<p className="text-sm">Your result will appear here</p>
+					<p className="max-w-[240px] text-xs leading-5">
+						Enter your input, then run a tool to see the output.
+					</p>
+				</div>
+			)}
 		</div>
 	);
 }
@@ -2782,7 +2667,9 @@ function ActionRow({
 	className?: string;
 }) {
 	return (
-		<div className={`flex flex-wrap items-center gap-3 ${className}`}>
+		<div
+			className={`action-row flex flex-wrap items-center gap-2.5 ${className}`}
+		>
 			{children}
 		</div>
 	);
@@ -2798,27 +2685,32 @@ function ActionButton({
 	variant?: "default" | "ghost";
 }) {
 	const onClickRef = useRef(onClick);
+	const [busy, setBusy] = useState(false);
 	onClickRef.current = onClick;
 
 	const handleClick = useCallback(async () => {
-		toast(label);
+		setBusy(true);
 		try {
 			await onClickRef.current();
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "Action failed";
 			toast.error(message);
+		} finally {
+			setBusy(false);
 		}
-	}, [label]);
+	}, []);
 
 	return (
 		<button
 			type="button"
 			onClick={() => void handleClick()}
 			data-tool-action={normalizeActionLabel(label)}
-			className={`min-h-11 rounded-xl border px-4 py-2.5 text-xs font-bold tracking-[0.015em] transition duration-150 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-panel-bg)] sm:min-h-12 sm:px-5 ${
+			disabled={busy}
+			aria-busy={busy}
+			className={`min-h-11 whitespace-nowrap rounded-lg border px-4 py-2.5 text-[13px] font-semibold transition-colors duration-150 active:translate-y-px disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--app-panel-bg)] ${
 				variant === "default"
-					? "action-primary border-transparent text-[color:var(--app-accent-contrast)] shadow-[0_12px_32px_-17px_var(--app-accent)] hover:-translate-y-0.5 hover:brightness-105"
-					: "control-surface [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)] hover:-translate-y-0.5 hover:text-[color:var(--app-fg)]"
+					? "action-primary border-transparent text-[color:var(--app-accent-contrast)] hover:brightness-110"
+					: "control-surface [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] text-[color:var(--app-fg-muted)] hover:text-[color:var(--app-fg)]"
 			}`}
 		>
 			{label}
@@ -3339,7 +3231,7 @@ function createLorem(paragraphCount: number) {
 
 function ToolLabel({ text }: { text: string }) {
 	return (
-		<p className="mb-2.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-muted)]">
+		<p className="mb-2 block text-xs font-medium text-[color:var(--app-fg-muted)]">
 			{text}
 		</p>
 	);
@@ -3355,98 +3247,36 @@ function CustomSelect({
 	size = "md",
 }: {
 	value: string;
-	onChange: (nextValue: string) => void;
+	onChange: (value: string) => void;
 	options: Array<{ value: string; label: string }>;
 	className?: string;
 	placeholder?: string;
 	ariaLabel?: string;
 	size?: "sm" | "md";
 }) {
-	const [open, setOpen] = useState(false);
-	const rootRef = useRef<HTMLDivElement>(null);
-	const selectedOption =
-		options.find((option) => option.value === value) ?? null;
-
-	useEffect(() => {
-		if (!open) {
-			return;
-		}
-
-		const onPointerDown = (event: MouseEvent) => {
-			if (!rootRef.current?.contains(event.target as Node)) {
-				setOpen(false);
-			}
-		};
-
-		const onEscape = (event: KeyboardEvent) => {
-			if (event.key === "Escape") {
-				setOpen(false);
-			}
-		};
-
-		window.addEventListener("mousedown", onPointerDown);
-		window.addEventListener("keydown", onEscape);
-		return () => {
-			window.removeEventListener("mousedown", onPointerDown);
-			window.removeEventListener("keydown", onEscape);
-		};
-	}, [open]);
-
 	return (
-		<div ref={rootRef} className={`relative ${className ?? ""}`}>
-			<button
-				type="button"
-				onClick={() => setOpen((current) => !current)}
-				className={`control-surface flex w-full items-center justify-between gap-2 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] text-left text-[color:var(--app-fg)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] ${
-					size === "sm"
-						? "min-h-11 px-3 py-2 text-xs"
-						: "min-h-12 px-4 py-2.5 text-sm"
-				}`}
-				aria-haspopup="listbox"
-				aria-expanded={open}
-				aria-label={`${ariaLabel}: ${selectedOption?.label ?? placeholder}`}
+		<div className={`relative ${className ?? ""}`}>
+			<select
+				value={value}
+				onChange={(event) => onChange(event.target.value)}
+				aria-label={ariaLabel}
+				className={`control-surface w-full appearance-none rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] pr-10 text-[color:var(--app-fg)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${size === "sm" ? "min-h-11 py-2 pl-3 text-sm" : "min-h-12 py-2.5 pl-4 text-[16px] sm:text-sm"}`}
 			>
-				<span className="min-w-0 truncate">
-					{selectedOption?.label ?? placeholder}
-				</span>
-				<ChevronDown
-					className={`size-3.5 shrink-0 text-[color:var(--app-fg-soft)] transition ${
-						open ? "rotate-180" : ""
-					}`}
-				/>
-			</button>
-
-			{open ? (
-				<div
-					className="absolute left-0 right-0 top-full z-40 mt-2 max-h-60 overflow-auto rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-1.5 shadow-[0_18px_64px_var(--app-shadow)]"
-					role="listbox"
-					aria-label={`${ariaLabel} options`}
-				>
-					{options.map((option) => {
-						const isActive = option.value === value;
-						return (
-							<button
-								type="button"
-								key={option.value}
-								onClick={() => {
-									onChange(option.value);
-									setOpen(false);
-								}}
-								className={`mb-0.5 flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs transition ${
-									isActive
-										? "border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)] text-[color:var(--app-fg)]"
-										: "border-transparent text-[color:var(--app-fg-muted)] hover:[border-color:var(--app-border)] hover:bg-[color:var(--app-surface-bg)] hover:text-[color:var(--app-fg)]"
-								}`}
-								role="option"
-								aria-selected={isActive}
-							>
-								<span className="truncate">{option.label}</span>
-								{isActive ? <Check className="size-3 shrink-0" /> : null}
-							</button>
-						);
-					})}
-				</div>
-			) : null}
+				{options.some((option) => option.value === value) ? null : (
+					<option value="" disabled>
+						{placeholder}
+					</option>
+				)}
+				{options.map((option) => (
+					<option key={option.value} value={option.value}>
+						{option.label}
+					</option>
+				))}
+			</select>
+			<ChevronDown
+				aria-hidden="true"
+				className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-soft)]"
+			/>
 		</div>
 	);
 }
@@ -3479,28 +3309,22 @@ function UnixTimeConverterTool() {
 	};
 
 	return (
-		<div className="min-h-[520px] lg:min-h-[calc(100vh-238px)]">
+		<div>
 			<ResizablePanelGroup
-				direction="vertical"
-				className="h-full min-h-[500px]"
+				direction="horizontal"
+				className="responsive-panels"
 				id={panelGroupId}
 				defaultLayout={defaultUnixLayout}
 				onLayoutChanged={onUnixLayout}
 			>
 				<ResizablePanel id={UNIX_IO_PANEL_IDS[0]} defaultSize={54} minSize={30}>
-					<section className="flex h-full min-h-0 flex-col gap-2.5 pr-1">
-						<div>
-							<h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--app-fg-muted)]">
-								Input
-							</h3>
-							<ToolLabel text="Unix time or date string" />
-						</div>
+					<ToolCard title="Unix time or date string">
 						<ToolTextarea
 							rows={10}
 							value={input}
 							onChange={setInput}
 							placeholder="1700000000 or 2026-02-24T18:25:00Z"
-							className="h-full min-h-0 resize-none"
+							className="min-h-0 flex-1 resize-none"
 						/>
 						<div>
 							<ActionRow>
@@ -3517,18 +3341,13 @@ function UnixTimeConverterTool() {
 							</ActionRow>
 							<ErrorText text={error} />
 						</div>
-					</section>
+					</ToolCard>
 				</ResizablePanel>
 				<ResizableHandle withHandle />
 				<ResizablePanel id={UNIX_IO_PANEL_IDS[1]} defaultSize={46} minSize={28}>
-					<section className="flex h-full min-h-0 flex-col gap-2.5 pl-1">
-						<h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--app-fg-muted)]">
-							Output
-						</h3>
-						<div className="min-h-0 flex-1">
-							<OutputBox value={output} fill />
-						</div>
-					</section>
+					<ToolCard title="Result">
+						<OutputBox value={output} fill />
+					</ToolCard>
 				</ResizablePanel>
 			</ResizablePanelGroup>
 		</div>
@@ -5627,7 +5446,7 @@ function ToggleBox({
 		<label
 			className={`control-surface flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 transition focus-within:border-[color:var(--app-accent)] focus-within:ring-2 focus-within:ring-[color:var(--app-ring)] ${
 				checked
-					? "border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)]"
+					? "[border-color:var(--app-border-strong)] bg-[color:var(--app-accent-soft)]"
 					: "[border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] hover:[border-color:var(--app-border-strong)]"
 			}`}
 		>
@@ -5639,9 +5458,9 @@ function ToggleBox({
 			/>
 			<span
 				aria-hidden="true"
-				className={`grid size-5 shrink-0 place-items-center rounded-md border transition ${
+				className={`grid size-4 shrink-0 place-items-center rounded-[4px] border transition ${
 					checked
-						? "border-[color:var(--app-accent)] bg-[color:var(--app-accent)] text-[color:var(--app-accent-contrast)] shadow-[0_0_12px_-4px_var(--app-accent)]"
+						? "border-[color:var(--app-accent)] bg-[color:var(--app-accent)] text-[color:var(--app-accent-contrast)]"
 						: "[border-color:var(--app-border-strong)] bg-[color:var(--app-surface-bg)]"
 				}`}
 			>

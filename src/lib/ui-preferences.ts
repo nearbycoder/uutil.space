@@ -8,6 +8,10 @@ export const getUiPreferences = createServerFn({ method: "GET" }).handler(
 		const navExpandedValue = getCookie(NAV_EXPANDED_STORAGE_KEY);
 
 		return {
+			themeId:
+				getCookie("uutil.theme.mode") === "github-light"
+					? "github-light"
+					: "github-dark",
 			hasNavExpandedPreference:
 				navExpandedValue === "0" || navExpandedValue === "1",
 			navExpanded: navExpandedValue === "1",

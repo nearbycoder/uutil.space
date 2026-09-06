@@ -38,7 +38,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			},
 			{
 				name: "theme-color",
-				content: "#080d19",
+				content: "#161716",
 			},
 			{
 				name: "color-scheme",
@@ -46,6 +46,13 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			},
 		],
 		links: [
+			{
+				rel: "preload",
+				href: "/fonts/instrument-sans-latin.woff2",
+				as: "font",
+				type: "font/woff2",
+				crossOrigin: "anonymous",
+			},
 			{
 				rel: "stylesheet",
 				href: appCss,
