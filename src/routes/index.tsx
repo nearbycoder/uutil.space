@@ -7,6 +7,15 @@ import {
 } from "@tanstack/react-router";
 import { Buffer } from "buffer";
 import Color from "color";
+import {
+	buildCron,
+	checkContrast,
+	generateMockData,
+	redactText,
+	type CronSchedule,
+	type MockFieldType,
+	type validateJsonSchema,
+} from "#/lib/workspace-utilities";
 import { CronExpressionParser } from "cron-parser";
 import CryptoJS from "crypto-js";
 import he from "he";
@@ -651,6 +660,42 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Audit baseline browser security headers and surface risky values.",
 		component: SecurityHeadersAuditorTool,
+	},
+	{
+		id: "json-schema-validator",
+		name: "JSON Schema Validator",
+		category: "Parsing",
+		summary:
+			"Validate JSON against draft 4, 6, or 7 schemas with field-level errors.",
+		component: JsonSchemaValidatorTool,
+	},
+	{
+		id: "text-redactor",
+		name: "Text Redactor",
+		category: "Security",
+		summary: "Mask common secrets and personal data before sharing text.",
+		component: TextRedactorTool,
+	},
+	{
+		id: "mock-data-generator",
+		name: "Mock Data Generator",
+		category: "Generators",
+		summary: "Create repeatable sample records as JSON or CSV.",
+		component: MockDataGeneratorTool,
+	},
+	{
+		id: "color-contrast-checker",
+		name: "Color Contrast Checker",
+		category: "Core",
+		summary: "Check WCAG contrast and find accessible foreground alternatives.",
+		component: ColorContrastCheckerTool,
+	},
+	{
+		id: "cron-builder",
+		name: "Cron Builder",
+		category: "Core",
+		summary: "Build a schedule visually and preview its next runs.",
+		component: CronBuilderTool,
 	},
 ];
 
@@ -2468,6 +2513,467 @@ function CommandPalette({
 				</div>
 			</div>
 		</div>
+	);
+}
+
+function JsonSchemaValidatorTool() {
+	const [input, setInput] = useState('{"user":{"name":"Alex","age":17}}');
+	const [schema, setSchema] = useState(
+		'{"type":"object","properties":{"user":{"type":"object","properties":{"name":{"type":"string"},"age":{"type":"integer","minimum":18}},"required":["name","age"]}},"required":["user"]}',
+	);
+	const [result, setResult] = useState<ReturnType<
+		typeof validateJsonSchema
+	> | null>(null);
+	const [error, setError] = useState("");
+	const host = useRef<HTMLDivElement>(null);
+	const worker = useRef<Worker | null>(null);
+	useEffect(() => () => worker.current?.terminate(), []);
+	const validate = () =>
+		new Promise<void>((resolve) => {
+			setError("");
+			setResult(null);
+			worker.current?.terminate();
+			const task = new Worker(
+				new URL("../lib/schema.worker.ts", import.meta.url),
+				{ type: "module" },
+			);
+			worker.current = task;
+			const finish = () => {
+				clearTimeout(timeout);
+				task.terminate();
+				resolve();
+			};
+			const timeout = setTimeout(() => {
+				setError(
+					"Validation exceeded 3 seconds. Simplify the schema or input.",
+				);
+				finish();
+			}, 3000);
+			task.onmessage = ({ data }) => {
+				if (data.error) setError(data.error);
+				else setResult(data.result);
+				finish();
+			};
+			task.onerror = () => {
+				setError("Could not validate this schema.");
+				finish();
+			};
+			task.postMessage({ input, schema });
+		});
+	const locate = (property: string | number) => {
+		const area = host.current?.querySelector("textarea");
+		if (!area) return;
+		const needle = JSON.stringify(String(property));
+		const start = input.indexOf(needle);
+		area.focus();
+		area.setSelectionRange(
+			Math.max(0, start),
+			start < 0 ? input.length : start + needle.length,
+		);
+	};
+	return (
+		<div ref={host}>
+			<ToolGrid>
+				<ToolCard title="JSON document">
+					<ToolTextarea
+						value={input}
+						onChange={setInput}
+						placeholder="JSON document to validate"
+					/>
+					<ActionRow>
+						<ActionButton label="Validate schema" onClick={validate} />
+					</ActionRow>
+					<ErrorText text={error} />
+				</ToolCard>
+				<ToolCard title="JSON Schema">
+					<ToolTextarea
+						value={schema}
+						onChange={setSchema}
+						placeholder="JSON Schema (draft 4, 6, or 7)"
+					/>
+					<p className="mt-3 text-xs text-[color:var(--app-fg-muted)]">
+						Drafts 4, 6, and 7. References must be included locally; nothing is
+						fetched.
+					</p>
+				</ToolCard>
+			</ToolGrid>
+			{result && (
+				<ToolCard
+					title={
+						result.valid
+							? "Valid document"
+							: `${result.errors.length} validation errors`
+					}
+					className="mt-5"
+				>
+					<div className="space-y-2">
+						{result.errors.map((issue, i) => (
+							<button
+								type="button"
+								className="block w-full rounded-lg border p-3 text-left text-sm [border-color:var(--app-border)]"
+								key={`${issue.path}-${i}`}
+								onClick={() => locate(issue.property)}
+							>
+								<code>{issue.path || "/"}</code> — {issue.message}
+								<span className="block text-xs text-[color:var(--app-fg-muted)]">
+									Select field in document
+								</span>
+							</button>
+						))}
+					</div>
+					<OutputBox value={JSON.stringify(result, null, 2)} />
+				</ToolCard>
+			)}
+		</div>
+	);
+}
+
+function TextRedactorTool() {
+	const [input, setInput] = useState(
+		"Contact alex@example.com from 192.168.1.1\nAuthorization: Bearer sample-secret-token",
+	);
+	const [options, setOptions] = useState({
+		emails: true,
+		tokens: true,
+		ips: true,
+		phones: false,
+	});
+	const [output, setOutput] = useState("");
+	const [count, setCount] = useState(0);
+	return (
+		<ToolGrid>
+			<ToolCard title="Text to redact">
+				<ToolTextarea
+					value={input}
+					onChange={setInput}
+					placeholder="Paste text to redact"
+				/>
+				<div className="mt-4 grid gap-3 sm:grid-cols-2">
+					{(Object.keys(options) as (keyof typeof options)[]).map((key) => (
+						<ToggleBox
+							key={key}
+							label={
+								{
+									emails: "Email addresses",
+									tokens: "Tokens and secrets",
+									ips: "IPv4 addresses",
+									phones: "Phone numbers",
+								}[key]
+							}
+							checked={options[key]}
+							onChange={(value) =>
+								setOptions((current) => ({ ...current, [key]: value }))
+							}
+						/>
+					))}
+				</div>
+				<ActionRow>
+					<ActionButton
+						label="Redact text"
+						onClick={() => {
+							const result = redactText(input, options);
+							setOutput(result.text);
+							setCount(result.count);
+						}}
+					/>
+				</ActionRow>
+				<p className="mt-3 text-xs text-[color:var(--app-fg-muted)]">
+					Pattern-based detection is not exhaustive. Review the result before
+					sharing.
+				</p>
+			</ToolCard>
+			<ToolCard title={`Redacted output · ${count} matches`}>
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function MockDataGeneratorTool() {
+	const [count, setCount] = useState("10"),
+		[seed, setSeed] = useState("42"),
+		[format, setFormat] = useState("json");
+	const [fields, setFields] = useState(
+		"id:id\nname:name\nemail:email\nactive:boolean",
+	);
+	const [output, setOutput] = useState("");
+	const [error, setError] = useState("");
+	return (
+		<ToolGrid>
+			<ToolCard title="Record schema">
+				<div className="grid gap-4 sm:grid-cols-2">
+					<label>
+						Records
+						<ToolTextInput
+							aria-label="Record count"
+							type="number"
+							value={count}
+							onChange={setCount}
+							min={1}
+							max={1000}
+						/>
+					</label>
+					<label>
+						Seed
+						<ToolTextInput
+							aria-label="Random seed"
+							type="number"
+							value={seed}
+							onChange={setSeed}
+						/>
+					</label>
+				</div>
+				<div className="mt-4">
+					<ToolLabel text="Fields, one name:type per line" />
+					<ToolTextarea
+						value={fields}
+						onChange={setFields}
+						rows={6}
+						placeholder="Mock fields (name:type)"
+					/>
+				</div>
+				<p className="my-3 text-xs text-[color:var(--app-fg-muted)]">
+					Types: id, name, email, integer, boolean, date, company. Emails use
+					example.com. Same seed and schema produce the same records.
+				</p>
+				<CustomSelect
+					value={format}
+					onChange={setFormat}
+					ariaLabel="Output format"
+					options={[
+						{ value: "json", label: "JSON" },
+						{ value: "csv", label: "CSV" },
+					]}
+				/>
+				<ActionRow>
+					<ActionButton
+						label="Generate records"
+						onClick={() => {
+							try {
+								const rows = generateMockData(
+									Number(count),
+									Number(seed),
+									fields
+										.trim()
+										.split(/\n/)
+										.map((line) => {
+											const [name, type, extra] = line.trim().split(":");
+											if (extra || !type)
+												throw new Error("Use name:type on each line.");
+											return {
+												name: name.trim(),
+												type: type.trim() as MockFieldType,
+											};
+										}),
+								);
+								setOutput(
+									format === "csv"
+										? Papa.unparse(rows)
+										: JSON.stringify(rows, null, 2),
+								);
+								setError("");
+							} catch (e) {
+								setOutput("");
+								setError((e as Error).message);
+							}
+						}}
+					/>
+				</ActionRow>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Generated data">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function ColorContrastCheckerTool() {
+	const [fg, setFg] = useState("#777777"),
+		[bg, setBg] = useState("#ffffff");
+	let result: ReturnType<typeof checkContrast> | undefined;
+	let error = "";
+	try {
+		result = checkContrast(fg, bg);
+	} catch (e) {
+		error = (e as Error).message;
+	}
+	return (
+		<ToolGrid>
+			<ToolCard title="Color pair">
+				<div className="space-y-4">
+					<label className="block">
+						Foreground
+						<ToolTextInput
+							aria-label="Foreground color"
+							value={fg}
+							onChange={setFg}
+						/>
+					</label>
+					<label className="block">
+						Background
+						<ToolTextInput
+							aria-label="Background color"
+							value={bg}
+							onChange={setBg}
+						/>
+					</label>
+				</div>
+				<ErrorText text={error} />
+				{result && (
+					<>
+						<div
+							className="mt-5 rounded-lg border p-6"
+							style={{
+								color: result.foreground,
+								background: result.background,
+							}}
+						>
+							<p className="text-2xl font-bold">Readable by design.</p>
+							<p className="mt-2 text-sm">A sample of normal-sized text.</p>
+						</div>
+						<p className="mt-4 text-xs text-[color:var(--app-fg-muted)]">
+							WCAG AA: 4.5:1 normal text, 3:1 large text. AAA: 7:1 normal text.
+						</p>
+					</>
+				)}
+			</ToolCard>
+			<ToolCard title="Contrast results">
+				{result && (
+					<>
+						<p className="mb-4 font-mono text-4xl">
+							{result.ratio.toFixed(2)}:1
+						</p>
+						<OutputBox
+							value={`AA normal: ${result.aa ? "Pass" : "Fail"}\nAAA normal: ${result.aaa ? "Pass" : "Fail"}\nAA large: ${result.large ? "Pass" : "Fail"}`}
+							fill={false}
+						/>
+						<ToolLabel text="Accessible foreground alternatives" />
+						<ActionRow>
+							{result.alternatives.map((color) => (
+								<ActionButton
+									key={color}
+									label={`${color} · ${checkContrast(color, bg).ratio.toFixed(2)}:1`}
+									variant="ghost"
+									onClick={() => setFg(color)}
+								/>
+							))}
+						</ActionRow>
+					</>
+				)}
+			</ToolCard>
+		</ToolGrid>
+	);
+}
+
+function CronBuilderTool() {
+	const [schedule, setSchedule] = useState<CronSchedule>("daily"),
+		[minute, setMinute] = useState("0"),
+		[hour, setHour] = useState("9"),
+		[day, setDay] = useState("1"),
+		[interval, setInterval] = useState("15"),
+		[zone, setZone] = useState("UTC");
+	let output = "",
+		error = "";
+	try {
+		const cron = buildCron(schedule, +minute, +hour, +day, +interval);
+		const expression = CronExpressionParser.parse(cron, { tz: zone });
+		output = `${cron}\n\nNext 5 runs (${zone}):\n${Array.from({ length: 5 }, () => expression.next().toDate().toLocaleString("en-US", { timeZone: zone, timeZoneName: "short" })).join("\n")}`;
+	} catch (e) {
+		error = (e as Error).message;
+	}
+	return (
+		<ToolGrid>
+			<ToolCard title="Schedule">
+				<div className="space-y-4">
+					<CustomSelect
+						value={schedule}
+						onChange={(v) => setSchedule(v as CronSchedule)}
+						ariaLabel="Schedule frequency"
+						options={["minutes", "hourly", "daily", "weekly", "monthly"].map(
+							(value) => ({
+								value,
+								label: value[0].toUpperCase() + value.slice(1),
+							}),
+						)}
+					/>
+					{schedule === "minutes" ? (
+						<label className="block">
+							Every N minutes
+							<ToolTextInput
+								aria-label="Minute interval"
+								type="number"
+								min={1}
+								max={59}
+								value={interval}
+								onChange={setInterval}
+							/>
+						</label>
+					) : (
+						<label className="block">
+							Minute
+							<ToolTextInput
+								aria-label="Schedule minute"
+								type="number"
+								min={0}
+								max={59}
+								value={minute}
+								onChange={setMinute}
+							/>
+						</label>
+					)}
+					{!["minutes", "hourly"].includes(schedule) && (
+						<label className="block">
+							Hour (24-hour)
+							<ToolTextInput
+								aria-label="Schedule hour"
+								type="number"
+								min={0}
+								max={23}
+								value={hour}
+								onChange={setHour}
+							/>
+						</label>
+					)}
+					{["weekly", "monthly"].includes(schedule) && (
+						<label className="block">
+							{schedule === "weekly"
+								? "Weekday (0 = Sunday, 6 = Saturday)"
+								: "Day of month"}
+							<ToolTextInput
+								aria-label="Schedule day"
+								type="number"
+								value={day}
+								onChange={setDay}
+							/>
+						</label>
+					)}
+					<CustomSelect
+						value={zone}
+						onChange={setZone}
+						ariaLabel="Preview timezone"
+						options={[
+							{ value: "UTC", label: "UTC" },
+							{
+								value: Intl.DateTimeFormat().resolvedOptions().timeZone,
+								label: "Local timezone",
+							},
+						].filter(
+							(v, i, a) => a.findIndex((x) => x.value === v.value) === i,
+						)}
+					/>
+				</div>
+				<p className="mt-4 text-xs text-[color:var(--app-fg-muted)]">
+					Five-field cron. Configure your scheduler's timezone separately.
+					Minute intervals restart each hour; dates 29–31 skip months without
+					that date.
+				</p>
+				<ErrorText text={error} />
+			</ToolCard>
+			<ToolCard title="Expression and upcoming runs">
+				<OutputBox value={output} />
+			</ToolCard>
+		</ToolGrid>
 	);
 }
 
