@@ -3,11 +3,19 @@ import {
 	buildCron,
 	checkContrast,
 	generateMockData,
+	locateJsonPointer,
 	redactText,
 	validateJsonSchema,
 } from "./workspace-utilities";
 
 describe("new workspace utilities", () => {
+	it("locates exact nested values, arrays and escaped property names", () => {
+		const input = '{"age":1,"user":{"age":17},"a/b":[true,"hello"]}';
+		const [start, end] = locateJsonPointer(input, "/user/age");
+		expect(input.slice(start, end)).toBe("17");
+		const [a, b] = locateJsonPointer(input, "/a~1b/1");
+		expect(input.slice(a, b)).toBe('"hello"');
+	});
 	it("validates nested schemas and locates failing fields", () => {
 		const result = validateJsonSchema(
 			'{"user":{"age":"young"}}',

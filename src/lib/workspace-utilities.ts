@@ -1,5 +1,5 @@
 import Color from "color";
-import { Validator, type Schema } from "jsonschema";
+import { type Schema, Validator } from "jsonschema";
 
 export function validateJsonSchema(input: string, schemaText: string) {
 	if (input.length + schemaText.length > 1_000_000)
@@ -21,11 +21,58 @@ export function validateJsonSchema(input: string, schemaText: string) {
 	return {
 		valid: result.valid,
 		errors: result.errors.map((error) => ({
-			path: `/${error.path.map((part) => String(part).replace(/~/g, "~0").replace(/\//g, "~1")).join("/")}`,
+			path: error.path.length
+				? `/${error.path.map((part) => String(part).replace(/~/g, "~0").replace(/\//g, "~1")).join("/")}`
+				: "",
 			message: error.message,
 			property: error.path.at(-1) ?? "",
 		})),
 	};
+}
+
+export function locateJsonPointer(
+	input: string,
+	pointer: string,
+): [number, number] {
+	const tokens = [
+		...input.matchAll(
+			/"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}[\]:,]/g,
+		),
+	];
+	let cursor = 0;
+	const locations = new Map<string, [number, number]>();
+	const visit = (path: string, depth: number) => {
+		if (depth > 500) throw new Error("Document nesting is too deep to locate.");
+		const first = tokens[cursor++];
+		if (!first) return;
+		if (first[0] === "{") {
+			while (tokens[cursor]?.[0] !== "}" && cursor < tokens.length) {
+				const key = JSON.parse(tokens[cursor++][0]);
+				cursor++;
+				visit(
+					`${path}/${String(key).replace(/~/g, "~0").replace(/\//g, "~1")}`,
+					depth + 1,
+				);
+				if (tokens[cursor]?.[0] === ",") cursor++;
+			}
+			cursor++;
+		} else if (first[0] === "[") {
+			let index = 0;
+			while (tokens[cursor]?.[0] !== "]" && cursor < tokens.length) {
+				visit(`${path}/${index++}`, depth + 1);
+				if (tokens[cursor]?.[0] === ",") cursor++;
+			}
+			cursor++;
+		}
+		const last = tokens[cursor - 1] ?? first;
+		locations.set(path, [first.index, last.index + last[0].length]);
+	};
+	try {
+		visit("", 0);
+	} catch {
+		return [0, input.length];
+	}
+	return locations.get(pointer) ?? [0, input.length];
 }
 
 export type RedactionOptions = {
@@ -44,7 +91,7 @@ export function redactText(input: string, options: RedactionOptions) {
 		});
 	};
 	if (options.tokens) {
-		replace(/\bBearer\s+[A-Za-z0-9._~+\/-]+=*/gi, "REDACTED_TOKEN");
+		replace(/\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi, "REDACTED_TOKEN");
 		replace(
 			/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,
 			"REDACTED_JWT",

@@ -5,6 +5,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
+import { offlinePlugin } from "./scripts/offline-plugin";
 
 const securityHeaders = {
 	"Content-Security-Policy": [
@@ -46,6 +47,7 @@ const config = defineConfig({
 		tanstackStart(),
 		viteReact(),
 		babel({ presets: [reactCompilerPreset()] }),
+		offlinePlugin(),
 	],
 });
 

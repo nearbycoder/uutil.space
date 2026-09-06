@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
+import { WorkspaceProvider } from "#/components/workspace";
 import type { TRPCRouter } from "#/integrations/trpc/router";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
@@ -46,6 +47,9 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			},
 		],
 		links: [
+			{ rel: "manifest", href: "/manifest.json" },
+			{ rel: "icon", type: "image/svg+xml", href: "/icon.svg" },
+			{ rel: "apple-touch-icon", href: "/app-icon-192.png" },
 			{
 				rel: "preload",
 				href: "/fonts/instrument-sans-latin.woff2",
@@ -98,7 +102,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			</head>
 			<body>
 				<TanStackQueryProvider>
-					{children}
+					<WorkspaceProvider>{children}</WorkspaceProvider>
 					<TanStackDevtools
 						config={{
 							position: "bottom-right",

@@ -7,15 +7,6 @@ import {
 } from "@tanstack/react-router";
 import { Buffer } from "buffer";
 import Color from "color";
-import {
-	buildCron,
-	checkContrast,
-	generateMockData,
-	redactText,
-	type CronSchedule,
-	type MockFieldType,
-	type validateJsonSchema,
-} from "#/lib/workspace-utilities";
 import { CronExpressionParser } from "cron-parser";
 import CryptoJS from "crypto-js";
 import he from "he";
@@ -96,6 +87,13 @@ import {
 	ResizablePanelGroup,
 } from "#/components/ui/resizable";
 import {
+	OutputActions,
+	ToolSession,
+	useWorkspace,
+	useWorkspaceField,
+	WorkspaceToolbar,
+} from "#/components/workspace";
+import {
 	type CurlTarget,
 	decodeHexToAscii,
 	encodeAsciiToHex,
@@ -142,10 +140,21 @@ import {
 	searchHttpStatuses,
 } from "#/lib/tool-utilities";
 import {
-	getUiPreferences,
+	type getUiPreferences,
+	loadUiPreferences,
 	NAV_EXPANDED_STORAGE_KEY,
 } from "#/lib/ui-preferences";
 import { WORKBENCH_DARK, WORKBENCH_LIGHT } from "#/lib/workbench-theme";
+import {
+	buildCron,
+	type CronSchedule,
+	checkContrast,
+	generateMockData,
+	locateJsonPointer,
+	type MockFieldType,
+	redactText,
+	type validateJsonSchema,
+} from "#/lib/workspace-utilities";
 
 const runtimeGlobal = globalThis as typeof globalThis & {
 	Buffer?: typeof Buffer;
@@ -153,7 +162,7 @@ const runtimeGlobal = globalThis as typeof globalThis & {
 runtimeGlobal.Buffer ??= Buffer;
 
 export const Route = createFileRoute("/")({
-	loader: () => getUiPreferences(),
+	loader: () => loadUiPreferences(),
 	component: HomeRouteComponent,
 });
 
@@ -1519,6 +1528,10 @@ export function ToolingApp({
 	const location = useLocation();
 	const navigate = useNavigate();
 	const [search, setSearch] = useState("");
+	const { state: workspaceState } = useWorkspace();
+	const [collection, setCollection] = useState<"all" | "favorites" | "recent">(
+		"all",
+	);
 	const [activeCategory, setActiveCategory] = useState<"All" | ToolCategory>(
 		"All",
 	);
@@ -1563,7 +1576,18 @@ export function ToolingApp({
 	);
 
 	const filteredTools = useMemo(() => {
-		return TOOL_REGISTRY.filter((tool) => {
+		const tools =
+			collection === "recent"
+				? workspaceState.recent.flatMap(
+						(id) => TOOL_REGISTRY.find((tool) => tool.id === id) ?? [],
+					)
+				: TOOL_REGISTRY;
+		return tools.filter((tool) => {
+			if (
+				collection === "favorites" &&
+				!workspaceState.favorites.includes(tool.id)
+			)
+				return false;
 			const matchesCategory =
 				activeCategory === "All" || tool.category === activeCategory;
 			const query =
@@ -1571,7 +1595,13 @@ export function ToolingApp({
 			const matchesSearch = query.includes(search.trim().toLowerCase());
 			return matchesCategory && matchesSearch;
 		});
-	}, [activeCategory, search]);
+	}, [
+		activeCategory,
+		search,
+		collection,
+		workspaceState.favorites,
+		workspaceState.recent,
+	]);
 
 	const selectedTool =
 		TOOL_REGISTRY.find((tool) => tool.id === selectedToolId) ??
@@ -2060,6 +2090,19 @@ export function ToolingApp({
 						options={categoryOptions}
 						size="sm"
 					/>
+					<fieldset className="flex gap-1" aria-label="Tool collection">
+						{(["all", "favorites", "recent"] as const).map((value) => (
+							<button
+								key={value}
+								type="button"
+								className="ws-button min-w-0 flex-1 px-2"
+								aria-pressed={collection === value}
+								onClick={() => setCollection(value)}
+							>
+								{value[0].toUpperCase() + value.slice(1)}
+							</button>
+						))}
+					</fieldset>
 					{search || activeCategory !== "All" ? (
 						<p
 							className="px-1 text-xs text-[color:var(--app-fg-soft)]"
@@ -2156,7 +2199,14 @@ export function ToolingApp({
 					</div>
 				</div>
 			</section>
-			<SelectedToolComponent />
+			<WorkspaceToolbar
+				toolId={selectedToolId}
+				tools={TOOL_REGISTRY}
+				navigate={selectTool}
+			/>
+			<ToolSession key={selectedToolId} toolId={selectedToolId}>
+				<SelectedToolComponent />
+			</ToolSession>
 			<footer className="workspace-footer">
 				<Lock className="size-3.5" aria-hidden="true" />
 				<span>Processed locally. Nothing to install, nothing to upload.</span>
@@ -2560,16 +2610,12 @@ function JsonSchemaValidatorTool() {
 			};
 			task.postMessage({ input, schema });
 		});
-	const locate = (property: string | number) => {
+	const locate = (path: string) => {
 		const area = host.current?.querySelector("textarea");
 		if (!area) return;
-		const needle = JSON.stringify(String(property));
-		const start = input.indexOf(needle);
+		const [start, end] = locateJsonPointer(input, path);
 		area.focus();
-		area.setSelectionRange(
-			Math.max(0, start),
-			start < 0 ? input.length : start + needle.length,
-		);
+		area.setSelectionRange(start, end);
 	};
 	return (
 		<div ref={host}>
@@ -2607,12 +2653,19 @@ function JsonSchemaValidatorTool() {
 					className="mt-5"
 				>
 					<div className="space-y-2">
-						{result.errors.map((issue, i) => (
+						{[
+							...new Map(
+								result.errors.map((issue) => [
+									issue.path + issue.message,
+									issue,
+								]),
+							).values(),
+						].map((issue) => (
 							<button
 								type="button"
 								className="block w-full rounded-lg border p-3 text-left text-sm [border-color:var(--app-border)]"
-								key={`${issue.path}-${i}`}
-								onClick={() => locate(issue.property)}
+								key={issue.path + issue.message}
+								onClick={() => locate(issue.path)}
 							>
 								<code>{issue.path || "/"}</code> — {issue.message}
 								<span className="block text-xs text-[color:var(--app-fg-muted)]">
@@ -2702,10 +2755,12 @@ function MockDataGeneratorTool() {
 		<ToolGrid>
 			<ToolCard title="Record schema">
 				<div className="grid gap-4 sm:grid-cols-2">
-					<label>
+					<label htmlFor="mock-count">
 						Records
 						<ToolTextInput
+							id="mock-count"
 							aria-label="Record count"
+							workspaceKind="setting"
 							type="number"
 							value={count}
 							onChange={setCount}
@@ -2713,10 +2768,12 @@ function MockDataGeneratorTool() {
 							max={1000}
 						/>
 					</label>
-					<label>
+					<label htmlFor="mock-seed">
 						Seed
 						<ToolTextInput
+							id="mock-seed"
 							aria-label="Random seed"
+							workspaceKind="setting"
 							type="number"
 							value={seed}
 							onChange={setSeed}
@@ -2802,17 +2859,19 @@ function ColorContrastCheckerTool() {
 		<ToolGrid>
 			<ToolCard title="Color pair">
 				<div className="space-y-4">
-					<label className="block">
+					<label className="block" htmlFor="contrast-fg">
 						Foreground
 						<ToolTextInput
+							id="contrast-fg"
 							aria-label="Foreground color"
 							value={fg}
 							onChange={setFg}
 						/>
 					</label>
-					<label className="block">
+					<label className="block" htmlFor="contrast-bg">
 						Background
 						<ToolTextInput
+							id="contrast-bg"
 							aria-label="Background color"
 							value={bg}
 							onChange={setBg}
@@ -2873,12 +2932,27 @@ function CronBuilderTool() {
 		[day, setDay] = useState("1"),
 		[interval, setInterval] = useState("15"),
 		[zone, setZone] = useState("UTC");
+	const [now, setNow] = useState<Date | null>(null);
+	useEffect(() => {
+		setNow(new Date());
+		const timer = window.setInterval(() => setNow(new Date()), 60_000);
+		return () => window.clearInterval(timer);
+	}, []);
 	let output = "",
 		error = "";
 	try {
 		const cron = buildCron(schedule, +minute, +hour, +day, +interval);
-		const expression = CronExpressionParser.parse(cron, { tz: zone });
-		output = `${cron}\n\nNext 5 runs (${zone}):\n${Array.from({ length: 5 }, () => expression.next().toDate().toLocaleString("en-US", { timeZone: zone, timeZoneName: "short" })).join("\n")}`;
+		if (now) {
+			const timezone =
+				zone === "local"
+					? Intl.DateTimeFormat().resolvedOptions().timeZone
+					: zone;
+			const expression = CronExpressionParser.parse(cron, {
+				tz: timezone,
+				currentDate: now,
+			});
+			output = `${cron}\n\nNext 5 runs (${timezone}):\n${Array.from({ length: 5 }, () => expression.next().toDate().toLocaleString("en-US", { timeZone: timezone, timeZoneName: "short" })).join("\n")}`;
+		}
 	} catch (e) {
 		error = (e as Error).message;
 	}
@@ -2898,10 +2972,12 @@ function CronBuilderTool() {
 						)}
 					/>
 					{schedule === "minutes" ? (
-						<label className="block">
+						<label className="block" htmlFor="cron-interval">
 							Every N minutes
 							<ToolTextInput
+								id="cron-interval"
 								aria-label="Minute interval"
+								workspaceKind="setting"
 								type="number"
 								min={1}
 								max={59}
@@ -2910,10 +2986,12 @@ function CronBuilderTool() {
 							/>
 						</label>
 					) : (
-						<label className="block">
+						<label className="block" htmlFor="cron-minute">
 							Minute
 							<ToolTextInput
+								id="cron-minute"
 								aria-label="Schedule minute"
+								workspaceKind="setting"
 								type="number"
 								min={0}
 								max={59}
@@ -2923,10 +3001,12 @@ function CronBuilderTool() {
 						</label>
 					)}
 					{!["minutes", "hourly"].includes(schedule) && (
-						<label className="block">
+						<label className="block" htmlFor="cron-hour">
 							Hour (24-hour)
 							<ToolTextInput
+								id="cron-hour"
 								aria-label="Schedule hour"
+								workspaceKind="setting"
 								type="number"
 								min={0}
 								max={23}
@@ -2936,12 +3016,14 @@ function CronBuilderTool() {
 						</label>
 					)}
 					{["weekly", "monthly"].includes(schedule) && (
-						<label className="block">
+						<label className="block" htmlFor="cron-day">
 							{schedule === "weekly"
 								? "Weekday (0 = Sunday, 6 = Saturday)"
 								: "Day of month"}
 							<ToolTextInput
+								id="cron-day"
 								aria-label="Schedule day"
+								workspaceKind="setting"
 								type="number"
 								value={day}
 								onChange={setDay}
@@ -2955,7 +3037,7 @@ function CronBuilderTool() {
 						options={[
 							{ value: "UTC", label: "UTC" },
 							{
-								value: Intl.DateTimeFormat().resolvedOptions().timeZone,
+								value: "local",
 								label: "Local timezone",
 							},
 						].filter(
@@ -3052,10 +3134,37 @@ function ToolTextarea({
 	className?: string;
 }) {
 	useToolQueryPrefill(value, onChange);
+	useWorkspaceField(value, (v) => onChange(String(v)), "input", placeholder);
 
 	return (
 		<textarea
 			value={value}
+			onDragOver={(event) => {
+				if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+			}}
+			onDrop={async (event) => {
+				if (!event.dataTransfer.files.length) return;
+				event.preventDefault();
+				const file = event.dataTransfer.files[0];
+				if (event.dataTransfer.files.length > 1) {
+					toast.error("Drop one file here, or use Workspace → Batch files.");
+					return;
+				}
+				if (file.size > 1_000_000) {
+					toast.error("Keep files below 1 MB.");
+					return;
+				}
+				try {
+					onChange(
+						new TextDecoder("utf-8", { fatal: true }).decode(
+							await file.arrayBuffer(),
+						),
+					);
+					toast.success(`Loaded ${file.name}`);
+				} catch {
+					toast.error("Choose a UTF-8 text file.");
+				}
+			}}
 			onChange={(event) => onChange(event.target.value)}
 			placeholder={placeholder}
 			aria-label={placeholder}
@@ -3071,6 +3180,7 @@ function ToolTextInput({
 	onChange,
 	className,
 	type = "text",
+	workspaceKind = "input",
 	...props
 }: Omit<
 	React.InputHTMLAttributes<HTMLInputElement>,
@@ -3079,8 +3189,15 @@ function ToolTextInput({
 	value: string | number;
 	onChange: (value: string) => void;
 	type?: "datetime-local" | "number" | "password" | "search" | "text" | "url";
+	workspaceKind?: "input" | "setting";
 }) {
 	useToolQueryPrefill(String(value), onChange);
+	useWorkspaceField(
+		String(value),
+		(v) => onChange(String(v)),
+		workspaceKind,
+		String(props["aria-label"] ?? props.placeholder ?? props.id ?? type),
+	);
 
 	return (
 		<input
@@ -3119,12 +3236,13 @@ function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 		<div
 			className={`output-panel flex min-w-0 max-w-full flex-col overflow-hidden rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] ${shouldFill ? "min-h-[240px] flex-1" : "min-h-28"}`}
 		>
-			<div className="output-toolbar flex min-h-11 items-center justify-between gap-3 border-b [border-color:var(--app-border)] px-3">
+			<div className="output-toolbar flex min-h-11 flex-wrap items-center justify-between gap-2 border-b [border-color:var(--app-border)] px-3 py-1">
 				<span className="font-mono text-[11px] text-[color:var(--app-fg-soft)]">
 					{value
 						? `${value.length.toLocaleString()} characters`
 						: "Awaiting output"}
 				</span>
+				<OutputActions value={value} />
 				<button
 					type="button"
 					onClick={copy}
@@ -3190,6 +3308,11 @@ function ActionButton({
 	onClick: () => void | Promise<void>;
 	variant?: "default" | "ghost";
 }) {
+	const { record } = useWorkspace();
+	const recordRef = useRef(record);
+	recordRef.current = record;
+	const labelRef = useRef(label);
+	labelRef.current = label;
 	const onClickRef = useRef(onClick);
 	const [busy, setBusy] = useState(false);
 	onClickRef.current = onClick;
@@ -3197,6 +3320,7 @@ function ActionButton({
 	const handleClick = useCallback(async () => {
 		setBusy(true);
 		try {
+			recordRef.current(labelRef.current);
 			await onClickRef.current();
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "Action failed";
@@ -3760,6 +3884,15 @@ function CustomSelect({
 	ariaLabel?: string;
 	size?: "sm" | "md";
 }) {
+	useWorkspaceField(
+		value,
+		(v) => {
+			if (typeof v === "string" && options.some((o) => o.value === v))
+				onChange(v);
+		},
+		"setting",
+		ariaLabel,
+	);
 	return (
 		<div className={`relative ${className ?? ""}`}>
 			<select
@@ -4814,6 +4947,7 @@ function NumberBaseTool() {
 						<ToolLabel text="Base (2-36)" />
 						<ToolTextInput
 							aria-label="Source base"
+							workspaceKind="setting"
 							type="number"
 							min={2}
 							max={36}
@@ -5126,6 +5260,7 @@ function LoremIpsumTool() {
 				<ToolLabel text="Paragraph count" />
 				<ToolTextInput
 					aria-label="Paragraph count"
+					workspaceKind="setting"
 					type="number"
 					min={1}
 					max={20}
@@ -5895,6 +6030,7 @@ function RandomStringTool() {
 				<ToolLabel text="Length" />
 				<ToolTextInput
 					aria-label="Random string length"
+					workspaceKind="setting"
 					type="number"
 					min={1}
 					max={2048}
@@ -5948,6 +6084,14 @@ function ToggleBox({
 	checked: boolean;
 	onChange: (checked: boolean) => void;
 }) {
+	useWorkspaceField(
+		checked,
+		(v) => {
+			if (typeof v === "boolean") onChange(v);
+		},
+		"setting",
+		label,
+	);
 	return (
 		<label
 			className={`control-surface flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 transition focus-within:border-[color:var(--app-accent)] focus-within:ring-2 focus-within:ring-[color:var(--app-ring)] ${

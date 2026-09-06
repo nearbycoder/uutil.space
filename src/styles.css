@@ -2,6 +2,18 @@
 
 @import 'tw-animate-css';
 
+.ws-button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--app-border); border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 500; color: var(--app-fg-muted); background: var(--app-panel-bg); cursor: pointer; }
+.ws-button:hover, .ws-button[aria-pressed="true"] { color: var(--app-fg); border-color: var(--app-border-strong); background: var(--app-accent-soft); }
+.ws-button:focus-visible, .ws-input:focus-visible, .ws-list-item:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 3px; }
+.ws-button:disabled { opacity: .4; cursor: not-allowed; }
+.ws-input { display: block; width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--app-border); border-radius: 8px; padding: 12px; background: var(--app-surface-alt); color: var(--app-fg); font-size: 16px; }
+.workspace-dialog { position: fixed; inset: 0; margin: auto; width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--app-border-strong); border-radius: 16px; background: var(--app-panel-bg); color: var(--app-fg); box-shadow: 0 24px 100px #0008; }
+.workspace-dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
+.ws-dialog-body { padding: 20px; }
+.ws-list-item { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--app-border); border-radius: 8px; padding: 12px; text-align: left; font-size: 14px; }
+.ws-list-item:hover { background: var(--app-surface-alt); }
+@media (min-width: 640px) { .ws-input { font-size: 14px; } }
+
 @custom-variant dark (&:is(.dark *));
 
 @font-face {

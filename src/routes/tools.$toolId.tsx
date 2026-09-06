@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getUiPreferences } from "#/lib/ui-preferences";
+import { loadUiPreferences } from "#/lib/ui-preferences";
 import { ToolingApp } from "./index";
 
 export const Route = createFileRoute("/tools/$toolId")({
-	loader: () => getUiPreferences(),
+	loader: () => loadUiPreferences(),
 	component: ToolRouteComponent,
 });
 
