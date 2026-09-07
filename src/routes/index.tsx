@@ -113,6 +113,7 @@ import {
 	toTitleCase,
 	unescapeBackslashes,
 } from "#/lib/converters";
+import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import {
 	analyzePassword,
@@ -716,6 +717,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		category: "Core",
 		summary: "Compare JSON values with added, removed, and changed paths.",
 		component: createLocalTool(jsonStructuralDiff),
+	},
+	{
+		id: "json-merge-patch",
+		name: "JSON Merge Patch",
+		category: "Conversion",
+		summary:
+			"Apply recursive JSON merge patches with explicit deletion semantics.",
+		component: createLocalTool(jsonMergePatch),
 	},
 ];
 
