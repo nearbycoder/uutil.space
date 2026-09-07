@@ -117,6 +117,7 @@ import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
 import { tool as csvMarkdownTable } from "#/lib/local-tools/csv-markdown-table";
+import { tool as invisibleCharacterCleaner } from "#/lib/local-tools/invisible-character-cleaner";
 import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
@@ -814,6 +815,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Normalize Unicode text and compare code points, UTF-16 units, and UTF-8 bytes.",
 		component: createLocalTool(unicodeNormalizer),
+	},
+	{
+		id: "invisible-character-cleaner",
+		name: "Invisible Character Cleaner",
+		category: "Formatting",
+		summary:
+			"Find hidden formatting characters and clean them with a detailed change report.",
+		component: createLocalTool(invisibleCharacterCleaner),
 	},
 ];
 
