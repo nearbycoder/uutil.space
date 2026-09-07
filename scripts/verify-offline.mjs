@@ -11,6 +11,7 @@ try {
 	open("/tools/json-format-validate"); click("My workspace"); click("Offline & install"); click("Enable offline mode"); wait('document.querySelector("dialog")?.innerText.includes("All tools are prepared")'); click("Close workspace");
 	run("set", "offline", "on");
 	open("/tools/json-format-validate"); click("Format"); wait('document.querySelector(".output-panel pre")?.textContent.length > 0');
+	click("Open tools menu"); wait('document.querySelector(".mobile-tools-dialog").open');
 	click("Base64 String Encode/Decode: Encode plain text to base64 and decode base64 back to text."); wait('location.pathname.endsWith("base64-string")'); click("Encode"); wait('document.querySelector(".output-panel pre")?.textContent.length > 0');
 	open("/tools/json-schema-validator"); click("Validate schema"); wait('document.body.innerText.includes("validation errors")');
 	open("/tools/cron-builder"); wait('document.querySelector(".output-panel pre")?.textContent.includes("Next 5 runs")');
@@ -20,6 +21,6 @@ try {
 	}
 	assert.equal(run("errors").trim(), "");
 	console.log("PASS offline refresh, route navigation, validation worker, cron hydration and all 20 new local tools.");
-	run("set", "offline", "off"); click("My workspace"); click("Offline & install"); click("Remove offline files"); wait('document.querySelector("dialog")?.innerText.includes("Offline files removed")');
+	run("set", "offline", "off"); open("/tools/json-format-validate"); click("My workspace"); wait('document.querySelector("dialog")?.open'); click("Offline & install"); click("Remove offline files"); wait('document.querySelector("dialog")?.innerText.includes("Offline files removed")');
 	console.log("PASS removal of offline files.");
 } finally { run("set", "offline", "off"); run("close"); }

@@ -3,8 +3,8 @@ import { useEffect, useId, useRef } from "react";
 
 export const MOBILE_DRAWER_EXIT_MS = 180;
 
-/** A thumb-reachable dock and native modal sheet; desktop keeps its sidebar. */
-export function MobileToolNavigation({
+/** A shared floating dock and accessible native modal sheet at every viewport. */
+export function FloatingToolNavigation({
 	open,
 	onOpenChange,
 	onFind,
@@ -67,11 +67,9 @@ export function MobileToolNavigation({
 			() => {
 				element.close();
 				element.style.removeProperty("--drawer-drag");
-				if (window.innerWidth < 1280)
-					menuButtonRef.current?.focus({ preventScroll: true });
+				menuButtonRef.current?.focus({ preventScroll: true });
 			},
-			window.innerWidth >= 1280 ||
-				window.matchMedia("(prefers-reduced-motion: reduce)").matches
+			window.matchMedia("(prefers-reduced-motion: reduce)").matches
 				? 0
 				: MOBILE_DRAWER_EXIT_MS,
 		);
@@ -117,20 +115,22 @@ export function MobileToolNavigation({
 		};
 	}, []);
 	return (
-		<div ref={root} className="mobile-tool-navigation xl:hidden">
+		<div ref={root} className="mobile-tool-navigation">
 			<nav
 				className="mobile-dock mobile-dock-resting"
-				aria-label="Mobile tool navigation"
+				aria-label="Tool navigation"
 			>
 				<button
 					type="button"
 					onClick={() => show(true)}
 					aria-label="Find a tool"
+					aria-keyshortcuts="Control+K Meta+K"
 					aria-haspopup="dialog"
 					aria-controls={id}
 				>
 					<Search className="size-[18px]" aria-hidden="true" />
 					<span>Find</span>
+					<kbd className="dock-shortcut">⌘ / Ctrl K</kbd>
 				</button>
 				<span className="mobile-dock-divider" aria-hidden="true" />
 				<button
@@ -151,6 +151,34 @@ export function MobileToolNavigation({
 				className="mobile-tools-dialog"
 				data-expanded={open}
 				aria-labelledby={`${id}-title`}
+				onKeyDown={(event) => {
+					const target = event.target as HTMLElement;
+					const searching = target.matches('input[type="search"]');
+					const results = Array.from(
+						dialog.current?.querySelectorAll<HTMLButtonElement>(
+							".sidebar-tool",
+						) ?? [],
+					);
+					const index = results.indexOf(target as HTMLButtonElement);
+					if (!searching && index < 0) return;
+					if (
+						searching &&
+						event.key === "Enter" &&
+						!event.nativeEvent.isComposing
+					) {
+						event.preventDefault();
+						results[0]?.click();
+					} else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+						event.preventDefault();
+						const next = searching
+							? event.key === "ArrowDown"
+								? 0
+								: results.length - 1
+							: index + (event.key === "ArrowDown" ? 1 : -1);
+						if (next < 0 || next >= results.length) search();
+						else results[next]?.focus();
+					}
+				}}
 				onCancel={(event) => {
 					event.preventDefault();
 					callbacks.current.onOpenChange(false);
@@ -234,6 +262,7 @@ export function MobileToolNavigation({
 					>
 						<Search className="size-[18px]" aria-hidden="true" />
 						<span>Find</span>
+						<kbd className="dock-shortcut">⌘ / Ctrl K</kbd>
 					</button>
 					<span className="mobile-dock-divider" aria-hidden="true" />
 					<button

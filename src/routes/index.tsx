@@ -19,7 +19,6 @@ import {
 	Braces,
 	Check,
 	ChevronDown,
-	ChevronLeft,
 	ChevronRight,
 	Clock3,
 	Command,
@@ -81,8 +80,8 @@ import vkbeautify from "vkbeautify";
 import xmlFormat from "xml-formatter";
 import { createLocalTool } from "#/components/local-tool";
 import {
+	FloatingToolNavigation,
 	MOBILE_DRAWER_EXIT_MS,
-	MobileToolNavigation,
 } from "#/components/mobile-tool-navigation";
 import {
 	ResizableHandle,
@@ -162,11 +161,7 @@ import {
 	queryStringToJson,
 	searchHttpStatuses,
 } from "#/lib/tool-utilities";
-import {
-	type getUiPreferences,
-	loadUiPreferences,
-	NAV_EXPANDED_STORAGE_KEY,
-} from "#/lib/ui-preferences";
+import { type getUiPreferences, loadUiPreferences } from "#/lib/ui-preferences";
 import { WORKBENCH_DARK, WORKBENCH_LIGHT } from "#/lib/workbench-theme";
 import {
 	buildCron,
@@ -923,15 +918,6 @@ const CATEGORY_ICONS: Record<ToolCategory, LucideIcon> = {
 	Generators: Sparkles,
 	Parsing: FileSearch,
 };
-const PALETTE_CATEGORY_ORDER: ToolCategory[] = [
-	"Core",
-	"Encoding",
-	"Security",
-	"Parsing",
-	"Formatting",
-	"Conversion",
-	"Generators",
-];
 const PASSWORD_STRENGTH_LEVELS = ["weak", "fair", "strong", "excellent"];
 const SLUG_SEPARATOR_OPTIONS = [
 	{ value: "-", label: "Hyphen (-)" },
@@ -1719,23 +1705,12 @@ export function ToolingApp({
 	const [selectedToolId, setSelectedToolId] = useState(() =>
 		routedToolId && TOOL_IDS.has(routedToolId) ? routedToolId : DEFAULT_TOOL_ID,
 	);
-	const [navExpanded, setNavExpanded] = useState(
-		initialUiPreferences.navExpanded,
-	);
-	const [navPreferenceLoaded, setNavPreferenceLoaded] = useState(
-		initialUiPreferences.hasNavExpandedPreference,
-	);
-	const [isMobileViewport, setIsMobileViewport] = useState(false);
 	const [mobileNavOpen, setMobileNavOpen] = useState(false);
 	const [mobileSearchRequest, setMobileSearchRequest] = useState(0);
-	const [paletteOpen, setPaletteOpen] = useState(false);
-	const [paletteQuery, setPaletteQuery] = useState("");
-	const [paletteIndex, setPaletteIndex] = useState(0);
 	const [themeId, setThemeId] = useState<string>(initialUiPreferences.themeId);
 	const [themePreferencesLoaded, setThemePreferencesLoaded] = useState(false);
 	const themeVars = useMemo(() => getThemeFallbackVars(themeId), [themeId]);
 	const [toolTooltip, setToolTooltip] = useState<ToolTooltipState | null>(null);
-	const paletteInputRef = useRef<HTMLInputElement>(null);
 	const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
 	const mobileNavigationTimerRef = useRef<number | null>(null);
 	const toolTooltipTimerRef = useRef<number | null>(null);
@@ -1846,19 +1821,6 @@ export function ToolingApp({
 		return () => window.clearTimeout(timeout);
 	}, [toolQueryRuntime]);
 
-	const paletteResults = useMemo(() => {
-		const query = paletteQuery.trim().toLowerCase();
-		if (!query) {
-			return TOOL_REGISTRY;
-		}
-
-		return TOOL_REGISTRY.filter((tool) =>
-			`${tool.name} ${tool.summary} ${tool.category}`
-				.toLowerCase()
-				.includes(query),
-		);
-	}, [paletteQuery]);
-
 	useEffect(() => {
 		if (routedToolId == null) {
 			return;
@@ -1904,39 +1866,6 @@ export function ToolingApp({
 	}, []);
 
 	useEffect(() => {
-		if (initialUiPreferences.hasNavExpandedPreference) {
-			return;
-		}
-
-		const savedNavState = window.localStorage.getItem(NAV_EXPANDED_STORAGE_KEY);
-		if (!savedNavState) {
-			setNavExpanded(window.innerWidth >= 1024);
-		} else {
-			setNavExpanded(savedNavState === "1");
-		}
-
-		setNavPreferenceLoaded(true);
-	}, [initialUiPreferences.hasNavExpandedPreference]);
-
-	useEffect(() => {
-		if (typeof window === "undefined") {
-			return;
-		}
-
-		const onResize = () => {
-			const nextIsMobile = window.innerWidth < 1280;
-			setIsMobileViewport(nextIsMobile);
-			if (!nextIsMobile) {
-				setMobileNavOpen(false);
-			}
-		};
-
-		onResize();
-		window.addEventListener("resize", onResize);
-		return () => window.removeEventListener("resize", onResize);
-	}, []);
-
-	useEffect(() => {
 		if (!themePreferencesLoaded) {
 			return;
 		}
@@ -1950,18 +1879,6 @@ export function ToolingApp({
 		// biome-ignore lint/suspicious/noDocumentCookie: Remove legacy cookies for backwards compatibility.
 		document.cookie = `${LEGACY_THEME_VARS_STORAGE_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
 	}, [themeId, themePreferencesLoaded]);
-
-	useEffect(() => {
-		if (typeof window === "undefined" || !navPreferenceLoaded) {
-			return;
-		}
-
-		writeCookieValue(NAV_EXPANDED_STORAGE_KEY, navExpanded ? "1" : "0");
-		window.localStorage.setItem(
-			NAV_EXPANDED_STORAGE_KEY,
-			navExpanded ? "1" : "0",
-		);
-	}, [navExpanded, navPreferenceLoaded]);
 
 	useEffect(() => {
 		return () => {
@@ -1981,113 +1898,19 @@ export function ToolingApp({
 	}, [themeVars]);
 
 	useEffect(() => {
-		if (!paletteOpen) {
-			return;
-		}
-
-		setPaletteIndex(0);
-		const handle = window.requestAnimationFrame(() => {
-			paletteInputRef.current?.focus();
-		});
-		return () => window.cancelAnimationFrame(handle);
-	}, [paletteOpen]);
-
-	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (isMobileViewport && mobileNavOpen && event.key === "Escape") {
-				event.preventDefault();
-				setMobileNavOpen(false);
-				return;
-			}
-
 			if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
 				event.preventDefault();
-				if (isMobileViewport) {
-					setSearch("");
-					setActiveCategory("All");
-					setCollection("all");
-					setMobileSearchRequest((value) => value + 1);
-					setMobileNavOpen(true);
-					return;
-				}
-				setPaletteOpen((open) => !open);
-				if (toolTooltipTimerRef.current !== null) {
-					window.clearTimeout(toolTooltipTimerRef.current);
-					toolTooltipTimerRef.current = null;
-				}
-				setToolTooltip(null);
-				if (!paletteOpen) {
-					setPaletteQuery("");
-				}
-				return;
-			}
-
-			if (!paletteOpen) {
-				return;
-			}
-
-			if (event.key === "Escape") {
-				event.preventDefault();
-				setPaletteOpen(false);
-				return;
-			}
-
-			if (event.key === "ArrowDown") {
-				event.preventDefault();
-				setPaletteIndex((index) =>
-					Math.min(index + 1, Math.max(0, paletteResults.length - 1)),
-				);
-				return;
-			}
-
-			if (event.key === "ArrowUp") {
-				event.preventDefault();
-				setPaletteIndex((index) => Math.max(0, index - 1));
-				return;
-			}
-
-			if (event.key === "Enter") {
-				const nextTool = paletteResults[paletteIndex];
-				if (!nextTool) {
-					return;
-				}
-
-				event.preventDefault();
-				void navigate({
-					to: "/tools/$toolId",
-					params: { toolId: nextTool.id },
-				});
-				setSelectedToolId(nextTool.id);
-				setActiveCategory("All");
 				setSearch("");
-				setPaletteOpen(false);
-				setMobileNavOpen(false);
+				setActiveCategory("All");
+				setCollection("all");
+				setMobileSearchRequest((value) => value + 1);
+				setMobileNavOpen(true);
 			}
 		};
-
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [
-		isMobileViewport,
-		mobileNavOpen,
-		navigate,
-		paletteIndex,
-		paletteOpen,
-		paletteResults,
-	]);
-
-	const selectToolFromPalette = (toolId: string) => {
-		void navigate({
-			to: "/tools/$toolId",
-			params: { toolId },
-		});
-		setSelectedToolId(toolId);
-		setActiveCategory("All");
-		setSearch("");
-		setPaletteOpen(false);
-		setMobileNavOpen(false);
-		setToolTooltip(null);
-	};
+	}, []);
 
 	const toggleThemeMode = useCallback(() => {
 		setThemeId((currentThemeId) => {
@@ -2170,9 +1993,6 @@ export function ToolingApp({
 		}, TOOL_TOOLTIP_DELAY_MS);
 	};
 
-	const effectiveNavExpanded = isMobileViewport ? true : navExpanded;
-	const desktopSidebarWidth = effectiveNavExpanded ? 280 : 72;
-
 	const commitToolSelection = (toolId: string, restoreMenuFocus = false) => {
 		if (toolPaneRef.current) {
 			toolPaneRef.current.scrollTop = 0;
@@ -2194,9 +2014,8 @@ export function ToolingApp({
 
 	const selectTool = (toolId: string) => {
 		clearToolTooltip();
-		const isMobileNavigation = window.matchMedia("(max-width: 1279px)").matches;
 
-		if (isMobileNavigation && mobileNavOpen) {
+		if (mobileNavOpen) {
 			setMobileNavOpen(false);
 			window.requestAnimationFrame(() => {
 				mobileMenuButtonRef.current?.focus({ preventScroll: true });
@@ -2216,85 +2035,58 @@ export function ToolingApp({
 	};
 
 	const sidebarContent = (
-		<div
-			className={`tool-library-content flex h-full min-h-0 flex-col ${effectiveNavExpanded ? "px-3 pb-3 pt-0 xl:py-5" : "px-2 py-4"}`}
-		>
+		<div className="tool-library-content flex h-full min-h-0 flex-col px-3 pb-3 pt-0">
 			<div className="mb-4 flex min-h-9 items-center justify-between gap-2 px-2">
-				{effectiveNavExpanded ? (
-					<span className="text-sm font-semibold">
-						Tool library{" "}
-						<span className="ml-1.5 font-mono text-xs font-normal text-[color:var(--app-fg-soft)]">
-							{TOOL_REGISTRY.length}
-						</span>
+				<span className="text-sm font-semibold">
+					Tool library{" "}
+					<span className="ml-1.5 font-mono text-xs font-normal text-[color:var(--app-fg-soft)]">
+						{TOOL_REGISTRY.length}
 					</span>
-				) : null}
-				<button
-					type="button"
-					onClick={() => setNavExpanded((current) => !current)}
-					className="nav-icon-button hidden xl:flex"
-					aria-label={
-						effectiveNavExpanded
-							? "Collapse tools sidebar"
-							: "Expand tools sidebar"
-					}
-					title={
-						effectiveNavExpanded
-							? "Collapse tools sidebar"
-							: "Expand tools sidebar"
-					}
-				>
-					{effectiveNavExpanded ? (
-						<ChevronLeft className="size-4" />
-					) : (
-						<ChevronRight className="size-4" />
-					)}
-				</button>
+				</span>
 			</div>
-			{effectiveNavExpanded ? (
-				<div className="tool-library-filters mb-5 space-y-3 px-1">
-					<div className="relative">
-						<Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-soft)]" />
-						<input
-							type="search"
-							aria-label="Search tools"
-							value={search}
-							onChange={(event) => setSearch(event.target.value)}
-							placeholder="Filter tools..."
-							className="control-surface min-h-11 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] py-2.5 pl-10 pr-3 text-sm text-[color:var(--app-fg)] placeholder:text-[color:var(--app-fg-soft)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
-						/>
-					</div>
-					<CustomSelect
-						value={activeCategory}
-						ariaLabel="Tool category"
-						onChange={(nextValue) =>
-							setActiveCategory(nextValue as "All" | ToolCategory)
-						}
-						options={categoryOptions}
-						size="sm"
+			<div className="tool-library-filters mb-5 space-y-3 px-1">
+				<div className="relative">
+					<Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-soft)]" />
+					<input
+						type="search"
+						aria-label="Search tools"
+						value={search}
+						onChange={(event) => setSearch(event.target.value)}
+						placeholder="Filter tools..."
+						className="control-surface min-h-11 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] py-2.5 pl-10 pr-3 text-sm text-[color:var(--app-fg)] placeholder:text-[color:var(--app-fg-soft)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
 					/>
-					<fieldset className="flex gap-1" aria-label="Tool collection">
-						{(["all", "favorites", "recent"] as const).map((value) => (
-							<button
-								key={value}
-								type="button"
-								className="ws-button min-w-0 flex-1 px-2"
-								aria-pressed={collection === value}
-								onClick={() => setCollection(value)}
-							>
-								{value[0].toUpperCase() + value.slice(1)}
-							</button>
-						))}
-					</fieldset>
-					{search || activeCategory !== "All" ? (
-						<p
-							className="px-1 text-xs text-[color:var(--app-fg-soft)]"
-							role="status"
-						>
-							{filteredTools.length} matching tools
-						</p>
-					) : null}
 				</div>
-			) : null}
+				<CustomSelect
+					value={activeCategory}
+					ariaLabel="Tool category"
+					onChange={(nextValue) =>
+						setActiveCategory(nextValue as "All" | ToolCategory)
+					}
+					options={categoryOptions}
+					size="sm"
+				/>
+				<fieldset className="flex gap-1" aria-label="Tool collection">
+					{(["all", "favorites", "recent"] as const).map((value) => (
+						<button
+							key={value}
+							type="button"
+							className="ws-button min-w-0 flex-1 px-2"
+							aria-pressed={collection === value}
+							onClick={() => setCollection(value)}
+						>
+							{value[0].toUpperCase() + value.slice(1)}
+						</button>
+					))}
+				</fieldset>
+				{search || activeCategory !== "All" ? (
+					<p
+						className="px-1 text-xs text-[color:var(--app-fg-soft)]"
+						role="status"
+					>
+						{filteredTools.length} matching tools
+					</p>
+				) : null}
+			</div>
 			<nav
 				aria-label="Utilities"
 				className="uutil-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
@@ -2315,14 +2107,12 @@ export function ToolingApp({
 								onMouseLeave={clearToolTooltip}
 								onFocus={(event) => scheduleToolTooltip(event, tool)}
 								onBlur={clearToolTooltip}
-								className={`sidebar-tool flex min-h-11 w-full items-center rounded-lg text-left transition-colors ${effectiveNavExpanded ? "gap-3 px-3 py-2" : "justify-center p-2"} ${isSelected ? "bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)]" : "text-[color:var(--app-fg-muted)] hover:bg-[color:var(--app-surface-bg)] hover:text-[color:var(--app-fg)]"}`}
+								className={`sidebar-tool flex min-h-11 w-full items-center rounded-lg text-left transition-colors gap-3 px-3 py-2 ${isSelected ? "bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)]" : "text-[color:var(--app-fg-muted)] hover:bg-[color:var(--app-surface-bg)] hover:text-[color:var(--app-fg)]"}`}
 							>
 								<ToolIcon className="size-4 shrink-0" aria-hidden="true" />
-								{effectiveNavExpanded ? (
-									<span className="min-w-0 truncate text-[13px] font-medium">
-										{tool.name}
-									</span>
-								) : null}
+								<span className="min-w-0 truncate text-[13px] font-medium">
+									{tool.name}
+								</span>
 							</button>
 						);
 					})}
@@ -2344,18 +2134,14 @@ export function ToolingApp({
 					) : null}
 				</div>
 			</nav>
-			<div
-				className={`mt-4 flex items-center border-t [border-color:var(--app-border)] pt-4 ${effectiveNavExpanded ? "gap-2 px-2" : "justify-center"}`}
-			>
+			<div className="mt-4 flex items-center gap-2 border-t [border-color:var(--app-border)] px-2 pt-4">
 				<Shield
 					className="size-4 shrink-0 text-[color:var(--app-fg-soft)]"
 					aria-hidden="true"
 				/>
-				{effectiveNavExpanded ? (
-					<p className="text-xs text-[color:var(--app-fg-muted)]">
-						Your data stays in your browser.
-					</p>
-				) : null}
+				<p className="text-xs text-[color:var(--app-fg-muted)]">
+					Your data stays in your browser.
+				</p>
 			</div>
 		</div>
 	);
@@ -2413,7 +2199,7 @@ export function ToolingApp({
 					<div className="flex h-16 w-full items-center gap-3 px-4 lg:px-6">
 						<a
 							href="/"
-							className="flex min-w-0 shrink-0 items-center gap-2.5 text-[color:var(--app-fg)] no-underline xl:w-[232px]"
+							className="flex min-w-0 shrink-0 items-center gap-2.5 text-[color:var(--app-fg)] no-underline"
 							aria-label="uutil.space home"
 						>
 							<span className="brand-mark grid size-8 place-items-center rounded-lg font-mono text-sm font-semibold">
@@ -2429,18 +2215,7 @@ export function ToolingApp({
 						<span className="hidden text-xs text-[color:var(--app-fg-soft)] lg:block">
 							The everyday developer toolkit
 						</span>
-						<button
-							type="button"
-							onClick={() => setPaletteOpen(true)}
-							aria-label="Open quick tool search"
-							aria-keyshortcuts="Control+K Meta+K"
-							className="topbar-search ml-auto hidden w-full max-w-[300px] items-center gap-2.5 xl:flex"
-						>
-							<Search className="size-4" />
-							<span className="flex-1 text-left">Find a tool...</span>
-							<kbd>⌘ K</kbd>
-						</button>
-						<div className="ml-auto flex shrink-0 items-center gap-2 xl:ml-0">
+						<div className="ml-auto flex shrink-0 items-center gap-2">
 							<ThemeModeToggle
 								isLightTheme={isLightTheme}
 								onToggle={toggleThemeMode}
@@ -2449,19 +2224,6 @@ export function ToolingApp({
 					</div>
 				</header>
 				<div className="app-body h-[calc(100dvh-64px)] w-full xl:flex">
-					<aside
-						className="sidebar-panel hidden h-full shrink-0 border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] xl:block xl:w-[var(--desktop-sidebar-width)]"
-						style={
-							{
-								"--desktop-sidebar-width": `${desktopSidebarWidth}px`,
-								"--app-fg": "var(--app-sidebar-fg)",
-								"--app-fg-muted": "var(--app-sidebar-fg-muted)",
-								"--app-fg-soft": "var(--app-sidebar-fg-soft)",
-							} as AppCssVariables
-						}
-					>
-						{!isMobileViewport ? sidebarContent : null}
-					</aside>
 					<div className="h-full min-w-0 flex-1">
 						<ToolQueryContext.Provider value={toolQueryRuntime}>
 							<main
@@ -2476,7 +2238,7 @@ export function ToolingApp({
 					</div>
 				</div>
 
-				<MobileToolNavigation
+				<FloatingToolNavigation
 					open={mobileNavOpen}
 					onOpenChange={setMobileNavOpen}
 					onFind={() => {
@@ -2487,25 +2249,9 @@ export function ToolingApp({
 					searchRequest={mobileSearchRequest}
 					menuButtonRef={mobileMenuButtonRef}
 				>
-					{isMobileViewport ? sidebarContent : null}
-				</MobileToolNavigation>
+					{sidebarContent}
+				</FloatingToolNavigation>
 
-				<CommandPalette
-					open={paletteOpen}
-					query={paletteQuery}
-					setQuery={setPaletteQuery}
-					selectedIndex={paletteIndex}
-					setSelectedIndex={setPaletteIndex}
-					results={paletteResults}
-					onClose={() => {
-						setPaletteOpen(false);
-						clearToolTooltip();
-					}}
-					onSelect={selectToolFromPalette}
-					onToolHoverStart={scheduleToolTooltip}
-					onToolHoverEnd={clearToolTooltip}
-					inputRef={paletteInputRef}
-				/>
 				<Toaster
 					theme={appTheme.themeType}
 					position="bottom-right"
@@ -2560,177 +2306,6 @@ function ThemeModeToggle({
 			)}
 			<span className="hidden sm:inline">{modeLabel}</span>
 		</button>
-	);
-}
-
-function CommandPalette({
-	open,
-	query,
-	setQuery,
-	selectedIndex,
-	setSelectedIndex,
-	results,
-	onClose,
-	onSelect,
-	onToolHoverStart,
-	onToolHoverEnd,
-	inputRef,
-}: {
-	open: boolean;
-	query: string;
-	setQuery: (query: string) => void;
-	selectedIndex: number;
-	setSelectedIndex: (index: number) => void;
-	results: ToolDefinition[];
-	onClose: () => void;
-	onSelect: (toolId: string) => void;
-	onToolHoverStart: (
-		event: React.MouseEvent<HTMLElement> | React.FocusEvent<HTMLElement>,
-		tool: ToolDefinition,
-	) => void;
-	onToolHoverEnd: () => void;
-	inputRef: { current: HTMLInputElement | null };
-}) {
-	const groupedResults = useMemo(() => {
-		const byCategory = new Map<
-			ToolCategory,
-			Array<{ tool: ToolDefinition; resultIndex: number }>
-		>();
-
-		results.forEach((tool, resultIndex) => {
-			const categoryTools = byCategory.get(tool.category) ?? [];
-			categoryTools.push({ tool, resultIndex });
-			byCategory.set(tool.category, categoryTools);
-		});
-
-		const grouped = PALETTE_CATEGORY_ORDER.flatMap((category) => {
-			const items = byCategory.get(category);
-			if (!items || items.length === 0) {
-				return [];
-			}
-			return [{ category, items }];
-		});
-
-		byCategory.forEach((items, category) => {
-			if (PALETTE_CATEGORY_ORDER.includes(category)) {
-				return;
-			}
-			grouped.push({ category, items });
-		});
-
-		return grouped;
-	}, [results]);
-
-	if (!open) {
-		return null;
-	}
-
-	return (
-		<div
-			className="fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:px-4 sm:pt-[10vh]"
-			role="dialog"
-			aria-modal="true"
-			aria-label="Tool search"
-		>
-			<button
-				type="button"
-				aria-label="Close command palette"
-				onClick={onClose}
-				className="absolute inset-0 backdrop-blur-sm"
-				style={{ backgroundColor: "var(--app-overlay)" }}
-			/>
-
-			<div className="command-dialog mobile-safe-bottom relative z-10 w-full max-w-2xl overflow-hidden rounded-t-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] shadow-[0_30px_96px_var(--app-shadow)] sm:rounded-xl">
-				<div className="border-b [border-color:var(--app-border)] px-4 py-4 sm:px-5">
-					<div className="mb-3 flex items-center justify-between">
-						<p className="font-display text-sm font-semibold text-[color:var(--app-fg)]">
-							Jump to a utility
-						</p>
-						<span className="rounded-md border [border-color:var(--app-border)] px-2 py-1 font-mono text-[10px] text-[color:var(--app-fg-soft)]">
-							ESC
-						</span>
-					</div>
-					<input
-						ref={inputRef}
-						aria-label="Search all tools"
-						type="text"
-						value={query}
-						onChange={(event) => setQuery(event.target.value)}
-						placeholder={`Search ${TOOL_REGISTRY.length} tools by name or task...`}
-						className="control-surface min-h-12 w-full rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 text-sm text-[color:var(--app-fg)] placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
-					/>
-					<p className="mt-2 text-[10px] uppercase tracking-[0.13em] text-[color:var(--app-fg-soft)]">
-						Use ↑ ↓ to navigate, Enter to open, Esc to close
-					</p>
-				</div>
-
-				<div className="uutil-scrollbar max-h-[58vh] overflow-auto p-2.5 sm:p-3">
-					{results.length === 0 ? (
-						<div className="rounded-md border border-dashed [border-color:var(--app-border)] px-2.5 py-3 text-xs text-[color:var(--app-fg-muted)]">
-							No tools found.
-						</div>
-					) : (
-						groupedResults.map((group, groupIndex) => (
-							<section
-								key={group.category}
-								className={groupIndex > 0 ? "mt-2.5" : ""}
-							>
-								<div className="mb-1.5 flex items-center justify-between px-1">
-									<p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color:var(--app-fg-soft)]">
-										{group.category}
-									</p>
-									<p className="text-[9px] uppercase tracking-[0.12em] text-[color:var(--app-fg-soft)]">
-										{group.items.length} tool
-										{group.items.length === 1 ? "" : "s"}
-									</p>
-								</div>
-								{group.items.map(({ tool, resultIndex }) => {
-									const ToolIcon = getToolIcon(tool);
-									return (
-										<button
-											type="button"
-											key={tool.id}
-											onMouseEnter={(event) => {
-												setSelectedIndex(resultIndex);
-												onToolHoverStart(event, tool);
-											}}
-											onMouseLeave={onToolHoverEnd}
-											onFocus={(event) => onToolHoverStart(event, tool)}
-											onBlur={onToolHoverEnd}
-											onClick={() => onSelect(tool.id)}
-											className={`mb-1 w-full rounded-xl border px-3 py-3 text-left transition ${
-												resultIndex === selectedIndex
-													? "border-[color:var(--app-accent)] bg-[color:var(--app-accent-soft)]"
-													: "border-transparent hover:[border-color:var(--app-border)] hover:bg-[color:var(--app-surface-bg)]"
-											}`}
-										>
-											<div className="flex items-start justify-between gap-2">
-												<div className="flex min-w-0 items-start gap-2">
-													<div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-bg)] text-[color:var(--app-fg-muted)]">
-														<ToolIcon className="size-4" />
-													</div>
-													<div className="min-w-0">
-														<p className="truncate text-sm font-semibold text-[color:var(--app-fg)]">
-															{tool.name}
-														</p>
-														<p className="mt-0.5 text-[11px] text-[color:var(--app-fg-muted)]">
-															{tool.summary}
-														</p>
-													</div>
-												</div>
-												<p className="rounded border [border-color:var(--app-border)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.08em] text-[color:var(--app-fg-muted)]">
-													{tool.category}
-												</p>
-											</div>
-										</button>
-									);
-								})}
-							</section>
-						))
-					)}
-				</div>
-			</div>
-		</div>
 	);
 }
 

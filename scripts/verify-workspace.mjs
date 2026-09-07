@@ -31,7 +31,9 @@ try {
 	console.log("PASS private recipe links, round-trip hydration and example restore");
 	click("My workspace"); click("Batch files"); run("upload", 'dialog input[type="file"]', resolve("scripts/fixtures/batch-valid.json"), resolve("scripts/fixtures/batch-invalid.txt")); wait('document.querySelector("dialog")?.innerText.includes("Download result")'); assert(value('document.querySelector("dialog")?.innerText.includes("Workspace QA")')); assert(value('document.querySelector("dialog [role=alert]") !== null')); click("Close workspace");
 	console.log("PASS batch processing with independent success and error results");
-	open("/tools/json-schema-validator"); click("Validate schema"); wait('document.body.innerText.includes("validation errors")'); run("find", "text", "Select field in document", "click"); assert.equal(value('document.querySelector("main textarea").value.substring(document.querySelector("main textarea").selectionStart, document.querySelector("main textarea").selectionEnd)'), "17");
+	open("/tools/json-schema-validator"); click("Validate schema"); wait('document.body.innerText.includes("validation errors")');
+	run("eval", 'Array.from(document.querySelectorAll("main button")).find(b => b.textContent.includes("Select field in document"))?.scrollIntoView({block:"center"})');
+	run("find", "text", "Select field in document", "click"); assert.equal(value('document.querySelector("main textarea").value.substring(document.querySelector("main textarea").selectionStart, document.querySelector("main textarea").selectionEnd)'), "17");
 	open("/tools/text-redactor"); click("Redact text"); wait('document.querySelector(".output-panel pre")?.textContent.includes("REDACTED_EMAIL")');
 	open("/tools/mock-data-generator"); click("Generate records"); wait('document.querySelector(".output-panel pre")?.textContent.includes("example.com")');
 	open("/tools/color-contrast-checker"); fill("Foreground color", "#000000"); wait('document.querySelector("main")?.innerText.includes("21.00:1")');
