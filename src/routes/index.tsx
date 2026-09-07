@@ -123,6 +123,7 @@ import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
 import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-inference";
+import { tool as jsonSqlInsert } from "#/lib/local-tools/json-sql-insert";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
@@ -859,6 +860,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Fill text templates from JSON with explicit escaping and no code execution.",
 		component: createLocalTool(safeTemplateRenderer),
+	},
+	{
+		id: "json-sql-insert",
+		name: "JSON to SQL INSERT",
+		category: "Generators",
+		summary:
+			"Generate quoted, batched SQL inserts for PostgreSQL, SQLite, or MySQL.",
+		component: createLocalTool(jsonSqlInsert),
 	},
 ];
 
