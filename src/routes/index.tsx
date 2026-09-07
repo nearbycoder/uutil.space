@@ -125,6 +125,7 @@ import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor
 import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-inference";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
+import { tool as timezoneMeetingPlanner } from "#/lib/local-tools/timezone-meeting-planner";
 import { tool as unicodeNormalizer } from "#/lib/local-tools/unicode-normalizer";
 import { tool as wordFrequencyAnalyzer } from "#/lib/local-tools/word-frequency-analyzer";
 import {
@@ -832,6 +833,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Convert timestamp lists with explicit units and per-line error reporting.",
 		component: createLocalTool(batchTimestampConverter),
+	},
+	{
+		id: "timezone-meeting-planner",
+		name: "Timezone Meeting Planner",
+		category: "Core",
+		summary:
+			"Compare meeting times, date changes, and working-hour availability across timezones.",
+		component: createLocalTool(timezoneMeetingPlanner),
 	},
 ];
 
