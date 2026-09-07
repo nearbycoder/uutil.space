@@ -531,7 +531,8 @@ code {
   .mobile-tool-navigation[data-keyboard='true'] .tool-library-filters > :not(:first-child),
   .mobile-tool-navigation[data-keyboard='true'] .tool-library-content > div:last-child { display: none; }
   .mobile-tool-navigation[data-keyboard='true'] .tool-library-filters { margin-bottom: 10px; }
-  .app-shell [data-sonner-toaster] { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important; }
+  /* Toast entrance/exit transforms can cross the dock; navigation stays above them. */
+  .app-shell [data-sonner-toaster] { bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important; z-index: 40 !important; }
   @starting-style {
     .mobile-tools-dialog[open][data-expanded='true'] .mobile-tool-sheet { opacity: 0; transform: translateY(32px); }
     .mobile-tools-dialog[open][data-expanded='true'] .mobile-drawer-backdrop { opacity: 0; }
