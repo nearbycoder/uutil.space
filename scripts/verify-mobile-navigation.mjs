@@ -39,7 +39,9 @@ try {
 		assert(value('document.querySelector(".mobile-tool-sheet nav").clientHeight') > 0);
 		run("mouse", "move", "4", "50"); run("mouse", "down"); run("mouse", "up"); closed();
 	}
-	run("set", "viewport", "390", "844"); click("Switch to light mode"); openDrawer(); run("screenshot", "/tmp/uutil-mobile-drawer-light.png"); click("Close tools menu"); closed();
+	run("set", "viewport", "390", "844"); click("Switch to light mode"); wait('!!document.querySelector("[data-sonner-toast]")');
+	assert(value('(() => { const button = document.querySelector(".mobile-dock-resting button:last-child"); const r = button.getBoundingClientRect(); return button.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)); })()'), "Toast animation must not block the mobile menu");
+	openDrawer(); run("screenshot", "/tmp/uutil-mobile-drawer-light.png"); click("Close tools menu"); closed();
 	run("set", "media", "reduced-motion"); openDrawer(); run("press", "Escape"); closed();
 	console.log("PASS narrow phones, landscape, tablet, light theme and reduced motion");
 	run("press", "Control+k"); wait('document.querySelector(".mobile-tools-dialog").open && document.activeElement.getAttribute("aria-label") === "Search tools"');
