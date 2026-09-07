@@ -113,6 +113,7 @@ import {
 	toTitleCase,
 	unescapeBackslashes,
 } from "#/lib/converters";
+import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
@@ -760,6 +761,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Inspect missing cells, duplicate rows, column types, and numeric summaries.",
 		component: createLocalTool(csvDataProfiler),
+	},
+	{
+		id: "csv-column-editor",
+		name: "CSV Column Editor",
+		category: "Conversion",
+		summary:
+			"Select, reorder, remove, and rename CSV columns without uploading data.",
+		component: createLocalTool(csvColumnEditor),
 	},
 ];
 
