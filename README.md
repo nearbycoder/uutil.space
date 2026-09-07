@@ -63,6 +63,8 @@ bun run start
 
 ## Quality
 
+See [the 20-tool release synopsis](docs/local-tools-release.md) for features, limits, PRs, and verification coverage.
+
 ```bash
 bun run test
 bun run check
@@ -82,6 +84,7 @@ TEST_URL=http://localhost:3103 node scripts/verify-workspace.mjs
 TEST_URL=http://localhost:3103 node scripts/verify-layout.mjs
 TEST_URL=http://localhost:3103 node scripts/verify-mobile-navigation.mjs
 TEST_URL=http://localhost:3103 node scripts/verify-offline.mjs
+TEST_URL=http://localhost:3103 node --import tsx scripts/verify-all-local-tools.mjs
 ```
 
 Keep both lockfiles synchronized when updating dependencies. The committed Bun lockfile is compatible with both Bun 1.3.14 (used by the earlier Railway builder) and Bun 1.4.0. The offline Vite plugin emits the worker before Nitro indexes public assets; generating it after the build would leave `/sw.js` unserved.

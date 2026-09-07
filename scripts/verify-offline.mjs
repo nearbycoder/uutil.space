@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { readdirSync } from "node:fs";
 const base = process.env.TEST_URL ?? "http://localhost:3103";
 const run = (...args) => execFileSync("agent-browser", ["--session", "offline-regression", ...args], { encoding: "utf8", timeout: 30000 });
 const click = name => run("find", "role", "button", "click", "--name", name, "--exact");
@@ -13,8 +14,12 @@ try {
 	click("Base64 String Encode/Decode: Encode plain text to base64 and decode base64 back to text."); wait('location.pathname.endsWith("base64-string")'); click("Encode"); wait('document.querySelector(".output-panel pre")?.textContent.length > 0');
 	open("/tools/json-schema-validator"); click("Validate schema"); wait('document.body.innerText.includes("validation errors")');
 	open("/tools/cron-builder"); wait('document.querySelector(".output-panel pre")?.textContent.includes("Next 5 runs")');
+	for (const file of readdirSync("src/lib/local-tools").filter(name => name.endsWith(".ts") && !name.endsWith(".test.ts") && !["types.ts", "csv.ts", "dates.ts"].includes(name))) {
+		open(`/tools/${file.slice(0,-3)}`); click("Run tool");
+		wait('!document.querySelector(".local-tool [role=alert]") && document.querySelector(".local-tool pre")?.textContent !== "Your result will appear here."');
+	}
 	assert.equal(run("errors").trim(), "");
-	console.log("PASS offline refresh, route navigation, text processing, validation worker and cron hydration.");
+	console.log("PASS offline refresh, route navigation, validation worker, cron hydration and all 20 new local tools.");
 	run("set", "offline", "off"); click("My workspace"); click("Offline & install"); click("Remove offline files"); wait('document.querySelector("dialog")?.innerText.includes("Offline files removed")');
 	console.log("PASS removal of offline files.");
 } finally { run("set", "offline", "off"); run("close"); }

@@ -13,6 +13,15 @@ try {
     run("wait", "--fn", `document.querySelector('.local-tool pre')?.textContent.includes(${JSON.stringify(expected)})`);
     assert(!value('document.querySelector("main").scrollWidth > document.querySelector("main").clientWidth + 2'));
     assert(!value('document.querySelector(".local-tool [role=alert]") !== null'));
+    run("wait", "--fn", 'document.activeElement === document.querySelector(".local-tool pre")');
+    const expectedText = value('document.querySelector(".local-tool pre").textContent');
+    run("eval", 'window.__downloadText = null; window.__downloadName = null; const create = URL.createObjectURL.bind(URL); URL.createObjectURL = blob => { blob.text().then(text => window.__downloadText = text); return create(blob); }; const anchorClick = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function() { window.__downloadName = this.download; return anchorClick.call(this); };');
+    run("find", "role", "button", "click", "--name", "Download result", "--exact");
+    run("wait", "--fn", 'window.__downloadText !== null');
+    assert.equal(value('window.__downloadText'), expectedText);
+    assert(value('window.__downloadName.length > 0'));
+    run("find", "role", "button", "click", "--name", "Copy result", "--exact");
+    run("wait", "--fn", 'document.body.innerText.includes("Result copied")');
     run("screenshot", `/tmp/${id}-${width}.png`);
     // A whitespace-only value exercises required-field validation and emits an input event.
     run("fill", ".local-tool .space-y-5 > div:first-child :is(textarea,input)", " ");
@@ -20,7 +29,7 @@ try {
     run("wait", "--fn", '!!document.querySelector(".local-tool [role=alert]")');
     run("find", "role", "button", "click", "--name", "Reset example", "--exact");
     assert(value('document.querySelector(".local-tool pre").textContent.includes("Your result")'));
-    console.log(`PASS ${id}: ${width}px default workflow, invalid input, reset and no overflow`);
+    console.log(`PASS ${id}: ${width}px transform, focus, copy, download bytes, invalid input, reset, layout`);
   }
   assert.equal(run("errors").trim(), "");
 } finally { run("close"); }

@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	defaults,
@@ -74,6 +74,7 @@ export function createLocalTool(tool: LocalTool) {
 		const [values, setValues] = useState(() => defaults(tool));
 		const [result, setResult] = useState<string | null>(null);
 		const [error, setError] = useState("");
+		const outputRef = useRef<HTMLPreElement>(null);
 		const { record } = useWorkspace();
 		const change = (key: string, value: string) => {
 			setValues((current) => ({ ...current, [key]: value }));
@@ -84,6 +85,10 @@ export function createLocalTool(tool: LocalTool) {
 			try {
 				setError("");
 				setResult(execute(tool, values));
+				requestAnimationFrame(() => {
+					outputRef.current?.focus({ preventScroll: true });
+					outputRef.current?.scrollIntoView({ block: "center" });
+				});
 				record("Run tool");
 			} catch (error) {
 				setResult(null);
@@ -142,7 +147,7 @@ export function createLocalTool(tool: LocalTool) {
 						stays in your browser.
 					</p>
 				</section>
-				<section className="tool-card output-panel min-w-0 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 sm:p-5">
+				<section className="tool-card output-panel min-w-0 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 sm:p-5 lg:sticky lg:top-4">
 					<div className="mb-4 flex flex-wrap items-center gap-3">
 						<h3 className="mr-auto text-sm font-semibold">Result</h3>
 						<button
@@ -180,6 +185,7 @@ export function createLocalTool(tool: LocalTool) {
 							: `${result.length.toLocaleString()} characters · ready to copy or download`}
 					</p>
 					<pre
+						ref={outputRef}
 						// biome-ignore lint/a11y/noNoninteractiveTabindex: Enable keyboard scrolling of long results.
 						tabIndex={0}
 						className="max-h-[65vh] min-h-36 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-[color:var(--app-surface-alt)] p-4 font-mono text-[13px] leading-6"
