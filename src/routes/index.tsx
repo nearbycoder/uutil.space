@@ -113,6 +113,7 @@ import {
 	toTitleCase,
 	unescapeBackslashes,
 } from "#/lib/converters";
+import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
@@ -751,6 +752,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		category: "Generators",
 		summary: "Derive a reviewable JSON Schema from nested sample data.",
 		component: createLocalTool(jsonSchemaInference),
+	},
+	{
+		id: "csv-data-profiler",
+		name: "CSV Data Profiler",
+		category: "Parsing",
+		summary:
+			"Inspect missing cells, duplicate rows, column types, and numeric summaries.",
+		component: createLocalTool(csvDataProfiler),
 	},
 ];
 
