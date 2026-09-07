@@ -13,9 +13,14 @@ try {
     run("wait", "--fn", `document.querySelector('.local-tool pre')?.textContent.includes(${JSON.stringify(expected)})`);
     assert(!value('document.querySelector("main").scrollWidth > document.querySelector("main").clientWidth + 2'));
     assert(!value('document.querySelector(".local-tool [role=alert]") !== null'));
+    run("screenshot", `/tmp/${id}-${width}.png`);
+    // A whitespace-only value exercises required-field validation and emits an input event.
+    run("fill", ".local-tool .space-y-5 > div:first-child :is(textarea,input)", " ");
+    run("find", "role", "button", "click", "--name", "Run tool", "--exact");
+    run("wait", "--fn", '!!document.querySelector(".local-tool [role=alert]")');
     run("find", "role", "button", "click", "--name", "Reset example", "--exact");
     assert(value('document.querySelector(".local-tool pre").textContent.includes("Your result")'));
-    console.log(`PASS ${id}: ${width}px default workflow, reset and no overflow`);
+    console.log(`PASS ${id}: ${width}px default workflow, invalid input, reset and no overflow`);
   }
   assert.equal(run("errors").trim(), "");
 } finally { run("close"); }
