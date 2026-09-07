@@ -123,6 +123,7 @@ import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor
 import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-inference";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
+import { tool as unicodeNormalizer } from "#/lib/local-tools/unicode-normalizer";
 import { tool as wordFrequencyAnalyzer } from "#/lib/local-tools/word-frequency-analyzer";
 import {
 	analyzePassword,
@@ -805,6 +806,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Rank words with language-aware tokenization, exclusions, and frequency statistics.",
 		component: createLocalTool(wordFrequencyAnalyzer),
+	},
+	{
+		id: "unicode-normalizer",
+		name: "Unicode Normalizer",
+		category: "Encoding",
+		summary:
+			"Normalize Unicode text and compare code points, UTF-16 units, and UTF-8 bytes.",
+		component: createLocalTool(unicodeNormalizer),
 	},
 ];
 
