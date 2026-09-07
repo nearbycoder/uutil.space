@@ -10,7 +10,7 @@ try {
 		run("set", "viewport", String(width), "900");
 		for (const [index, tool] of tools.entries()) {
 			run("open", `${base}/tools/${tool.id}`);
-			run("wait", "--fn", `document.querySelector('main h2')?.textContent === ${JSON.stringify(tool.name)} && document.querySelector('.app-shell')?.dataset.ready === 'true'`);
+			run("wait", "--fn", `document.querySelector('main h1')?.textContent === ${JSON.stringify(tool.name)} && document.querySelector('.app-shell')?.dataset.ready === 'true'`);
 			const raw = run("eval", `JSON.stringify((() => {
 				const main = document.querySelector('main');
 				const clipped = [...main.querySelectorAll('[data-tool-action]')].filter(button => {

@@ -19,7 +19,6 @@ import {
 	Braces,
 	Check,
 	ChevronDown,
-	ChevronRight,
 	Clock3,
 	Command,
 	Copy,
@@ -2123,45 +2122,28 @@ export function ToolingApp({
 					) : null}
 				</div>
 			</nav>
-			<div className="mt-4 flex items-center gap-2 border-t [border-color:var(--app-border)] px-2 pt-4">
-				<Shield
-					className="size-4 shrink-0 text-[color:var(--app-fg-soft)]"
-					aria-hidden="true"
-				/>
-				<p className="text-xs text-[color:var(--app-fg-muted)]">
-					Your data stays in your browser.
-				</p>
-			</div>
 		</div>
 	);
 
 	const toolWorkspace = (
-		<div className="workspace-content mx-auto w-full max-w-[1440px] pb-8">
-			<section className="workspace-intro">
-				<div className="mb-4 flex items-center gap-2 text-xs text-[color:var(--app-fg-soft)]">
-					<span>Tools</span>
-					<ChevronRight className="size-3" aria-hidden="true" />
-					<span>{selectedTool.category}</span>
-				</div>
-				<div className="flex items-start gap-3">
+		<div className="workspace-content w-full">
+			<header className="workspace-intro">
+				<div className="flex min-w-0 items-center gap-2.5">
 					<div className="workspace-symbol">
 						<SelectedToolIcon className="size-5" aria-hidden="true" />
 					</div>
 					<div className="min-w-0">
-						<h2 className="font-display text-[clamp(1.5rem,2.8vw,2rem)] font-semibold leading-tight tracking-[-0.04em]">
+						<h1 className="font-display text-xl font-semibold leading-tight tracking-[-0.035em] sm:text-2xl">
 							{selectedTool.name}
-						</h2>
-						<p className="mt-2 max-w-3xl text-sm leading-6 text-[color:var(--app-fg-muted)]">
-							{selectedTool.summary}
-						</p>
+						</h1>
 					</div>
 				</div>
-			</section>
-			<WorkspaceToolbar
-				toolId={selectedToolId}
-				tools={TOOL_REGISTRY}
-				navigate={selectTool}
-			/>
+				<WorkspaceToolbar
+					toolId={selectedToolId}
+					tools={TOOL_REGISTRY}
+					navigate={selectTool}
+				/>
+			</header>
 			<ToolSession key={selectedToolId} toolId={selectedToolId}>
 				<UnixPanelLayoutContext.Provider
 					value={initialUiPreferences.unixPanelLayout}
@@ -2169,11 +2151,6 @@ export function ToolingApp({
 					<SelectedToolComponent />
 				</UnixPanelLayoutContext.Provider>
 			</ToolSession>
-			<footer className="workspace-footer">
-				<Lock className="size-3.5" aria-hidden="true" />
-				<span>Processed locally. Nothing to install, nothing to upload.</span>
-				<span className="ml-auto hidden sm:inline">uutil.space</span>
-			</footer>
 		</div>
 	);
 
@@ -2188,42 +2165,14 @@ export function ToolingApp({
 				<a href="#workspace" className="skip-link">
 					Skip to workspace
 				</a>
-				<header className="app-topbar relative z-20">
-					<div className="flex h-16 w-full items-center gap-3 px-4 lg:px-6">
-						<a
-							href="/"
-							className="flex min-w-0 shrink-0 items-center gap-2.5 text-[color:var(--app-fg)] no-underline"
-							aria-label="uutil.space home"
-						>
-							<span className="brand-mark grid size-8 place-items-center rounded-lg font-mono text-sm font-semibold">
-								u/
-							</span>
-							<span className="font-display text-lg font-semibold tracking-[-0.05em]">
-								uutil
-								<span className="font-normal text-[color:var(--app-fg-soft)]">
-									.space
-								</span>
-							</span>
-						</a>
-						<span className="hidden text-xs text-[color:var(--app-fg-soft)] lg:block">
-							The everyday developer toolkit
-						</span>
-						<div className="ml-auto flex shrink-0 items-center gap-2">
-							<ThemeModeToggle
-								isLightTheme={isLightTheme}
-								onToggle={toggleThemeMode}
-							/>
-						</div>
-					</div>
-				</header>
-				<div className="app-body h-[calc(100dvh-64px)] w-full xl:flex">
+				<div className="app-body h-full w-full">
 					<div className="h-full min-w-0 flex-1">
 						<ToolQueryContext.Provider value={toolQueryRuntime}>
 							<main
 								id="workspace"
 								tabIndex={-1}
 								ref={toolPaneRef}
-								className="tool-workspace-scroll uutil-scrollbar h-full min-w-0 overflow-y-auto overscroll-contain px-4 py-5 outline-none sm:px-6 sm:py-6 lg:px-9 lg:py-7"
+								className="tool-workspace-scroll uutil-scrollbar h-full min-w-0 overflow-y-auto overscroll-contain outline-none"
 							>
 								{toolWorkspace}
 							</main>
@@ -2241,6 +2190,12 @@ export function ToolingApp({
 					}}
 					searchRequest={mobileSearchRequest}
 					menuButtonRef={mobileMenuButtonRef}
+					themeControl={
+						<ThemeModeToggle
+							isLightTheme={isLightTheme}
+							onToggle={toggleThemeMode}
+						/>
+					}
 				>
 					{sidebarContent}
 				</FloatingToolNavigation>
@@ -2282,7 +2237,6 @@ function ThemeModeToggle({
 	isLightTheme: boolean;
 	onToggle: () => void;
 }) {
-	const modeLabel = isLightTheme ? "Light" : "Dark";
 	const nextModeLabel = isLightTheme ? "dark" : "light";
 
 	return (
@@ -2290,14 +2244,13 @@ function ThemeModeToggle({
 			type="button"
 			onClick={onToggle}
 			aria-label={`Switch to ${nextModeLabel} mode`}
-			className="nav-icon-button flex sm:w-auto sm:gap-2 sm:px-3"
+			title={`Switch to ${nextModeLabel} mode`}
 		>
 			{isLightTheme ? (
-				<Sun className="size-3.5" />
+				<Sun className="size-[18px]" aria-hidden="true" />
 			) : (
-				<Moon className="size-3.5" />
+				<Moon className="size-[18px]" aria-hidden="true" />
 			)}
-			<span className="hidden sm:inline">{modeLabel}</span>
 		</button>
 	);
 }

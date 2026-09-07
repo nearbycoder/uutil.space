@@ -404,7 +404,7 @@ export function WorkspaceToolbar({
 	return (
 		<>
 			<fieldset
-				className="mb-5 flex flex-wrap items-center gap-2"
+				className="workspace-actions flex flex-wrap items-center gap-2"
 				aria-label="Workspace actions"
 			>
 				<Button

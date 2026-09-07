@@ -6,7 +6,10 @@ const click = name => run("find", "role", "button", "click", "--name", name, "--
 const value = code => JSON.parse(JSON.parse(run("eval", `JSON.stringify(${code})`)));
 const wait = code => run("wait", "--fn", code);
 const openDrawer = () => { click("Open tools menu"); wait('document.querySelector(".mobile-tools-dialog").open && getComputedStyle(document.querySelector(".mobile-tool-sheet")).opacity === "1"'); };
-const closed = () => wait('!document.querySelector(".mobile-tools-dialog").open');
+const closed = () => {
+	wait('!document.querySelector(".mobile-tools-dialog").open && getComputedStyle(document.querySelector(".mobile-dock-resting")).visibility === "visible" && document.activeElement.getAttribute("aria-label") === "Open tools menu"');
+	assert.equal(value('getComputedStyle(document.querySelector(".mobile-dock-resting")).visibility'), "visible", "The floating dock must return after the drawer closes");
+};
 try {
 	run("set", "viewport", "390", "844"); run("open", `${base}/tools/json-format-validate`); wait('document.querySelector(".app-shell")?.dataset.ready === "true"');
 	const before = value('({ width: document.querySelector("main").clientWidth, top: document.querySelector("main").getBoundingClientRect().top })');
@@ -71,4 +74,8 @@ try {
 	assert.equal(value('document.querySelector("main").clientWidth'), 1440);
 	assert.equal(run("errors").trim(), "");
 	console.log("PASS unified desktop dock, resize stability, keyboard search, selection, refresh and no browser errors");
+} catch (error) {
+	console.error(value('({keyboard:document.querySelector(".mobile-tool-navigation").dataset.keyboard, dialogOpen:document.querySelector(".mobile-tools-dialog").open, expanded:document.querySelector(".mobile-tools-dialog").dataset.expanded, dockStyle:getComputedStyle(document.querySelector(".mobile-dock-resting")).visibility, viewport:visualViewport.height, height:innerHeight, active:document.activeElement.outerHTML.slice(0,300)})'));
+	run("screenshot", "/tmp/uutil-navigation-failure.png");
+	throw error;
 } finally { run("close"); }

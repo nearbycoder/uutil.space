@@ -10,6 +10,7 @@ export function FloatingToolNavigation({
 	onFind,
 	searchRequest,
 	menuButtonRef,
+	themeControl,
 	children,
 }: {
 	open: boolean;
@@ -17,6 +18,7 @@ export function FloatingToolNavigation({
 	onFind: () => void;
 	searchRequest: number;
 	menuButtonRef: React.RefObject<HTMLButtonElement | null>;
+	themeControl: React.ReactNode;
 	children: React.ReactNode;
 }) {
 	const id = useId();
@@ -28,6 +30,7 @@ export function FloatingToolNavigation({
 	callbacks.current = { onOpenChange, onFind };
 	const drag = useRef<{ start: number; distance: number } | null>(null);
 	const suppressClick = useRef(false);
+	const restoreFocusFrame = useRef(0);
 	const search = () => {
 		dialog.current
 			?.querySelector(".mobile-drawer-content")
@@ -39,6 +42,7 @@ export function FloatingToolNavigation({
 		input?.select();
 	};
 	const show = (find: boolean) => {
+		cancelAnimationFrame(restoreFocusFrame.current);
 		if (find) callbacks.current.onFind();
 		callbacks.current.onOpenChange(true);
 		// Stay inside the tap event so iOS can open the keyboard for Find.
@@ -67,14 +71,13 @@ export function FloatingToolNavigation({
 			() => {
 				element.close();
 				element.style.removeProperty("--drawer-drag");
-				menuButtonRef.current?.focus({ preventScroll: true });
 			},
 			window.matchMedia("(prefers-reduced-motion: reduce)").matches
 				? 0
 				: MOBILE_DRAWER_EXIT_MS,
 		);
 		return () => window.clearTimeout(timeout);
-	}, [open, searchRequest, menuButtonRef]);
+	}, [open, searchRequest]);
 	useEffect(() => {
 		const viewport = window.visualViewport;
 		let frame = 0;
@@ -107,6 +110,7 @@ export function FloatingToolNavigation({
 		document.addEventListener("focusout", update);
 		return () => {
 			cancelAnimationFrame(frame);
+			cancelAnimationFrame(restoreFocusFrame.current);
 			viewport?.removeEventListener("resize", update);
 			viewport?.removeEventListener("scroll", update);
 			window.removeEventListener("resize", update);
@@ -133,6 +137,7 @@ export function FloatingToolNavigation({
 					<kbd className="dock-shortcut">⌘ / Ctrl K</kbd>
 				</button>
 				<span className="mobile-dock-divider" aria-hidden="true" />
+				{themeControl}
 				<button
 					type="button"
 					ref={menuButtonRef}
@@ -186,7 +191,15 @@ export function FloatingToolNavigation({
 				onClose={() => {
 					// Native close events are queued; ignore one if a new tap or
 					// keyboard shortcut has already reopened the dialog.
-					if (!dialog.current?.open) callbacks.current.onOpenChange(false);
+					if (!dialog.current?.open) {
+						callbacks.current.onOpenChange(false);
+						// Restore focus after the native modal has finished its own
+						// focus restoration and the resting dock is visible again.
+						restoreFocusFrame.current = requestAnimationFrame(() => {
+							if (!dialog.current?.open)
+								menuButtonRef.current?.focus({ preventScroll: true });
+						});
+					}
 				}}
 			>
 				<button
@@ -265,6 +278,7 @@ export function FloatingToolNavigation({
 						<kbd className="dock-shortcut">⌘ / Ctrl K</kbd>
 					</button>
 					<span className="mobile-dock-divider" aria-hidden="true" />
+					{themeControl}
 					<button
 						type="button"
 						onClick={() => callbacks.current.onOpenChange(false)}
