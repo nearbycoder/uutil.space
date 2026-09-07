@@ -115,6 +115,7 @@ import {
 } from "#/lib/converters";
 import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
+import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
 import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
@@ -769,6 +770,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Select, reorder, remove, and rename CSV columns without uploading data.",
 		component: createLocalTool(csvColumnEditor),
+	},
+	{
+		id: "csv-deduplicator",
+		name: "CSV Deduplicator",
+		category: "Conversion",
+		summary:
+			"Find duplicate records and keep exactly the rows your workflow needs.",
+		component: createLocalTool(csvDeduplicator),
 	},
 ];
 
