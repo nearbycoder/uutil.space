@@ -17,7 +17,9 @@ export function inferSchema(
 							? "integer"
 							: "number"
 						: typeof sample;
-		groups.set(type, [...(groups.get(type) ?? []), sample]);
+		const group = groups.get(type);
+		if (group) group.push(sample);
+		else groups.set(type, [sample]);
 	}
 	if (groups.has("number") && groups.has("integer")) {
 		groups.set("number", [
@@ -37,27 +39,27 @@ export function inferSchema(
 				),
 			};
 		if (type !== "object") return { type };
-		const objects = values.filter(object),
-			keys = [...new Set(objects.flatMap(Object.keys))];
+		const objects = values.filter(object);
+		const properties = new Map<string, unknown[]>();
+		for (const item of objects)
+			for (const [key, value] of Object.entries(item)) {
+				const samples = properties.get(key);
+				if (samples) samples.push(value);
+				else properties.set(key, [value]);
+			}
 		return {
 			type,
 			properties: Object.fromEntries(
-				keys.map((key) => [
+				[...properties].map(([key, samples]) => [
 					key,
-					inferSchema(
-						objects
-							.filter((item) => Object.hasOwn(item, key))
-							.map((item) => item[key]),
-						required,
-						allowExtra,
-					),
+					inferSchema(samples, required, allowExtra),
 				]),
 			),
 			...(required
 				? {
-						required: keys.filter((key) =>
-							objects.every((item) => Object.hasOwn(item, key)),
-						),
+						required: [...properties]
+							.filter(([, samples]) => samples.length === objects.length)
+							.map(([key]) => key),
 					}
 				: {}),
 			additionalProperties: allowExtra,
