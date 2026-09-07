@@ -113,6 +113,7 @@ import {
 	toTitleCase,
 	unescapeBackslashes,
 } from "#/lib/converters";
+import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
@@ -734,6 +735,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Read, set, append, or remove JSON values using precise pointer paths.",
 		component: createLocalTool(jsonPointerEditor),
+	},
+	{
+		id: "json-key-sorter",
+		name: "JSON Key Sorter",
+		category: "Formatting",
+		summary:
+			"Recursively order JSON object keys with stable, configurable formatting.",
+		component: createLocalTool(jsonKeySorter),
 	},
 ];
 
