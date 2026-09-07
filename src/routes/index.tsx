@@ -41,6 +41,7 @@ import {
 	Search,
 	Shield,
 	Sparkles,
+	Star,
 	Sun,
 	Type,
 	Wand2,
@@ -1637,7 +1638,7 @@ export function ToolingApp({
 	const location = useLocation();
 	const navigate = useNavigate();
 	const [search, setSearch] = useState("");
-	const { state: workspaceState } = useWorkspace();
+	const { state: workspaceState, favorite: toggleFavorite } = useWorkspace();
 	const [collection, setCollection] = useState<"all" | "favorites" | "recent">(
 		"all",
 	);
@@ -1976,6 +1977,31 @@ export function ToolingApp({
 		commitToolSelection(toolId);
 	};
 
+	const toggleLibraryFavorite = (toolId: string, button: HTMLButtonElement) => {
+		clearToolTooltip();
+		const removingVisibleRow =
+			collection === "favorites" && workspaceState.favorites.includes(toolId);
+		const row = button.closest(".tool-library-item");
+		const nextButton =
+			row?.nextElementSibling?.querySelector<HTMLButtonElement>(
+				".tool-library-favorite",
+			) ??
+			row?.previousElementSibling?.querySelector<HTMLButtonElement>(
+				".tool-library-favorite",
+			);
+		toggleFavorite(toolId);
+		if (removingVisibleRow)
+			window.requestAnimationFrame(() => {
+				if (nextButton?.isConnected) nextButton.focus({ preventScroll: true });
+				else
+					document
+						.querySelector<HTMLInputElement>(
+							'.mobile-tools-dialog input[type="search"]',
+						)
+						?.focus({ preventScroll: true });
+			});
+	};
+
 	const sidebarContent = (
 		<div className="tool-library-content flex h-full min-h-0 flex-col px-3 pb-3 pt-0">
 			<div className="mb-4 flex min-h-9 items-center justify-between gap-2 px-2">
@@ -2020,7 +2046,7 @@ export function ToolingApp({
 						</button>
 					))}
 				</fieldset>
-				{search || activeCategory !== "All" ? (
+				{search || activeCategory !== "All" || collection !== "all" ? (
 					<p
 						className="px-1 text-xs text-[color:var(--app-fg-soft)]"
 						role="status"
@@ -2037,29 +2063,50 @@ export function ToolingApp({
 					{filteredTools.map((tool) => {
 						const ToolIcon = getToolIcon(tool);
 						const isSelected = selectedTool.id === tool.id;
+						const isFavorite = workspaceState.favorites.includes(tool.id);
 						return (
-							<button
-								type="button"
+							<div
 								key={tool.id}
-								aria-label={`${tool.name}: ${tool.summary}`}
-								aria-current={isSelected ? "page" : undefined}
-								title={tool.name}
-								onClick={() => selectTool(tool.id)}
-								onMouseEnter={(event) => scheduleToolTooltip(event, tool)}
-								onMouseLeave={clearToolTooltip}
-								onFocus={(event) => scheduleToolTooltip(event, tool)}
-								onBlur={clearToolTooltip}
-								className={`sidebar-tool flex min-h-11 w-full items-center rounded-lg text-left transition-colors gap-3 px-3 py-2 ${isSelected ? "bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)]" : "text-[color:var(--app-fg-muted)] hover:bg-[color:var(--app-surface-bg)] hover:text-[color:var(--app-fg)]"}`}
+								className="tool-library-item flex min-w-0 items-center gap-1 rounded-lg"
 							>
-								<ToolIcon className="size-4 shrink-0" aria-hidden="true" />
-								<span className="min-w-0 truncate text-[13px] font-medium">
-									{tool.name}
-								</span>
-							</button>
+								<button
+									type="button"
+									aria-label={`${tool.name}: ${tool.summary}`}
+									aria-current={isSelected ? "page" : undefined}
+									title={tool.name}
+									onClick={() => selectTool(tool.id)}
+									onMouseEnter={(event) => scheduleToolTooltip(event, tool)}
+									onMouseLeave={clearToolTooltip}
+									onFocus={(event) => scheduleToolTooltip(event, tool)}
+									onBlur={clearToolTooltip}
+									className={`sidebar-tool flex min-h-11 min-w-0 flex-1 items-center rounded-lg text-left transition-colors gap-3 px-3 py-2 ${isSelected ? "bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)]" : "text-[color:var(--app-fg-muted)] hover:bg-[color:var(--app-surface-bg)] hover:text-[color:var(--app-fg)]"}`}
+								>
+									<ToolIcon className="size-4 shrink-0" aria-hidden="true" />
+									<span className="min-w-0 truncate text-[13px] font-medium">
+										{tool.name}
+									</span>
+								</button>
+								<button
+									type="button"
+									className="tool-library-favorite"
+									aria-label={`${isFavorite ? "Unfavorite" : "Favorite"} ${tool.name}`}
+									aria-pressed={isFavorite}
+									title={`${isFavorite ? "Remove from" : "Add to"} favorites`}
+									onClick={(event) =>
+										toggleLibraryFavorite(tool.id, event.currentTarget)
+									}
+								>
+									<Star
+										className="size-4"
+										fill={isFavorite ? "currentColor" : "none"}
+										aria-hidden="true"
+									/>
+								</button>
+							</div>
 						);
 					})}
 					{filteredTools.length === 0 ? (
-						<div className="px-3 py-7 text-sm text-[color:var(--app-fg-muted)]">
+						<div className="tool-library-empty px-3 py-7 text-sm text-[color:var(--app-fg-muted)]">
 							No matching tools.
 							<button
 								type="button"
