@@ -127,6 +127,7 @@ import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-di
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
 import { tool as timezoneMeetingPlanner } from "#/lib/local-tools/timezone-meeting-planner";
 import { tool as unicodeNormalizer } from "#/lib/local-tools/unicode-normalizer";
+import { tool as utmLinkBuilder } from "#/lib/local-tools/utm-link-builder";
 import { tool as wordFrequencyAnalyzer } from "#/lib/local-tools/word-frequency-analyzer";
 import {
 	analyzePassword,
@@ -841,6 +842,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Compare meeting times, date changes, and working-hour availability across timezones.",
 		component: createLocalTool(timezoneMeetingPlanner),
+	},
+	{
+		id: "utm-link-builder",
+		name: "UTM Link Builder",
+		category: "Generators",
+		summary:
+			"Create encoded campaign URLs while preserving destination queries and anchors.",
+		component: createLocalTool(utmLinkBuilder),
 	},
 ];
 
