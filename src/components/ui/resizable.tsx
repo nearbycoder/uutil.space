@@ -1,18 +1,36 @@
 import { GripVertical } from "lucide-react";
 import type * as React from "react";
+import { useSyncExternalStore } from "react";
 import * as ResizablePrimitive from "react-resizable-panels";
 import { cn } from "#/lib/utils";
+
+const compactQuery = "(max-width: 1023px)";
+function subscribeToViewport(onChange: () => void) {
+	const query = window.matchMedia(compactQuery);
+	query.addEventListener("change", onChange);
+	return () => query.removeEventListener("change", onChange);
+}
+const isCompactViewport = () => window.matchMedia(compactQuery).matches;
+const serverViewport = () => false;
 
 function ResizablePanelGroup({
 	className,
 	direction = "horizontal",
+	responsive = false,
+	disabled,
 	...props
 }: Omit<
 	React.ComponentProps<typeof ResizablePrimitive.Group>,
 	"orientation"
 > & {
 	direction?: "horizontal" | "vertical";
+	responsive?: boolean;
 }) {
+	const compact = useSyncExternalStore(
+		subscribeToViewport,
+		isCompactViewport,
+		serverViewport,
+	);
 	return (
 		<ResizablePrimitive.Group
 			className={cn(
@@ -20,6 +38,9 @@ function ResizablePanelGroup({
 				className,
 			)}
 			orientation={direction}
+			// CSS controls layout from first paint; this only re-registers resize
+			// interactions when a hidden mobile separator becomes visible again.
+			disabled={disabled || (responsive && compact)}
 			{...props}
 		/>
 	);

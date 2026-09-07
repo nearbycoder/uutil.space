@@ -133,6 +133,13 @@ import { tool as unicodeNormalizer } from "#/lib/local-tools/unicode-normalizer"
 import { tool as utmLinkBuilder } from "#/lib/local-tools/utm-link-builder";
 import { tool as wordFrequencyAnalyzer } from "#/lib/local-tools/word-frequency-analyzer";
 import {
+	DEFAULT_UNIX_PANEL_LAYOUT,
+	normalizeUnixPanelLayout,
+	type PanelLayout,
+	UNIX_IO_LAYOUT_COOKIE_KEY,
+	UNIX_IO_PANEL_IDS,
+} from "#/lib/panel-layout";
+import {
 	analyzePassword,
 	analyzeReadability,
 	analyzeSecurityHeaders,
@@ -901,13 +908,10 @@ const AVAILABLE_THEME_IDS = new Set([DARK_THEME_ID, LIGHT_THEME_ID]);
 const THEME_STORAGE_KEY = "uutil.theme.mode";
 const LEGACY_THEME_STORAGE_KEY = "uutil.shiki.theme";
 const LEGACY_THEME_VARS_STORAGE_KEY = "uutil.shiki.theme-vars";
-const UNIX_IO_LAYOUT_COOKIE_KEY = "uutil.layout.unix-io";
-const UNIX_IO_PANEL_IDS = ["unix-input", "unix-output"] as const;
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 const MOBILE_NAV_EXIT_MS = MOBILE_DRAWER_EXIT_MS + 40;
 const MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MAX_QR_IMAGE_DIMENSION = 4096;
-type PanelLayout = Record<string, number>;
 
 const CATEGORY_ICONS: Record<ToolCategory, LucideIcon> = {
 	Core: Monitor,
@@ -1047,70 +1051,6 @@ function writeCookieValue(name: string, value: string) {
 	document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
 }
 
-function readJsonCookie<T>(name: string) {
-	const cookieValue = readCookieValue(name);
-	if (!cookieValue) {
-		return null;
-	}
-
-	try {
-		return JSON.parse(cookieValue) as T;
-	} catch {
-		return null;
-	}
-}
-
-function normalizePanelLayout(
-	layout: unknown,
-	panelIds: readonly string[],
-): PanelLayout | undefined {
-	if (!layout || typeof layout !== "object") {
-		return undefined;
-	}
-
-	const normalized: PanelLayout = {};
-	for (const panelId of panelIds) {
-		const value = (layout as Record<string, unknown>)[panelId];
-		if (typeof value !== "number" || !Number.isFinite(value)) {
-			return undefined;
-		}
-		normalized[panelId] = value;
-	}
-
-	const total = panelIds.reduce((sum, panelId) => sum + normalized[panelId], 0);
-	if (total <= 0) {
-		return undefined;
-	}
-
-	return normalized;
-}
-
-function usePersistedPanelLayout(
-	cookieKey: string,
-	panelIds: readonly string[],
-) {
-	const [defaultLayout, setDefaultLayout] = useState<PanelLayout>();
-
-	useEffect(() => {
-		setDefaultLayout(
-			normalizePanelLayout(readJsonCookie<unknown>(cookieKey), panelIds),
-		);
-	}, [cookieKey, panelIds]);
-
-	const onLayoutChanged = useCallback(
-		(layout: PanelLayout) => {
-			const normalizedLayout = normalizePanelLayout(layout, panelIds);
-			if (!normalizedLayout) {
-				return;
-			}
-			writeCookieValue(cookieKey, JSON.stringify(normalizedLayout));
-		},
-		[cookieKey, panelIds],
-	);
-
-	return { defaultLayout, onLayoutChanged };
-}
-
 function getThemeFallbackVars(themeId: string): AppCssVariables {
 	return themeId === LIGHT_THEME_ID ? WORKBENCH_LIGHT : WORKBENCH_DARK;
 }
@@ -1134,6 +1074,8 @@ type ToolQueryRuntime = {
 	autoRun: boolean;
 	registerInput: () => number;
 };
+
+const UnixPanelLayoutContext = createContext(DEFAULT_UNIX_PANEL_LAYOUT);
 
 const AppThemeContext = createContext<AppThemeState>({
 	themeId: DEFAULT_THEME_ID,
@@ -2174,7 +2116,11 @@ export function ToolingApp({
 				navigate={selectTool}
 			/>
 			<ToolSession key={selectedToolId} toolId={selectedToolId}>
-				<SelectedToolComponent />
+				<UnixPanelLayoutContext.Provider
+					value={initialUiPreferences.unixPanelLayout}
+				>
+					<SelectedToolComponent />
+				</UnixPanelLayoutContext.Provider>
 			</ToolSession>
 			<footer className="workspace-footer">
 				<Lock className="size-3.5" aria-hidden="true" />
@@ -3668,8 +3614,21 @@ function UnixTimeConverterTool() {
 	const [input, setInput] = useState("1700000000");
 	const [output, setOutput] = useState("");
 	const [error, setError] = useState("");
-	const { defaultLayout: defaultUnixLayout, onLayoutChanged: onUnixLayout } =
-		usePersistedPanelLayout(UNIX_IO_LAYOUT_COOKIE_KEY, UNIX_IO_PANEL_IDS);
+	const defaultUnixLayout = useContext(UnixPanelLayoutContext);
+	const onUnixLayout = useCallback(
+		(
+			layout: PanelLayout,
+			{ isUserInteraction }: { isUserInteraction: boolean },
+		) => {
+			// Initial measurement and mobile stacking must not overwrite desktop preferences.
+			if (isUserInteraction)
+				writeCookieValue(
+					UNIX_IO_LAYOUT_COOKIE_KEY,
+					JSON.stringify(normalizeUnixPanelLayout(layout)),
+				);
+		},
+		[],
+	);
 
 	const convert = (source = input) => {
 		try {
@@ -3694,12 +3653,17 @@ function UnixTimeConverterTool() {
 		<div>
 			<ResizablePanelGroup
 				direction="horizontal"
+				responsive
 				className="responsive-panels"
 				id={panelGroupId}
 				defaultLayout={defaultUnixLayout}
 				onLayoutChanged={onUnixLayout}
 			>
-				<ResizablePanel id={UNIX_IO_PANEL_IDS[0]} defaultSize={54} minSize={30}>
+				<ResizablePanel
+					id={UNIX_IO_PANEL_IDS[0]}
+					defaultSize="54%"
+					minSize="30%"
+				>
 					<ToolCard title="Unix time or date string">
 						<ToolTextarea
 							rows={10}
@@ -3726,7 +3690,11 @@ function UnixTimeConverterTool() {
 					</ToolCard>
 				</ResizablePanel>
 				<ResizableHandle withHandle />
-				<ResizablePanel id={UNIX_IO_PANEL_IDS[1]} defaultSize={46} minSize={28}>
+				<ResizablePanel
+					id={UNIX_IO_PANEL_IDS[1]}
+					defaultSize="46%"
+					minSize="28%"
+				>
 					<ToolCard title="Result">
 						<OutputBox value={output} fill />
 					</ToolCard>
