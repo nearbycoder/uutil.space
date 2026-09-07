@@ -114,6 +114,7 @@ import {
 	unescapeBackslashes,
 } from "#/lib/converters";
 import { tool as batchTimestampConverter } from "#/lib/local-tools/batch-timestamp-converter";
+import { tool as cssSpacingScale } from "#/lib/local-tools/css-spacing-scale";
 import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
@@ -868,6 +869,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Generate quoted, batched SQL inserts for PostgreSQL, SQLite, or MySQL.",
 		component: createLocalTool(jsonSqlInsert),
+	},
+	{
+		id: "css-spacing-scale",
+		name: "CSS Spacing Scale",
+		category: "Generators",
+		summary:
+			"Generate consistent linear or modular spacing tokens in px, rem, CSS, or JSON.",
+		component: createLocalTool(cssSpacingScale),
 	},
 ];
 
