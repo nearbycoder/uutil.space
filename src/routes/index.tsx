@@ -113,6 +113,7 @@ import {
 	toTitleCase,
 	unescapeBackslashes,
 } from "#/lib/converters";
+import { tool as batchTimestampConverter } from "#/lib/local-tools/batch-timestamp-converter";
 import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
@@ -823,6 +824,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Find hidden formatting characters and clean them with a detailed change report.",
 		component: createLocalTool(invisibleCharacterCleaner),
+	},
+	{
+		id: "batch-timestamp-converter",
+		name: "Batch Timestamp Converter",
+		category: "Conversion",
+		summary:
+			"Convert timestamp lists with explicit units and per-line error reporting.",
+		component: createLocalTool(batchTimestampConverter),
 	},
 ];
 
