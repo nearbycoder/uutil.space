@@ -127,6 +127,7 @@ import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-infer
 import { tool as jsonSqlInsert } from "#/lib/local-tools/json-sql-insert";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
+import { tool as setCookieInspector } from "#/lib/local-tools/set-cookie-inspector";
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
 import { tool as timezoneMeetingPlanner } from "#/lib/local-tools/timezone-meeting-planner";
 import { tool as unicodeNormalizer } from "#/lib/local-tools/unicode-normalizer";
@@ -877,6 +878,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Generate consistent linear or modular spacing tokens in px, rem, CSS, or JSON.",
 		component: createLocalTool(cssSpacingScale),
+	},
+	{
+		id: "set-cookie-inspector",
+		name: "Set-Cookie Inspector",
+		category: "Security",
+		summary:
+			"Inspect cookie attributes, expiry hints, and common security-policy mistakes.",
+		component: createLocalTool(setCookieInspector),
 	},
 ];
 
