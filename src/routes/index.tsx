@@ -116,6 +116,7 @@ import {
 import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
+import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-inference";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import {
 	analyzePassword,
@@ -743,6 +744,13 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Recursively order JSON object keys with stable, configurable formatting.",
 		component: createLocalTool(jsonKeySorter),
+	},
+	{
+		id: "json-schema-inference",
+		name: "JSON Schema Inference",
+		category: "Generators",
+		summary: "Derive a reviewable JSON Schema from nested sample data.",
+		component: createLocalTool(jsonSchemaInference),
 	},
 ];
 
