@@ -124,6 +124,7 @@ import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
 import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-inference";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
+import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
 import { tool as timezoneMeetingPlanner } from "#/lib/local-tools/timezone-meeting-planner";
 import { tool as unicodeNormalizer } from "#/lib/local-tools/unicode-normalizer";
@@ -850,6 +851,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Create encoded campaign URLs while preserving destination queries and anchors.",
 		component: createLocalTool(utmLinkBuilder),
+	},
+	{
+		id: "safe-template-renderer",
+		name: "Safe Template Renderer",
+		category: "Generators",
+		summary:
+			"Fill text templates from JSON with explicit escaping and no code execution.",
+		component: createLocalTool(safeTemplateRenderer),
 	},
 ];
 
