@@ -114,6 +114,7 @@ import {
 	unescapeBackslashes,
 } from "#/lib/converters";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
+import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import {
 	analyzePassword,
@@ -725,6 +726,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Apply recursive JSON merge patches with explicit deletion semantics.",
 		component: createLocalTool(jsonMergePatch),
+	},
+	{
+		id: "json-pointer-editor",
+		name: "JSON Pointer Editor",
+		category: "Parsing",
+		summary:
+			"Read, set, append, or remove JSON values using precise pointer paths.",
+		component: createLocalTool(jsonPointerEditor),
 	},
 ];
 
