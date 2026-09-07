@@ -34,7 +34,6 @@ import {
 	ListFilter,
 	Lock,
 	type LucideIcon,
-	Menu,
 	Monitor,
 	Moon,
 	Palette,
@@ -46,7 +45,6 @@ import {
 	Sun,
 	Type,
 	Wand2,
-	X,
 } from "lucide-react";
 import { marked } from "marked";
 import Papa from "papaparse";
@@ -81,6 +79,10 @@ import {
 } from "uuid";
 import vkbeautify from "vkbeautify";
 import xmlFormat from "xml-formatter";
+import {
+	MOBILE_DRAWER_EXIT_MS,
+	MobileToolNavigation,
+} from "#/components/mobile-tool-navigation";
 import {
 	ResizableHandle,
 	ResizablePanel,
@@ -728,7 +730,7 @@ const LEGACY_THEME_VARS_STORAGE_KEY = "uutil.shiki.theme-vars";
 const UNIX_IO_LAYOUT_COOKIE_KEY = "uutil.layout.unix-io";
 const UNIX_IO_PANEL_IDS = ["unix-input", "unix-output"] as const;
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
-const MOBILE_NAV_EXIT_MS = 200;
+const MOBILE_NAV_EXIT_MS = MOBILE_DRAWER_EXIT_MS + 40;
 const MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MAX_QR_IMAGE_DIMENSION = 4096;
 type PanelLayout = Record<string, number>;
@@ -1546,6 +1548,7 @@ export function ToolingApp({
 	);
 	const [isMobileViewport, setIsMobileViewport] = useState(false);
 	const [mobileNavOpen, setMobileNavOpen] = useState(false);
+	const [mobileSearchRequest, setMobileSearchRequest] = useState(0);
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [paletteQuery, setPaletteQuery] = useState("");
 	const [paletteIndex, setPaletteIndex] = useState(0);
@@ -1820,6 +1823,14 @@ export function ToolingApp({
 
 			if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
 				event.preventDefault();
+				if (isMobileViewport) {
+					setSearch("");
+					setActiveCategory("All");
+					setCollection("all");
+					setMobileSearchRequest((value) => value + 1);
+					setMobileNavOpen(true);
+					return;
+				}
 				setPaletteOpen((open) => !open);
 				if (toolTooltipTimerRef.current !== null) {
 					window.clearTimeout(toolTooltipTimerRef.current);
@@ -2027,7 +2038,7 @@ export function ToolingApp({
 
 	const sidebarContent = (
 		<div
-			className={`mobile-safe-bottom flex h-full flex-col ${effectiveNavExpanded ? "px-3 py-5" : "px-2 py-4"}`}
+			className={`tool-library-content flex h-full min-h-0 flex-col ${effectiveNavExpanded ? "px-3 pb-3 pt-0 xl:py-5" : "px-2 py-4"}`}
 		>
 			<div className="mb-4 flex min-h-9 items-center justify-between gap-2 px-2">
 				{effectiveNavExpanded ? (
@@ -2059,17 +2070,9 @@ export function ToolingApp({
 						<ChevronRight className="size-4" />
 					)}
 				</button>
-				<button
-					type="button"
-					onClick={() => setMobileNavOpen(false)}
-					className="nav-icon-button flex xl:hidden"
-					aria-label="Close tools menu"
-				>
-					<X className="size-4" />
-				</button>
 			</div>
 			{effectiveNavExpanded ? (
-				<div className="mb-5 space-y-3 px-1">
+				<div className="tool-library-filters mb-5 space-y-3 px-1">
 					<div className="relative">
 						<Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-soft)]" />
 						<input
@@ -2115,7 +2118,7 @@ export function ToolingApp({
 			) : null}
 			<nav
 				aria-label="Utilities"
-				className="uutil-scrollbar flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
+				className="uutil-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
 			>
 				<div className="space-y-0.5">
 					{filteredTools.map((tool) => {
@@ -2152,6 +2155,7 @@ export function ToolingApp({
 								onClick={() => {
 									setSearch("");
 									setActiveCategory("All");
+									setCollection("all");
 								}}
 								className="mt-3 block text-[color:var(--app-accent)] underline underline-offset-4"
 							>
@@ -2228,15 +2232,6 @@ export function ToolingApp({
 				</a>
 				<header className="app-topbar relative z-20">
 					<div className="flex h-16 w-full items-center gap-3 px-4 lg:px-6">
-						<button
-							ref={mobileMenuButtonRef}
-							type="button"
-							onClick={() => setMobileNavOpen(true)}
-							className="nav-icon-button flex xl:hidden"
-							aria-label="Open tools menu"
-						>
-							<Menu className="size-5" />
-						</button>
 						<a
 							href="/"
 							className="flex min-w-0 shrink-0 items-center gap-2.5 text-[color:var(--app-fg)] no-underline xl:w-[232px]"
@@ -2260,22 +2255,13 @@ export function ToolingApp({
 							onClick={() => setPaletteOpen(true)}
 							aria-label="Open quick tool search"
 							aria-keyshortcuts="Control+K Meta+K"
-							className="topbar-search ml-auto hidden w-full max-w-[300px] items-center gap-2.5 md:flex"
+							className="topbar-search ml-auto hidden w-full max-w-[300px] items-center gap-2.5 xl:flex"
 						>
 							<Search className="size-4" />
 							<span className="flex-1 text-left">Find a tool...</span>
 							<kbd>⌘ K</kbd>
 						</button>
-						<div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
-							<button
-								type="button"
-								onClick={() => setPaletteOpen(true)}
-								aria-label="Open quick tool search"
-								aria-keyshortcuts="Control+K Meta+K"
-								className="nav-icon-button flex md:hidden"
-							>
-								<Search className="size-5" />
-							</button>
+						<div className="ml-auto flex shrink-0 items-center gap-2 xl:ml-0">
 							<ThemeModeToggle
 								isLightTheme={isLightTheme}
 								onToggle={toggleThemeMode}
@@ -2283,20 +2269,9 @@ export function ToolingApp({
 						</div>
 					</div>
 				</header>
-				<div className="h-[calc(100dvh-64px)] w-full xl:flex">
-					{mobileNavOpen ? (
-						<button
-							type="button"
-							aria-label="Close tools menu"
-							onClick={() => setMobileNavOpen(false)}
-							className="fixed inset-x-0 bottom-0 top-16 z-30 xl:hidden"
-							style={{ backgroundColor: "var(--app-overlay)" }}
-						/>
-					) : null}
+				<div className="app-body h-[calc(100dvh-64px)] w-full xl:flex">
 					<aside
-						aria-hidden={isMobileViewport && !mobileNavOpen}
-						inert={isMobileViewport && !mobileNavOpen}
-						className={`sidebar-panel fixed bottom-0 left-0 top-16 z-40 w-[min(88vw,320px)] border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] transition-transform duration-200 xl:static xl:z-auto xl:h-full xl:shrink-0 xl:translate-x-0 xl:w-[var(--desktop-sidebar-width)] ${mobileNavOpen ? "translate-x-0" : "pointer-events-none -translate-x-[105%] xl:pointer-events-auto"}`}
+						className="sidebar-panel hidden h-full shrink-0 border-r [border-color:var(--app-border)] bg-[color:var(--app-sidebar-bg)] xl:block xl:w-[var(--desktop-sidebar-width)]"
 						style={
 							{
 								"--desktop-sidebar-width": `${desktopSidebarWidth}px`,
@@ -2306,7 +2281,7 @@ export function ToolingApp({
 							} as AppCssVariables
 						}
 					>
-						{sidebarContent}
+						{!isMobileViewport ? sidebarContent : null}
 					</aside>
 					<div className="h-full min-w-0 flex-1">
 						<ToolQueryContext.Provider value={toolQueryRuntime}>
@@ -2314,13 +2289,27 @@ export function ToolingApp({
 								id="workspace"
 								tabIndex={-1}
 								ref={toolPaneRef}
-								className="uutil-scrollbar h-full min-w-0 overflow-y-auto overscroll-contain px-4 py-5 outline-none sm:px-6 sm:py-6 lg:px-9 lg:py-7"
+								className="tool-workspace-scroll uutil-scrollbar h-full min-w-0 overflow-y-auto overscroll-contain px-4 py-5 outline-none sm:px-6 sm:py-6 lg:px-9 lg:py-7"
 							>
 								{toolWorkspace}
 							</main>
 						</ToolQueryContext.Provider>
 					</div>
 				</div>
+
+				<MobileToolNavigation
+					open={mobileNavOpen}
+					onOpenChange={setMobileNavOpen}
+					onFind={() => {
+						setSearch("");
+						setActiveCategory("All");
+						setCollection("all");
+					}}
+					searchRequest={mobileSearchRequest}
+					menuButtonRef={mobileMenuButtonRef}
+				>
+					{isMobileViewport ? sidebarContent : null}
+				</MobileToolNavigation>
 
 				<CommandPalette
 					open={paletteOpen}

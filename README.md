@@ -80,6 +80,7 @@ PORT=3103 bun run start
 # In another terminal:
 TEST_URL=http://localhost:3103 node scripts/verify-workspace.mjs
 TEST_URL=http://localhost:3103 node scripts/verify-layout.mjs
+TEST_URL=http://localhost:3103 node scripts/verify-mobile-navigation.mjs
 TEST_URL=http://localhost:3103 node scripts/verify-offline.mjs
 ```
 
