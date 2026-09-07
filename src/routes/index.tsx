@@ -122,6 +122,7 @@ import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
 import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-inference";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
+import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
 import {
 	analyzePassword,
 	analyzeReadability,
@@ -787,6 +788,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Turn CSV into escaped, aligned Markdown tables for documentation.",
 		component: createLocalTool(csvMarkdownTable),
+	},
+	{
+		id: "text-set-operations",
+		name: "Text Set Operations",
+		category: "Core",
+		summary:
+			"Compare lists using intersection, union, subtraction, and symmetric difference.",
+		component: createLocalTool(textSetOperations),
 	},
 ];
 
