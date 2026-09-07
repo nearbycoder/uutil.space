@@ -79,6 +79,7 @@ import {
 } from "uuid";
 import vkbeautify from "vkbeautify";
 import xmlFormat from "xml-formatter";
+import { createLocalTool } from "#/components/local-tool";
 import {
 	MOBILE_DRAWER_EXIT_MS,
 	MobileToolNavigation,
@@ -112,6 +113,7 @@ import {
 	toTitleCase,
 	unescapeBackslashes,
 } from "#/lib/converters";
+import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import {
 	analyzePassword,
 	analyzeReadability,
@@ -707,6 +709,13 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		category: "Core",
 		summary: "Build a schedule visually and preview its next runs.",
 		component: CronBuilderTool,
+	},
+	{
+		id: "json-structural-diff",
+		name: "JSON Structural Diff",
+		category: "Core",
+		summary: "Compare JSON values with added, removed, and changed paths.",
+		component: createLocalTool(jsonStructuralDiff),
 	},
 ];
 
