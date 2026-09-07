@@ -116,6 +116,7 @@ import {
 import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
+import { tool as csvMarkdownTable } from "#/lib/local-tools/csv-markdown-table";
 import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
@@ -778,6 +779,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Find duplicate records and keep exactly the rows your workflow needs.",
 		component: createLocalTool(csvDeduplicator),
+	},
+	{
+		id: "csv-markdown-table",
+		name: "CSV to Markdown Table",
+		category: "Conversion",
+		summary:
+			"Turn CSV into escaped, aligned Markdown tables for documentation.",
+		component: createLocalTool(csvMarkdownTable),
 	},
 ];
 
