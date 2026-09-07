@@ -123,6 +123,7 @@ import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor
 import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-inference";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
+import { tool as wordFrequencyAnalyzer } from "#/lib/local-tools/word-frequency-analyzer";
 import {
 	analyzePassword,
 	analyzeReadability,
@@ -796,6 +797,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Compare lists using intersection, union, subtraction, and symmetric difference.",
 		component: createLocalTool(textSetOperations),
+	},
+	{
+		id: "word-frequency-analyzer",
+		name: "Word Frequency Analyzer",
+		category: "Core",
+		summary:
+			"Rank words with language-aware tokenization, exclusions, and frequency statistics.",
+		component: createLocalTool(wordFrequencyAnalyzer),
 	},
 ];
 
