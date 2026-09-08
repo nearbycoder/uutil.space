@@ -483,6 +483,9 @@ code {
 
 /* Shared navigation floats above the safe area without resizing the workspace. */
 @media (min-width: 1024px) {
+  /* Keep the output aligned initially; .tool-card otherwise overrides the
+     layered sticky utility and turns its top inset into a relative offset. */
+  .local-tool > .output-panel { position: sticky; }
   /* Give text-oriented tools room to work without stretching small generators. */
   .tool-grid:has(> .tool-card > .tool-textarea) {
     min-height: max(500px, calc(100dvh - 176px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)));

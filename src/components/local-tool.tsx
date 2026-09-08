@@ -102,7 +102,9 @@ export function createLocalTool(tool: LocalTool) {
 		return (
 			<div className="local-tool grid min-w-0 items-start gap-5 lg:grid-cols-2">
 				<section className="tool-card min-w-0 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 sm:p-5">
-					<h3 className="mb-5 text-sm font-semibold">Input & options</h3>
+					<h3 className="mb-4 flex min-h-10 items-center text-sm font-semibold">
+						Input & options
+					</h3>
 					<div className="space-y-5">
 						{tool.fields.map((field) => (
 							<ToolField
