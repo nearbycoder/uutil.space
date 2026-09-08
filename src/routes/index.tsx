@@ -119,6 +119,7 @@ import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
 import { tool as csvMarkdownTable } from "#/lib/local-tools/csv-markdown-table";
 import { tool as invisibleCharacterCleaner } from "#/lib/local-tools/invisible-character-cleaner";
+import { tool as jsonArrayQuery } from "#/lib/local-tools/json-array-query";
 import { tool as jsonFlattenUnflatten } from "#/lib/local-tools/json-flatten-unflatten";
 import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
@@ -897,6 +898,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Flatten JSON into typed pointer rows and rebuild it without losing empty containers.",
 		component: createLocalTool(jsonFlattenUnflatten),
+	},
+	{
+		id: "json-array-query",
+		name: "JSON Array Query",
+		category: "Parsing",
+		summary:
+			"Filter, project, sort, and limit JSON records with typed comparisons.",
+		component: createLocalTool(jsonArrayQuery),
 	},
 ];
 
