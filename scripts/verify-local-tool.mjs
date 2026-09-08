@@ -19,6 +19,21 @@ try {
     assert(!value('document.querySelector(".local-tool [role=alert]") !== null'));
     run("wait", "--fn", 'document.activeElement === document.querySelector(".local-tool pre")');
     const expectedText = value('document.querySelector(".local-tool pre").textContent');
+    if (id === "css-fluid-type") {
+      const difference = value(`(() => {
+        const report = JSON.parse(document.querySelector(".local-tool pre").textContent);
+        const root = document.documentElement, previous = root.style.fontSize;
+        const sample = document.createElement("span");
+        root.style.fontSize = "16px";
+        sample.style.cssText = report.css + "position:fixed;visibility:hidden";
+        document.body.append(sample);
+        const actual = parseFloat(getComputedStyle(sample).fontSize);
+        const expected = Math.max(16, Math.min(24, 16 + (innerWidth - 360) * 8 / 920));
+        sample.remove(); root.style.fontSize = previous;
+        return Math.abs(actual - expected);
+      })()`);
+      assert(difference < 0.001, "Generated fluid CSS must match the calculator in a browser");
+    }
     run("eval", 'window.__downloadText = null; window.__downloadName = null; const create = URL.createObjectURL.bind(URL); URL.createObjectURL = blob => { blob.text().then(text => window.__downloadText = text); return create(blob); }; const anchorClick = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function() { window.__downloadName = this.download; return anchorClick.call(this); };');
     run("find", "role", "button", "click", "--name", "Download result", "--exact");
     run("wait", "--fn", 'window.__downloadText !== null');
