@@ -20,7 +20,7 @@ try {
 		wait('!document.querySelector(".local-tool [role=alert]") && document.querySelector(".local-tool pre")?.textContent !== "Your result will appear here."');
 	}
 	assert.equal(run("errors").trim(), "");
-	console.log("PASS offline refresh, route navigation, validation worker, cron hydration and all 20 new local tools.");
+	console.log("PASS offline refresh, route navigation, validation worker, cron hydration and every registered local tool.");
 	run("set", "offline", "off"); open("/tools/json-format-validate"); click("My workspace"); wait('document.querySelector("dialog")?.open'); click("Offline & install"); click("Remove offline files"); wait('document.querySelector("dialog")?.innerText.includes("Offline files removed")');
 	console.log("PASS removal of offline files.");
 } finally { run("set", "offline", "off"); run("close"); }
