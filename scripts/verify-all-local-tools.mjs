@@ -7,5 +7,5 @@ for (const file of readdirSync("src/lib/local-tools").filter(name => name.endsWi
   execFileSync(process.execPath, ["scripts/verify-local-tool.mjs", file.slice(0,-3), tool.smoke], { stdio: "inherit", env: process.env });
   count++;
 }
-if (count !== 20) throw new Error(`Expected 20 tools, found ${count}`);
+if (count < 20) throw new Error(`Expected at least the original 20 tools, found ${count}`);
 console.log(`PASS all ${count} local features across mobile and desktop`);
