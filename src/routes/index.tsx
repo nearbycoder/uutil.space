@@ -138,6 +138,7 @@ import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-di
 import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
 import { tool as setCookieInspector } from "#/lib/local-tools/set-cookie-inspector";
 import { tool as sqlInClause } from "#/lib/local-tools/sql-in-clause";
+import { tool as textReflowWrap } from "#/lib/local-tools/text-reflow-wrap";
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
 import { tool as timezoneMeetingPlanner } from "#/lib/local-tools/timezone-meeting-planner";
 import { tool as unicodeNormalizer } from "#/lib/local-tools/unicode-normalizer";
@@ -987,6 +988,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Test path globs with wildcard explanations and matched/unmatched lists using bounded local matching.",
 		component: createLocalTool(globPatternTester),
+	},
+	{
+		id: "text-reflow-wrap",
+		name: "Text Reflow & Wrap",
+		category: "Formatting",
+		summary:
+			"Reflow paragraphs or wrap individual lines with width, indentation, and long-word controls.",
+		component: createLocalTool(textReflowWrap),
 	},
 ];
 
