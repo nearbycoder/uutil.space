@@ -122,6 +122,7 @@ import { tool as csvMarkdownTable } from "#/lib/local-tools/csv-markdown-table";
 import { tool as csvMultiSort } from "#/lib/local-tools/csv-multi-sort";
 import { tool as csvTableJoin } from "#/lib/local-tools/csv-table-join";
 import { tool as csvTranspose } from "#/lib/local-tools/csv-transpose";
+import { tool as httpBasicAuth } from "#/lib/local-tools/http-basic-auth";
 import { tool as httpRequestInspector } from "#/lib/local-tools/http-request-inspector";
 import { tool as invisibleCharacterCleaner } from "#/lib/local-tools/invisible-character-cleaner";
 import { tool as jsonArrayQuery } from "#/lib/local-tools/json-array-query";
@@ -960,6 +961,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Inspect raw requests, duplicate headers, query parameters, and framing warnings without sending them.",
 		component: createLocalTool(httpRequestInspector),
+	},
+	{
+		id: "http-basic-auth",
+		name: "HTTP Basic Auth Codec",
+		category: "Encoding",
+		summary:
+			"Encode or inspect Basic authorization credentials with explicit UTF-8 or Latin-1 handling.",
+		component: createLocalTool(httpBasicAuth),
 	},
 ];
 
