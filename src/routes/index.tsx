@@ -116,6 +116,7 @@ import { tool as base64urlCodec } from "#/lib/local-tools/base64url-codec";
 import { tool as batchTimestampConverter } from "#/lib/local-tools/batch-timestamp-converter";
 import { tool as byteHexdump } from "#/lib/local-tools/byte-hexdump";
 import { tool as cacheControlInspector } from "#/lib/local-tools/cache-control-inspector";
+import { tool as cssBezierSampler } from "#/lib/local-tools/css-bezier-sampler";
 import { tool as cssFluidType } from "#/lib/local-tools/css-fluid-type";
 import { tool as cssSpacingScale } from "#/lib/local-tools/css-spacing-scale";
 import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
@@ -1032,6 +1033,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Generate bounded responsive font-size CSS with rem/px options and viewport-by-viewport size estimates.",
 		component: createLocalTool(cssFluidType),
+	},
+	{
+		id: "css-bezier-sampler",
+		name: "CSS Cubic Bézier Sampler",
+		category: "Generators",
+		summary:
+			"Sample CSS easing curves over time with presets, custom control points, and interpolated values.",
+		component: createLocalTool(cssBezierSampler),
 	},
 ];
 

@@ -19,6 +19,21 @@ try {
     assert(!value('document.querySelector(".local-tool [role=alert]") !== null'));
     run("wait", "--fn", 'document.activeElement === document.querySelector(".local-tool pre")');
     const expectedText = value('document.querySelector(".local-tool pre").textContent');
+    if (id === "css-bezier-sampler") {
+      const difference = value(`(() => {
+        const report = JSON.parse(document.querySelector(".local-tool pre").textContent);
+        const sample = document.createElement("span");
+        sample.style.cssText = "position:fixed;visibility:hidden";
+        document.body.append(sample);
+        const animation = sample.animate([{ transform: "translateX(0px)" }, { transform: "translateX(100px)" }], { duration: report.durationMs, easing: report.easing, fill: "both" });
+        animation.pause(); animation.currentTime = report.durationMs / 2;
+        const actual = new DOMMatrix(getComputedStyle(sample).transform).m41;
+        const expected = report.samples.find(row => row.inputProgress === 0.5).value;
+        animation.cancel(); sample.remove();
+        return Math.abs(actual - expected);
+      })()`);
+      assert(difference < 0.02, "Bezier samples must match browser animation timing");
+    }
     if (id === "css-fluid-type") {
       const difference = value(`(() => {
         const report = JSON.parse(document.querySelector(".local-tool pre").textContent);
