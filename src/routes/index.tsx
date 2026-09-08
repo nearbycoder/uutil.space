@@ -116,6 +116,7 @@ import { tool as base64urlCodec } from "#/lib/local-tools/base64url-codec";
 import { tool as batchTimestampConverter } from "#/lib/local-tools/batch-timestamp-converter";
 import { tool as byteHexdump } from "#/lib/local-tools/byte-hexdump";
 import { tool as cacheControlInspector } from "#/lib/local-tools/cache-control-inspector";
+import { tool as cssFluidType } from "#/lib/local-tools/css-fluid-type";
 import { tool as cssSpacingScale } from "#/lib/local-tools/css-spacing-scale";
 import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
@@ -1023,6 +1024,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Inspect UTF-8 or raw hex bytes with offsets, configurable row widths, and an ASCII gutter.",
 		component: createLocalTool(byteHexdump),
+	},
+	{
+		id: "css-fluid-type",
+		name: "CSS Fluid Type Calculator",
+		category: "Generators",
+		summary:
+			"Generate bounded responsive font-size CSS with rem/px options and viewport-by-viewport size estimates.",
+		component: createLocalTool(cssFluidType),
 	},
 ];
 
