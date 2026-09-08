@@ -133,6 +133,7 @@ import { tool as jsonSqlInsert } from "#/lib/local-tools/json-sql-insert";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
 import { tool as setCookieInspector } from "#/lib/local-tools/set-cookie-inspector";
+import { tool as sqlInClause } from "#/lib/local-tools/sql-in-clause";
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
 import { tool as timezoneMeetingPlanner } from "#/lib/local-tools/timezone-meeting-planner";
 import { tool as unicodeNormalizer } from "#/lib/local-tools/unicode-normalizer";
@@ -942,6 +943,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Turn CSV records into columns with generated or data-derived headings.",
 		component: createLocalTool(csvTranspose),
+	},
+	{
+		id: "sql-in-clause",
+		name: "SQL IN Clause Builder",
+		category: "Generators",
+		summary:
+			"Build dialect-aware IN and NOT IN predicates with parameters and explicit NULL handling.",
+		component: createLocalTool(sqlInClause),
 	},
 ];
 
