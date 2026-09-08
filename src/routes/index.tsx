@@ -119,6 +119,7 @@ import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
 import { tool as csvMarkdownTable } from "#/lib/local-tools/csv-markdown-table";
 import { tool as invisibleCharacterCleaner } from "#/lib/local-tools/invisible-character-cleaner";
+import { tool as jsonFlattenUnflatten } from "#/lib/local-tools/json-flatten-unflatten";
 import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
@@ -888,6 +889,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Inspect cookie attributes, expiry hints, and common security-policy mistakes.",
 		component: createLocalTool(setCookieInspector),
+	},
+	{
+		id: "json-flatten-unflatten",
+		name: "JSON Flatten / Unflatten",
+		category: "Conversion",
+		summary:
+			"Flatten JSON into typed pointer rows and rebuild it without losing empty containers.",
+		component: createLocalTool(jsonFlattenUnflatten),
 	},
 ];
 
