@@ -1,5 +1,6 @@
 import { integer, type LocalTool } from "./types";
 export const tool: LocalTool = {
+	preserveColumns: true,
 	fields: [
 		{
 			key: "input",

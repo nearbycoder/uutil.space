@@ -12,6 +12,10 @@ try {
     run("find", "role", "button", "click", "--name", "Run tool", "--exact");
     run("wait", "--fn", `document.querySelector('.local-tool pre')?.textContent.includes(${JSON.stringify(expected)})`);
     assert(!value('document.querySelector("main").scrollWidth > document.querySelector("main").clientWidth + 2'));
+    if (id === "byte-hexdump") {
+      assert.equal(value('getComputedStyle(document.querySelector(".local-tool pre")).whiteSpace'), "pre");
+      assert.equal(value('getComputedStyle(document.querySelector(".local-tool pre")).overflowX'), "auto");
+    }
     assert(!value('document.querySelector(".local-tool [role=alert]") !== null'));
     run("wait", "--fn", 'document.activeElement === document.querySelector(".local-tool pre")');
     const expectedText = value('document.querySelector(".local-tool pre").textContent');
