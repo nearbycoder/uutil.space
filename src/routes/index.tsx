@@ -118,6 +118,7 @@ import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
 import { tool as csvMarkdownTable } from "#/lib/local-tools/csv-markdown-table";
+import { tool as csvMultiSort } from "#/lib/local-tools/csv-multi-sort";
 import { tool as invisibleCharacterCleaner } from "#/lib/local-tools/invisible-character-cleaner";
 import { tool as jsonArrayQuery } from "#/lib/local-tools/json-array-query";
 import { tool as jsonFlattenUnflatten } from "#/lib/local-tools/json-flatten-unflatten";
@@ -906,6 +907,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Filter, project, sort, and limit JSON records with typed comparisons.",
 		component: createLocalTool(jsonArrayQuery),
+	},
+	{
+		id: "csv-multi-sort",
+		name: "CSV Multi-column Sort",
+		category: "Formatting",
+		summary:
+			"Sort CSV by multiple typed keys while preserving records and blank-cell policies.",
+		component: createLocalTool(csvMultiSort),
 	},
 ];
 
