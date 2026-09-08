@@ -123,6 +123,7 @@ import { tool as csvMarkdownTable } from "#/lib/local-tools/csv-markdown-table";
 import { tool as csvMultiSort } from "#/lib/local-tools/csv-multi-sort";
 import { tool as csvTableJoin } from "#/lib/local-tools/csv-table-join";
 import { tool as csvTranspose } from "#/lib/local-tools/csv-transpose";
+import { tool as globPatternTester } from "#/lib/local-tools/glob-pattern-tester";
 import { tool as httpBasicAuth } from "#/lib/local-tools/http-basic-auth";
 import { tool as httpRequestInspector } from "#/lib/local-tools/http-request-inspector";
 import { tool as invisibleCharacterCleaner } from "#/lib/local-tools/invisible-character-cleaner";
@@ -978,6 +979,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Explain caching directives, detect conflicts, and compare private and shared freshness budgets.",
 		component: createLocalTool(cacheControlInspector),
+	},
+	{
+		id: "glob-pattern-tester",
+		name: "Glob Pattern Tester",
+		category: "Parsing",
+		summary:
+			"Test path globs with wildcard explanations and matched/unmatched lists using bounded local matching.",
+		component: createLocalTool(globPatternTester),
 	},
 ];
 
