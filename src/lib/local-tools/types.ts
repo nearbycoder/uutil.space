@@ -9,6 +9,7 @@ export type Field = {
 	optional?: boolean;
 };
 export type LocalTool = {
+	preserveColumns?: boolean;
 	fields: Field[];
 	help: string;
 	filename: string;

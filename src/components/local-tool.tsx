@@ -188,7 +188,7 @@ export function createLocalTool(tool: LocalTool) {
 						ref={outputRef}
 						// biome-ignore lint/a11y/noNoninteractiveTabindex: Enable keyboard scrolling of long results.
 						tabIndex={0}
-						className="max-h-[65vh] min-h-36 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-[color:var(--app-surface-alt)] p-4 font-mono text-[13px] leading-6"
+						className={`max-h-[65vh] min-h-36 overflow-auto ${tool.preserveColumns ? "whitespace-pre" : "whitespace-pre-wrap break-words"} rounded-lg bg-[color:var(--app-surface-alt)] p-4 font-mono text-[13px] leading-6`}
 					>
 						{result ?? "Your result will appear here."}
 					</pre>
