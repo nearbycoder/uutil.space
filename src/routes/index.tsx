@@ -138,6 +138,7 @@ import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-di
 import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
 import { tool as setCookieInspector } from "#/lib/local-tools/set-cookie-inspector";
 import { tool as sqlInClause } from "#/lib/local-tools/sql-in-clause";
+import { tool as textRangeExtractor } from "#/lib/local-tools/text-range-extractor";
 import { tool as textReflowWrap } from "#/lib/local-tools/text-reflow-wrap";
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
 import { tool as timezoneMeetingPlanner } from "#/lib/local-tools/timezone-meeting-planner";
@@ -996,6 +997,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Reflow paragraphs or wrap individual lines with width, indentation, and long-word controls.",
 		component: createLocalTool(textReflowWrap),
+	},
+	{
+		id: "text-range-extractor",
+		name: "Text Range Extractor",
+		category: "Parsing",
+		summary:
+			"Extract or exclude inclusive line ranges while preserving source order and optional line numbers.",
+		component: createLocalTool(textRangeExtractor),
 	},
 ];
 
