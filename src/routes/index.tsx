@@ -121,6 +121,7 @@ import { tool as csvGroupAggregate } from "#/lib/local-tools/csv-group-aggregate
 import { tool as csvMarkdownTable } from "#/lib/local-tools/csv-markdown-table";
 import { tool as csvMultiSort } from "#/lib/local-tools/csv-multi-sort";
 import { tool as csvTableJoin } from "#/lib/local-tools/csv-table-join";
+import { tool as csvTranspose } from "#/lib/local-tools/csv-transpose";
 import { tool as invisibleCharacterCleaner } from "#/lib/local-tools/invisible-character-cleaner";
 import { tool as jsonArrayQuery } from "#/lib/local-tools/json-array-query";
 import { tool as jsonFlattenUnflatten } from "#/lib/local-tools/json-flatten-unflatten";
@@ -933,6 +934,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Combine two CSV tables using composite keys and inner, left, or full joins.",
 		component: createLocalTool(csvTableJoin),
+	},
+	{
+		id: "csv-transpose",
+		name: "CSV Transpose",
+		category: "Conversion",
+		summary:
+			"Turn CSV records into columns with generated or data-derived headings.",
+		component: createLocalTool(csvTranspose),
 	},
 ];
 
