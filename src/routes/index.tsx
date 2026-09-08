@@ -112,6 +112,7 @@ import {
 	toTitleCase,
 	unescapeBackslashes,
 } from "#/lib/converters";
+import { tool as aspectRatioResize } from "#/lib/local-tools/aspect-ratio-resize";
 import { tool as base64urlCodec } from "#/lib/local-tools/base64url-codec";
 import { tool as batchTimestampConverter } from "#/lib/local-tools/batch-timestamp-converter";
 import { tool as byteHexdump } from "#/lib/local-tools/byte-hexdump";
@@ -1041,6 +1042,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Sample CSS easing curves over time with presets, custom control points, and interpolated values.",
 		component: createLocalTool(cssBezierSampler),
+	},
+	{
+		id: "aspect-ratio-resize",
+		name: "Aspect Ratio & Resize Calculator",
+		category: "Conversion",
+		summary:
+			"Plan fit, fill, or stretch dimensions with centered cropping, padding, and no-upscale controls.",
+		component: createLocalTool(aspectRatioResize),
 	},
 ];
 
