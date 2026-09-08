@@ -22,11 +22,11 @@ cd uutil.space
 
 ## Features
 
-- 72 developer utilities, including JSON Schema validation, text redaction, mock data, color contrast, and a visual cron builder
+- 112 developer utilities, including JSON/CSV data operations, HTTP inspectors, text and byte utilities, frontend calculators, and application planners
 - Per-tool routed pages (`/tools/:toolId`)
 - Query-param input prefill + autorun support
 - Command palette quick switch (`Cmd/Ctrl + K`)
-- Fixed icon/list sidebar and responsive/mobile layouts
+- Unified floating search/navigation dock and responsive tool drawer on mobile and desktop
 - Dark/light mode toggle with persisted preference
 - Local-first processing: utility inputs stay in the browser
 - Favorites and recent tools in the sidebar and workspace
@@ -63,7 +63,7 @@ bun run start
 
 ## Quality
 
-See [the 20-tool release synopsis](docs/local-tools-release.md) for features, limits, PRs, and verification coverage.
+See [the first 20-tool release](docs/local-tools-release.md) and [the second 20-tool release](docs/local-tools-second-release.md) for features, limits, PRs, and verification coverage.
 
 ```bash
 bun run test
