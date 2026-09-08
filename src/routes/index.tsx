@@ -112,6 +112,7 @@ import {
 	toTitleCase,
 	unescapeBackslashes,
 } from "#/lib/converters";
+import { tool as base64urlCodec } from "#/lib/local-tools/base64url-codec";
 import { tool as batchTimestampConverter } from "#/lib/local-tools/batch-timestamp-converter";
 import { tool as cacheControlInspector } from "#/lib/local-tools/cache-control-inspector";
 import { tool as cssSpacingScale } from "#/lib/local-tools/css-spacing-scale";
@@ -1005,6 +1006,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Extract or exclude inclusive line ranges while preserving source order and optional line numbers.",
 		component: createLocalTool(textRangeExtractor),
+	},
+	{
+		id: "base64url-codec",
+		name: "Base64URL Codec",
+		category: "Encoding",
+		summary:
+			"Encode UTF-8 or hex bytes as URL-safe Base64, or strictly decode padded and unpadded values.",
+		component: createLocalTool(base64urlCodec),
 	},
 ];
 
