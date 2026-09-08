@@ -117,6 +117,7 @@ import { tool as cssSpacingScale } from "#/lib/local-tools/css-spacing-scale";
 import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
+import { tool as csvGroupAggregate } from "#/lib/local-tools/csv-group-aggregate";
 import { tool as csvMarkdownTable } from "#/lib/local-tools/csv-markdown-table";
 import { tool as csvMultiSort } from "#/lib/local-tools/csv-multi-sort";
 import { tool as invisibleCharacterCleaner } from "#/lib/local-tools/invisible-character-cleaner";
@@ -915,6 +916,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Sort CSV by multiple typed keys while preserving records and blank-cell policies.",
 		component: createLocalTool(csvMultiSort),
+	},
+	{
+		id: "csv-group-aggregate",
+		name: "CSV Group & Aggregate",
+		category: "Parsing",
+		summary:
+			"Group CSV records and calculate counts, sums, averages, minima, or maxima.",
+		component: createLocalTool(csvGroupAggregate),
 	},
 ];
 
