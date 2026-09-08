@@ -113,6 +113,7 @@ import {
 	unescapeBackslashes,
 } from "#/lib/converters";
 import { tool as batchTimestampConverter } from "#/lib/local-tools/batch-timestamp-converter";
+import { tool as cacheControlInspector } from "#/lib/local-tools/cache-control-inspector";
 import { tool as cssSpacingScale } from "#/lib/local-tools/css-spacing-scale";
 import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
@@ -969,6 +970,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Encode or inspect Basic authorization credentials with explicit UTF-8 or Latin-1 handling.",
 		component: createLocalTool(httpBasicAuth),
+	},
+	{
+		id: "cache-control-inspector",
+		name: "Cache-Control Inspector",
+		category: "Parsing",
+		summary:
+			"Explain caching directives, detect conflicts, and compare private and shared freshness budgets.",
+		component: createLocalTool(cacheControlInspector),
 	},
 ];
 
