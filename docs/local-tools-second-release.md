@@ -27,7 +27,7 @@ Each feature has its own branch and PR. The delivery gate is Biome, TypeScript, 
 | 17 | [CSS Cubic Bézier Sampler](https://uutil.space/tools/css-bezier-sampler) | Standard/custom easing curves, time-based samples, duration/value interpolation and unclipped overshoot reporting. | [38](https://github.com/nearbycoder/uutil.space/pull/38) |
 | 18 | [Aspect Ratio & Resize Calculator](https://uutil.space/tools/aspect-ratio-resize) | Fit/fill/stretch, no-upscale, centered crop/padding, visible source coordinates and rounded raster suggestions. | [39](https://github.com/nearbycoder/uutil.space/pull/39) |
 | 19 | [Retry Backoff Planner](https://uutil.space/tools/retry-backoff-planner) | Capped constant/linear/exponential delays, full/equal jitter ranges, expected elapsed time and budget feasibility. | [40](https://github.com/nearbycoder/uutil.space/pull/40) |
-| 20 | [Pagination Planner](https://uutil.space/tools/pagination-planner) | Zero/one-based pages, exact offsets, partial/empty states, clamp/error bounds, navigation gaps and API query strings. | Final feature PR |
+| 20 | [Pagination Planner](https://uutil.space/tools/pagination-planner) | Zero/one-based pages, exact offsets, partial/empty states, clamp/error bounds, navigation gaps and API query strings. | [41](https://github.com/nearbycoder/uutil.space/pull/41) |
 
 ## Shared experience and limits
 
@@ -59,9 +59,8 @@ Additional targeted coverage:
 - Bézier samples are compared with the browser's Web Animations engine.
 - Hexdump output is checked for preserved columns and scrollable overflow.
 
-The final release gate also runs all 112 tool pages at both viewport widths, all 40 local-tool workflows, workspace regressions, mobile/desktop navigation, initial-load width stability, library favorites and offline preparation/refresh/removal. Production verification for the final merge is recorded in the release handoff after its Railway deployment completes.
+The final release gate passed all 112 tool pages at both viewport widths, all 40 local-tool workflows, workspace regressions, mobile/desktop navigation, initial-load width stability, library favorites and offline preparation/refresh/removal. Initial-layout checks measured CLS=0 at 320px, 390px, 1024px and 1440px with both default and saved layouts. Production verification for the final merge is recorded in the release handoff and final PR after its Railway deployment completes.
 
 ## Reference specifications
 
 Implementation boundaries are documented in each tool. Relevant primary references include [JSON Pointer](https://www.rfc-editor.org/info/rfc6901/), [HTTP/1.1 messaging](https://www.rfc-editor.org/rfc/rfc9112.html), [HTTP Basic authentication](https://www.rfc-editor.org/info/rfc7617/), [HTTP caching](https://www.rfc-editor.org/info/rfc9111/), [Base64URL](https://www.rfc-editor.org/info/rfc4648/), [CSS easing](https://www.w3.org/TR/css-easing-1/), and [CSS comparison functions](https://www.w3.org/TR/css-values-4/#comp-func).
-
