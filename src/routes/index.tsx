@@ -140,6 +140,7 @@ import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor
 import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-inference";
 import { tool as jsonSqlInsert } from "#/lib/local-tools/json-sql-insert";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
+import { tool as retryBackoffPlanner } from "#/lib/local-tools/retry-backoff-planner";
 import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
 import { tool as setCookieInspector } from "#/lib/local-tools/set-cookie-inspector";
 import { tool as sqlInClause } from "#/lib/local-tools/sql-in-clause";
@@ -1050,6 +1051,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Plan fit, fill, or stretch dimensions with centered cropping, padding, and no-upscale controls.",
 		component: createLocalTool(aspectRatioResize),
+	},
+	{
+		id: "retry-backoff-planner",
+		name: "Retry Backoff Planner",
+		category: "Generators",
+		summary:
+			"Compare bounded retry delays, jitter ranges, elapsed-time estimates, and budget feasibility.",
+		component: createLocalTool(retryBackoffPlanner),
 	},
 ];
 
