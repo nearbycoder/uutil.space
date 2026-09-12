@@ -169,6 +169,7 @@ import { tool as textTruncate } from "#/lib/local-tools/text-truncate";
 import { tool as timezoneMeetingPlanner } from "#/lib/local-tools/timezone-meeting-planner";
 import { tool as unicodeNormalizer } from "#/lib/local-tools/unicode-normalizer";
 import { tool as utmLinkBuilder } from "#/lib/local-tools/utm-link-builder";
+import { tool as weightedScoreCalculator } from "#/lib/local-tools/weighted-score-calculator";
 import { tool as wordFrequencyAnalyzer } from "#/lib/local-tools/word-frequency-analyzer";
 import {
 	DEFAULT_UNIX_PANEL_LAYOUT,
@@ -1229,6 +1230,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Calculate shares, changes, differences and reverse percentage adjustments with clear formulas.",
 		component: createLocalTool(percentageCalculator),
+	},
+	{
+		id: "weighted-score-calculator",
+		name: "Weighted Scorecard",
+		category: "Parsing",
+		summary:
+			"Rank options using weighted criteria, direction-aware normalization and transparent contributions.",
+		component: createLocalTool(weightedScoreCalculator),
 	},
 ];
 
