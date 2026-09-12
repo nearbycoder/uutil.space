@@ -146,6 +146,7 @@ import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-infer
 import { tool as jsonSqlInsert } from "#/lib/local-tools/json-sql-insert";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import { tool as markdownTableFormatter } from "#/lib/local-tools/markdown-table-formatter";
+import { tool as numberStatistics } from "#/lib/local-tools/number-statistics";
 import { tool as paginationPlanner } from "#/lib/local-tools/pagination-planner";
 import { tool as retryBackoffPlanner } from "#/lib/local-tools/retry-backoff-planner";
 import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
@@ -1157,6 +1158,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Shorten text at the start, middle or end within character or UTF-8 byte budgets.",
 		component: createLocalTool(textTruncate),
+	},
+	{
+		id: "number-statistics",
+		name: "Number Statistics",
+		category: "Parsing",
+		summary:
+			"Inspect numeric datasets with averages, quantiles, variance, modes and outlier fences.",
+		component: createLocalTool(numberStatistics),
 	},
 ];
 
