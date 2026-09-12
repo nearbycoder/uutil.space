@@ -120,6 +120,7 @@ import { tool as cacheControlInspector } from "#/lib/local-tools/cache-control-i
 import { tool as cssBezierSampler } from "#/lib/local-tools/css-bezier-sampler";
 import { tool as cssFluidType } from "#/lib/local-tools/css-fluid-type";
 import { tool as cssSpacingScale } from "#/lib/local-tools/css-spacing-scale";
+import { tool as csvCellTransform } from "#/lib/local-tools/csv-cell-transform";
 import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
@@ -1104,6 +1105,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Keep or exclude rows using combined literal text and numeric conditions.",
 		component: createLocalTool(csvRowFilter),
+	},
+	{
+		id: "csv-cell-transform",
+		name: "CSV Cell Transformer",
+		category: "Formatting",
+		summary:
+			"Clean selected CSV columns with ordered trim, case, replacement and blank-fill operations.",
+		component: createLocalTool(csvCellTransform),
 	},
 ];
 
