@@ -1,3 +1,4 @@
+import { ArrowRight, Check, ChevronDown, Copy, Download } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -28,21 +29,27 @@ function ToolField({
 		field.label,
 	);
 	return (
-		<div className="min-w-0 space-y-2">
+		<div className="local-tool-field min-w-0 space-y-2">
 			<label htmlFor={id} className="block text-sm font-medium">
 				{field.label}
 			</label>
 			{field.type === "select" ? (
-				<select
-					id={id}
-					className={control}
-					value={value}
-					onChange={(event) => change(event.target.value)}
-				>
-					{field.options?.map((option) => (
-						<option key={option}>{option}</option>
-					))}
-				</select>
+				<div className="relative">
+					<select
+						id={id}
+						className={control}
+						value={value}
+						onChange={(event) => change(event.target.value)}
+					>
+						{field.options?.map((option) => (
+							<option key={option}>{option}</option>
+						))}
+					</select>
+					<ChevronDown
+						aria-hidden="true"
+						className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-muted)]"
+					/>
+				</div>
 			) : field.type === "text" ? (
 				<input
 					id={id}
@@ -102,9 +109,9 @@ export function createLocalTool(tool: LocalTool) {
 		return (
 			<div className="local-tool grid min-w-0 items-start gap-5 lg:grid-cols-2">
 				<section className="tool-card min-w-0 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 sm:p-5">
-					<h3 className="mb-4 flex min-h-10 items-center text-sm font-semibold">
-						Input & options
-					</h3>
+					<div className="tool-panel-header mb-4 flex items-center">
+						<h3 className="text-sm font-semibold">Input & options</h3>
+					</div>
 					<div className="space-y-5">
 						{tool.fields.map((field) => (
 							<ToolField
@@ -115,7 +122,7 @@ export function createLocalTool(tool: LocalTool) {
 							/>
 						))}
 					</div>
-					<div className="mt-5 flex flex-wrap gap-3">
+					<div className="local-tool-actions mt-5 flex flex-wrap gap-3">
 						<button
 							type="button"
 							className="ws-button action-primary min-h-11"
@@ -123,6 +130,7 @@ export function createLocalTool(tool: LocalTool) {
 							onClick={run}
 						>
 							Run tool
+							<ArrowRight className="size-4" aria-hidden="true" />
 						</button>
 						<button
 							type="button"
@@ -139,18 +147,18 @@ export function createLocalTool(tool: LocalTool) {
 					{error && (
 						<p
 							role="alert"
-							className="mt-4 text-sm text-[color:var(--app-danger)]"
+							className="local-tool-error mt-4 text-sm text-[color:var(--app-danger)]"
 						>
 							{error}
 						</p>
 					)}
-					<p className="mt-5 text-xs leading-6 text-[color:var(--app-fg-muted)]">
+					<p className="local-tool-help mt-5 text-xs leading-6 text-[color:var(--app-fg-muted)]">
 						{tool.help} Combined input limit: 200,000 characters. Processing
 						stays in your browser.
 					</p>
 				</section>
 				<section className="tool-card output-panel min-w-0 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 sm:p-5 lg:sticky lg:top-4">
-					<div className="mb-4 flex flex-wrap items-center gap-3">
+					<div className="tool-panel-header mb-4 flex flex-wrap items-center gap-3">
 						<h3 className="mr-auto text-sm font-semibold">Result</h3>
 						<button
 							type="button"
@@ -167,6 +175,7 @@ export function createLocalTool(tool: LocalTool) {
 								}
 							}}
 						>
+							<Copy className="size-3.5" aria-hidden="true" />
 							Copy result
 						</button>
 						<button
@@ -175,19 +184,27 @@ export function createLocalTool(tool: LocalTool) {
 							disabled={result === null}
 							onClick={() => downloadText(result ?? "", tool.filename)}
 						>
+							<Download className="size-3.5" aria-hidden="true" />
 							Download result
 						</button>
 					</div>
 					<p
 						role="status"
-						className="mb-3 text-xs text-[color:var(--app-fg-muted)]"
+						className="mb-3 flex items-center gap-2 text-xs text-[color:var(--app-fg-muted)]"
 					>
+						{result !== null && (
+							<Check
+								className="size-3.5 shrink-0 text-[color:var(--app-success)]"
+								aria-hidden="true"
+							/>
+						)}
 						{result === null
 							? "Run the tool to see results."
 							: `${result.length.toLocaleString()} characters · ready to copy or download`}
 					</p>
 					<pre
 						ref={outputRef}
+						data-empty={result === null}
 						// biome-ignore lint/a11y/noNoninteractiveTabindex: Enable keyboard scrolling of long results.
 						tabIndex={0}
 						className={`max-h-[65vh] min-h-36 overflow-auto ${tool.preserveColumns ? "whitespace-pre" : "whitespace-pre-wrap break-words"} rounded-lg bg-[color:var(--app-surface-alt)] p-4 font-mono text-[13px] leading-6`}
