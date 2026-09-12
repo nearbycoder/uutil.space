@@ -138,6 +138,7 @@ import { tool as jsonFlattenUnflatten } from "#/lib/local-tools/json-flatten-unf
 import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
 import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor";
+import { tool as jsonRecordIndexer } from "#/lib/local-tools/json-record-indexer";
 import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-inference";
 import { tool as jsonSqlInsert } from "#/lib/local-tools/json-sql-insert";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
@@ -1077,6 +1078,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Split arrays into batches or sliding windows with explicit remainder handling.",
 		component: createLocalTool(jsonArrayChunker),
+	},
+	{
+		id: "json-record-indexer",
+		name: "JSON Record Indexer",
+		category: "Formatting",
+		summary:
+			"Build a lookup or grouped index from records with explicit duplicate and missing-key policies.",
+		component: createLocalTool(jsonRecordIndexer),
 	},
 ];
 
