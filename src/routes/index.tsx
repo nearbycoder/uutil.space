@@ -145,6 +145,7 @@ import { tool as jsonRecordIndexer } from "#/lib/local-tools/json-record-indexer
 import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-inference";
 import { tool as jsonSqlInsert } from "#/lib/local-tools/json-sql-insert";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
+import { tool as markdownTableFormatter } from "#/lib/local-tools/markdown-table-formatter";
 import { tool as paginationPlanner } from "#/lib/local-tools/pagination-planner";
 import { tool as retryBackoffPlanner } from "#/lib/local-tools/retry-backoff-planner";
 import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
@@ -1113,6 +1114,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Clean selected CSV columns with ordered trim, case, replacement and blank-fill operations.",
 		component: createLocalTool(csvCellTransform),
+	},
+	{
+		id: "markdown-table-formatter",
+		name: "Markdown Table Formatter",
+		category: "Formatting",
+		summary:
+			"Align pipe-table source, preserve escaped pipes and control column alignment.",
+		component: createLocalTool(markdownTableFormatter),
 	},
 ];
 
