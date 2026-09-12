@@ -154,6 +154,7 @@ import { tool as markdownTableFormatter } from "#/lib/local-tools/markdown-table
 import { tool as numberSequenceGenerator } from "#/lib/local-tools/number-sequence-generator";
 import { tool as numberStatistics } from "#/lib/local-tools/number-statistics";
 import { tool as paginationPlanner } from "#/lib/local-tools/pagination-planner";
+import { tool as percentageCalculator } from "#/lib/local-tools/percentage-calculator";
 import { tool as retryBackoffPlanner } from "#/lib/local-tools/retry-backoff-planner";
 import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
 import { tool as setCookieInspector } from "#/lib/local-tools/set-cookie-inspector";
@@ -1220,6 +1221,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Estimate transfer durations with explicit bit/byte units, overhead and concurrency assumptions.",
 		component: createLocalTool(dataTransferPlanner),
+	},
+	{
+		id: "percentage-calculator",
+		name: "Percentage Calculator",
+		category: "Conversion",
+		summary:
+			"Calculate shares, changes, differences and reverse percentage adjustments with clear formulas.",
+		component: createLocalTool(percentageCalculator),
 	},
 ];
 
