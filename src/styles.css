@@ -2,10 +2,13 @@
 
 @import 'tw-animate-css';
 
-.ws-button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--app-border); border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 500; color: var(--app-fg-muted); background: var(--app-panel-bg); cursor: pointer; }
-.ws-button:hover, .ws-button[aria-pressed="true"] { color: var(--app-fg); border-color: var(--app-border-strong); background: var(--app-accent-soft); }
+.ws-button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--app-border); border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 500; line-height: 1.5; color: var(--app-fg-muted); background: var(--app-panel-bg); cursor: pointer; transition: background 120ms ease, border-color 120ms ease, color 120ms ease; }
+.ws-button:hover:not(:disabled), .ws-button[aria-pressed="true"] { color: var(--app-fg); border-color: var(--app-border-strong); background: var(--app-surface-bg); }
 .ws-button:focus-visible, .ws-input:focus-visible, .ws-list-item:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 3px; }
-.ws-button:disabled { opacity: .4; cursor: not-allowed; }
+.ws-button:disabled { opacity: .5; cursor: not-allowed; }
+/* Keep primary actions outside the utility layer, like the shared button base. */
+.ws-button.action-primary { border-color: transparent; background: var(--app-accent); color: var(--app-accent-contrast); font-weight: 600; }
+.ws-button.action-primary:hover:not(:disabled) { background: var(--app-accent-strong); color: var(--app-accent-contrast); }
 .ws-input { display: block; width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--app-border); border-radius: 8px; padding: 12px; background: var(--app-surface-alt); color: var(--app-fg); font-size: 16px; }
 .workspace-dialog { position: fixed; inset: 0; margin: auto; width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--app-border-strong); border-radius: 16px; background: var(--app-panel-bg); color: var(--app-fg); box-shadow: 0 24px 100px #0008; }
 .workspace-dialog::backdrop { background: #0009; backdrop-filter: blur(4px); }
@@ -331,7 +334,7 @@ code {
 
   .tool-card {
     position: relative;
-    box-shadow: 0 2px 3px -2px var(--app-shadow);
+    box-shadow: 0 2px 8px -4px var(--app-shadow), inset 0 1px 0 color-mix(in srgb, var(--app-fg) 3%, transparent);
   }
 
   .tool-card-title {
@@ -345,6 +348,7 @@ code {
   .control-surface {
     box-shadow: none;
     border-radius: 8px;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
   }
 
   .control-surface:hover {
@@ -426,6 +430,47 @@ code {
   .uutil-scrollbar-edge {
     scrollbar-gutter: stable;
   }
+}
+
+/* Shared panel chrome: strong headings, quiet dividers, and inset editors. */
+.tool-panel-header,
+.tool-card-title {
+  min-height: 53px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--app-border);
+  letter-spacing: -0.015em;
+}
+
+.local-tool-field > label { color: var(--app-fg-muted); font-size: 13px; line-height: 20px; }
+.local-tool-field :is(input, select) { min-height: 44px; padding-block: 10px; }
+.local-tool-field select { appearance: none; padding-right: 40px; }
+.local-tool-field textarea { display: block; line-height: 1.75; }
+.local-tool-actions .ws-button { min-height: 44px; padding-inline: 16px; font-size: 13px; }
+.local-tool-help { padding-top: 16px; border-top: 1px solid var(--app-border); }
+.local-tool-error { padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--app-danger) 40%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--app-danger) 6%, var(--app-panel-bg)); }
+.local-tool .output-panel > pre { border: 1px solid var(--app-border); min-height: 180px; }
+.local-tool .output-panel > pre[data-empty='true'] { border-style: dashed; color: var(--app-fg-soft); }
+.local-tool .output-panel > pre:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 3px; }
+
+.tool-library-filters > fieldset { padding: 3px; border: 1px solid var(--app-border); border-radius: 10px; background: var(--app-surface-alt); }
+.tool-library-filters > fieldset .ws-button { min-height: 38px; border-color: transparent; border-radius: 7px; background: transparent; }
+.tool-library-filters > fieldset .ws-button[aria-pressed='true'] { background: var(--app-panel-bg); border-color: var(--app-border); color: var(--app-fg); box-shadow: 0 1px 3px var(--app-shadow); }
+.tool-library-item:has(.sidebar-tool[aria-current='page']) { background: var(--app-accent-soft); }
+.tool-library-item .sidebar-tool[aria-current='page'] { background: transparent; }
+.tool-library-content > nav { border-top: 1px solid var(--app-border); padding-top: 8px; }
+.tool-library-item:focus-within { outline: 1px solid var(--app-border-strong); outline-offset: -1px; }
+
+@media (min-width: 640px) {
+  .local-tool-field :is(input, select, textarea) { font-size: 14px; }
+}
+
+@media (max-width: 639px) {
+  .local-tool-field :is(input, select, textarea) { font-size: 16px; }
+  .local-tool-actions .ws-button { flex: 1 1 auto; }
+  .local-tool .output-panel .tool-panel-header { gap: 8px; }
+  .local-tool .output-panel .tool-panel-header h3 { flex-basis: 100%; }
+  .local-tool .output-panel .tool-panel-header .ws-button { min-height: 44px; flex: 1 1 auto; }
+  .tool-library-filters > fieldset .ws-button { min-height: 44px; }
 }
 
 @media (max-width: 1023px) {
