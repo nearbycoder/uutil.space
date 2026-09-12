@@ -115,6 +115,7 @@ import {
 import { tool as aspectRatioResize } from "#/lib/local-tools/aspect-ratio-resize";
 import { tool as base64urlCodec } from "#/lib/local-tools/base64url-codec";
 import { tool as batchTimestampConverter } from "#/lib/local-tools/batch-timestamp-converter";
+import { tool as businessDayCalculator } from "#/lib/local-tools/business-day-calculator";
 import { tool as byteHexdump } from "#/lib/local-tools/byte-hexdump";
 import { tool as cacheControlInspector } from "#/lib/local-tools/cache-control-inspector";
 import { tool as cssBezierSampler } from "#/lib/local-tools/css-bezier-sampler";
@@ -1202,6 +1203,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Sum, subtract, average or compare durations with exact millisecond arithmetic.",
 		component: createLocalTool(durationCalculator),
+	},
+	{
+		id: "business-day-calculator",
+		name: "Business Day Calculator",
+		category: "Conversion",
+		summary:
+			"Count or offset working dates with custom weekends, holidays and endpoint rules.",
+		component: createLocalTool(businessDayCalculator),
 	},
 ];
 
