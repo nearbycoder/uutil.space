@@ -134,6 +134,7 @@ import { tool as csvUnpivot } from "#/lib/local-tools/csv-unpivot";
 import { tool as globPatternTester } from "#/lib/local-tools/glob-pattern-tester";
 import { tool as httpBasicAuth } from "#/lib/local-tools/http-basic-auth";
 import { tool as httpRequestInspector } from "#/lib/local-tools/http-request-inspector";
+import { tool as integerBitwiseCalculator } from "#/lib/local-tools/integer-bitwise-calculator";
 import { tool as invisibleCharacterCleaner } from "#/lib/local-tools/invisible-character-cleaner";
 import { tool as jsonArrayChunker } from "#/lib/local-tools/json-array-chunker";
 import { tool as jsonArrayQuery } from "#/lib/local-tools/json-array-query";
@@ -1175,6 +1176,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Generate arithmetic or geometric sequences without floating-point drift.",
 		component: createLocalTool(numberSequenceGenerator),
+	},
+	{
+		id: "integer-bitwise-calculator",
+		name: "Fixed-width Bitwise Calculator",
+		category: "Conversion",
+		summary:
+			"Inspect exact 8–128-bit masks, shifts and rotations in signed, unsigned, hex and binary forms.",
+		component: createLocalTool(integerBitwiseCalculator),
 	},
 ];
 
