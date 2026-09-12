@@ -156,6 +156,7 @@ import { tool as textLineAffixes } from "#/lib/local-tools/text-line-affixes";
 import { tool as textRangeExtractor } from "#/lib/local-tools/text-range-extractor";
 import { tool as textReflowWrap } from "#/lib/local-tools/text-reflow-wrap";
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
+import { tool as textSimilarity } from "#/lib/local-tools/text-similarity";
 import { tool as timezoneMeetingPlanner } from "#/lib/local-tools/timezone-meeting-planner";
 import { tool as unicodeNormalizer } from "#/lib/local-tools/unicode-normalizer";
 import { tool as utmLinkBuilder } from "#/lib/local-tools/utm-link-builder";
@@ -1139,6 +1140,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		category: "Formatting",
 		summary: "Create fixed-width plain or ASCII tables from typed JSON rows.",
 		component: createLocalTool(textColumnAligner),
+	},
+	{
+		id: "text-similarity",
+		name: "Text Similarity Calculator",
+		category: "Parsing",
+		summary:
+			"Measure edit distance across code points, grapheme clusters or words with explicit normalization.",
+		component: createLocalTool(textSimilarity),
 	},
 ];
 
