@@ -146,6 +146,7 @@ import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-infer
 import { tool as jsonSqlInsert } from "#/lib/local-tools/json-sql-insert";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
 import { tool as markdownTableFormatter } from "#/lib/local-tools/markdown-table-formatter";
+import { tool as numberSequenceGenerator } from "#/lib/local-tools/number-sequence-generator";
 import { tool as numberStatistics } from "#/lib/local-tools/number-statistics";
 import { tool as paginationPlanner } from "#/lib/local-tools/pagination-planner";
 import { tool as retryBackoffPlanner } from "#/lib/local-tools/retry-backoff-planner";
@@ -1166,6 +1167,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Inspect numeric datasets with averages, quantiles, variance, modes and outlier fences.",
 		component: createLocalTool(numberStatistics),
+	},
+	{
+		id: "number-sequence-generator",
+		name: "Exact Number Sequence Generator",
+		category: "Generators",
+		summary:
+			"Generate arithmetic or geometric sequences without floating-point drift.",
+		component: createLocalTool(numberSequenceGenerator),
 	},
 ];
 
