@@ -6,6 +6,13 @@ import { defaults, execute } from "./types";
 const run = (v: Record<string, string> = {}) =>
 	execute(tool, { ...defaults(tool), ...v });
 describe("CSV unpivot", () => {
+	it("bounds repeated identifier growth before CSV serialization", () => {
+		const headings = ["name", ...Array.from({ length: 20 }, (_, i) => `v${i}`)];
+		const row = ["x".repeat(100000), ...Array(20).fill("1")];
+		expect(() =>
+			run({ input: `${headings.join(",")}\n${row.join(",")}` }),
+		).toThrow(/1 MB/);
+	});
 	it("rejects formula-protected heading collisions", () => {
 		expect(() => run({ variable: "=x", value: "'=x" })).toThrow(/unique/);
 	});

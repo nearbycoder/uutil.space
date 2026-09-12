@@ -11,7 +11,8 @@ const closed = () => {
 	assert.equal(value('getComputedStyle(document.querySelector(".mobile-dock-resting")).visibility'), "visible", "The floating dock must return after the drawer closes");
 };
 try {
-	run("set", "viewport", "390", "844"); run("open", `${base}/tools/json-format-validate`); wait('document.querySelector(".app-shell")?.dataset.ready === "true"');
+	run("open", `${base}/tools/json-format-validate`); run("set", "viewport", "390", "844"); wait('document.querySelector(".app-shell")?.dataset.ready === "true"');
+	assert.equal(value("innerWidth"), 390);
 	const before = value('({ width: document.querySelector("main").clientWidth, top: document.querySelector("main").getBoundingClientRect().top })');
 	openDrawer(); assert.equal(value('document.activeElement.tagName'), "H2");
 	run("mouse", "move", "4", "50"); run("mouse", "wheel", "500"); assert.equal(value('document.querySelector("main").scrollTop'), 0);
@@ -37,6 +38,7 @@ try {
 	console.log("PASS simulated keyboard viewport sizing");
 	for (const [width, height] of [[320,568],[390,844],[430,932],[844,390],[768,1024]]) {
 		run("set", "viewport", String(width), String(height)); openDrawer();
+		assert.equal(value("innerWidth"), width);
 		assert(value('document.querySelector(".mobile-tool-sheet").scrollWidth <= document.querySelector(".mobile-tool-sheet").clientWidth + 2'));
 		assert(value('document.querySelector(".mobile-tool-sheet").getBoundingClientRect().bottom < document.querySelector(".mobile-dock-expanded").getBoundingClientRect().top'));
 		assert(value('document.querySelector(".mobile-tool-sheet nav").clientHeight') > 0);

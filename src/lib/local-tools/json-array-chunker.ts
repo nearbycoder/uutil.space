@@ -36,6 +36,11 @@ export const tool: LocalTool = {
 			step = v.mode === "Batches" ? size : integer(v.step, 1, 10000);
 		const groups: unknown[][] = [];
 		let emitted = 0;
+		let outputSize = 100;
+		const lengths = data.map((item) => {
+			const text = print(item);
+			return text.length + 6 * text.split("\n").length + 2;
+		});
 		for (let i = 0; i < data.length; i += step) {
 			const group = data.slice(i, i + size);
 			if (group.length < size && v.remainder === "Drop") continue;
@@ -45,6 +50,14 @@ export const tool: LocalTool = {
 			if (emitted > 100000)
 				throw new Error(
 					"Grouping exceeds 100,000 emitted items; increase step or reduce size.",
+				);
+			outputSize +=
+				12 +
+				lengths.slice(i, i + size).reduce((a, b) => a + b, 0) +
+				Math.max(0, group.length - (data.length - i)) * 12;
+			if (outputSize > 2_000_000)
+				throw new Error(
+					"Expanded groups exceed 2 MB; reduce overlap or group size.",
 				);
 			groups.push(group);
 		}

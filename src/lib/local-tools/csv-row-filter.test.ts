@@ -6,6 +6,21 @@ import { defaults, execute } from "./types";
 const run = (v: Record<string, string> = {}) =>
 	parseCsv(execute(tool, { ...defaults(tool), ...v }), "Comma").rows;
 describe("CSV row filter", () => {
+	it("rejects rounded large integers in numeric comparisons", () => {
+		expect(() =>
+			run({
+				input: "name,score\nX,9007199254740993",
+				rules: '[{"column":"score","operator":">","value":"9007199254740992"}]',
+			}),
+		).toThrow(/safe integer/);
+		expect(
+			run({
+				input: "name,score\nX,9007199254740993",
+				rules:
+					'[{"column":"score","operator":"equals","value":"9007199254740993"}]',
+			}),
+		).toHaveLength(1);
+	});
 	it("combines conditions and preserves duplicates and originals", () => {
 		expect(run()).toHaveLength(2);
 		expect(run({ combine: "Any" })).toHaveLength(3);

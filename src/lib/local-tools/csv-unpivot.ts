@@ -50,12 +50,17 @@ export const tool: LocalTool = {
 		if (!measures.length)
 			throw new Error("Leave at least one measurement column.");
 		const out: string[][] = [];
+		let characters = 0;
 		for (const row of rows)
 			for (const i of measures) {
 				if (v.blank === "Skip" && row[i] === "") continue;
 				if (out.length >= 10000)
 					throw new Error("Unpivot exceeds 10,000 output rows.");
-				out.push([...keys.map((k) => row[k]), headers[i], row[i]]);
+				const cells = [...keys.map((k) => row[k]), headers[i], row[i]];
+				characters += cells.reduce((sum, cell) => sum + cell.length, 0);
+				if (characters > 1_000_000)
+					throw new Error("Unpivoted cell text exceeds 1 MB.");
+				out.push(cells);
 			}
 		// Formula protection can make two distinct headings identical.
 		parseCsv(writeCsv(outHeaders, [], v.formulas === "Protect"), "Comma");

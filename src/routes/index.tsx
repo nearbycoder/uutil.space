@@ -120,6 +120,7 @@ import { tool as byteHexdump } from "#/lib/local-tools/byte-hexdump";
 import { tool as cacheControlInspector } from "#/lib/local-tools/cache-control-inspector";
 import { tool as cssBezierSampler } from "#/lib/local-tools/css-bezier-sampler";
 import { tool as cssFluidType } from "#/lib/local-tools/css-fluid-type";
+import { tool as cssGridPlanner } from "#/lib/local-tools/css-grid-planner";
 import { tool as cssSpacingScale } from "#/lib/local-tools/css-spacing-scale";
 import { tool as csvCellTransform } from "#/lib/local-tools/csv-cell-transform";
 import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
@@ -1238,6 +1239,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Rank options using weighted criteria, direction-aware normalization and transparent contributions.",
 		component: createLocalTool(weightedScoreCalculator),
+	},
+	{
+		id: "css-grid-planner",
+		name: "CSS Grid Planner",
+		category: "Generators",
+		summary:
+			"Generate fixed or responsive grid CSS and inspect track widths, rows and item coordinates.",
+		component: createLocalTool(cssGridPlanner),
 	},
 ];
 
