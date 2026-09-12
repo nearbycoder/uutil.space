@@ -27,7 +27,7 @@ Each feature has its own PR. Local lint, TypeScript, cumulative unit tests, a pr
 | 17 | [Data Transfer Planner](https://uutil.space/tools/data-transfer-planner) | Decimal/binary size units, bit/byte rates, overhead, shared/per-transfer bandwidth, concurrency, partial batches and setup delay. | [58](https://github.com/nearbycoder/uutil.space/pull/58) |
 | 18 | [Percentage Calculator](https://uutil.space/tools/percentage-calculator) | Shares, percent change/difference, forward/reverse adjustments, clear formulas, negative-baseline conventions and zero guards. | [59](https://github.com/nearbycoder/uutil.space/pull/59) |
 | 19 | [Weighted Scorecard](https://uutil.space/tools/weighted-score-calculator) | Direction-aware normalization, weighted contributions, missing/clamping policies, stable competition ranks and input validation. | [60](https://github.com/nearbycoder/uutil.space/pull/60) |
-| 20 | [CSS Grid Planner](https://uutil.space/tools/css-grid-planner) | Fixed/auto-fit/auto-fill CSS, padding/gaps, track/row dimensions, item coordinates, empty/narrow cases and browser geometry checks. | Pending final release PR |
+| 20 | [CSS Grid Planner](https://uutil.space/tools/css-grid-planner) | Fixed/auto-fit/auto-fill CSS, padding/gaps, track/row dimensions, item coordinates, empty/narrow cases and browser geometry checks. | [61](https://github.com/nearbycoder/uutil.space/pull/61) |
 
 ## Consistent application experience
 
