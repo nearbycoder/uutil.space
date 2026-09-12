@@ -131,6 +131,7 @@ import { tool as csvRowFilter } from "#/lib/local-tools/csv-row-filter";
 import { tool as csvTableJoin } from "#/lib/local-tools/csv-table-join";
 import { tool as csvTranspose } from "#/lib/local-tools/csv-transpose";
 import { tool as csvUnpivot } from "#/lib/local-tools/csv-unpivot";
+import { tool as fractionCalculator } from "#/lib/local-tools/fraction-calculator";
 import { tool as globPatternTester } from "#/lib/local-tools/glob-pattern-tester";
 import { tool as httpBasicAuth } from "#/lib/local-tools/http-basic-auth";
 import { tool as httpRequestInspector } from "#/lib/local-tools/http-request-inspector";
@@ -1184,6 +1185,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Inspect exact 8–128-bit masks, shifts and rotations in signed, unsigned, hex and binary forms.",
 		component: createLocalTool(integerBitwiseCalculator),
+	},
+	{
+		id: "fraction-calculator",
+		name: "Exact Fraction Calculator",
+		category: "Conversion",
+		summary:
+			"Add, subtract, multiply, divide and compare exact fractions or decimals.",
+		component: createLocalTool(fractionCalculator),
 	},
 ];
 
