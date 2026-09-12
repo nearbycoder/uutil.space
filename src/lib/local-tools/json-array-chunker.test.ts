@@ -5,6 +5,15 @@ import { defaults, execute } from "./types";
 const run = (v: Record<string, string> = {}) =>
 	JSON.parse(execute(tool, { ...defaults(tool), ...v }));
 describe("array chunker", () => {
+	it("bounds repeated large values before output serialization", () => {
+		expect(() =>
+			run({
+				input: JSON.stringify([...Array(30).fill(0), "x".repeat(100000)]),
+				mode: "Sliding windows",
+				size: "31",
+			}),
+		).toThrow(/2 MB/);
+	});
 	it("batches preserving types and partial groups", () => {
 		expect(run().groups).toEqual([[1, 2, 3], [4, 5, 6], [7]]);
 		expect(run({ input: '[null,{"x":1},false]' }).groups).toEqual([

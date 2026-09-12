@@ -7,9 +7,9 @@ const tools = [...source.matchAll(/id: "([^"]+)",\s*name: "([^"]+)"/g)].map(matc
 const run = (...args) => execFileSync("agent-browser", ["--session", "layout-regression", ...args], { encoding: "utf8", timeout: 30000 });
 try {
 	for (const width of [390, 1440]) {
-		run("set", "viewport", String(width), "900");
 		for (const [index, tool] of tools.entries()) {
 			run("open", `${base}/tools/${tool.id}`);
+			run("set", "viewport", String(width), "900");
 			run("wait", "--fn", `document.querySelector('main h1')?.textContent === ${JSON.stringify(tool.name)} && document.querySelector('.app-shell')?.dataset.ready === 'true'`);
 			const raw = run("eval", `JSON.stringify((() => {
 				const main = document.querySelector('main');
@@ -20,9 +20,10 @@ try {
 					}
 					return false;
 				}).map(button => button.textContent);
-				return { overflow: main.scrollWidth > main.clientWidth + 2 || document.body.scrollWidth > innerWidth, clipped };
+				return { viewport: innerWidth, overflow: main.scrollWidth > main.clientWidth + 2 || document.body.scrollWidth > innerWidth, clipped };
 			})())`);
 			const result = JSON.parse(JSON.parse(raw));
+			assert.equal(result.viewport, width);
 			assert(!result.overflow && !result.clipped.length, `${width}px ${tool.id}: ${JSON.stringify(result)}`);
 			if ((index + 1) % 12 === 0) console.log(`${width}px: ${index + 1}/${tools.length} pages passed`);
 		}

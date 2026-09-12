@@ -11,10 +11,11 @@ const ids = readdirSync("src/lib/local-tools")
 
 try {
   for (const width of [390, 1024, 1440]) {
-    run("set", "viewport", String(width), "900");
     for (const id of ids) {
       run("open", `${base}/tools/${id}`);
+      run("set", "viewport", String(width), "900");
       run("wait", "--fn", 'document.querySelector(".app-shell")?.dataset.ready === "true" && !!document.querySelector(".local-tool")');
+      assert.equal(value("innerWidth"), width);
       const panels = value(`Array.from(document.querySelectorAll(".local-tool > section"), panel => {
         const rect = panel.getBoundingClientRect();
         const heading = panel.querySelector("h3").getBoundingClientRect();

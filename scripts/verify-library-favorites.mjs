@@ -12,7 +12,8 @@ const close = () => { click("Close tools menu"); wait('!document.querySelector("
 
 try {
 	for (const width of [1440,320]) {
-		run("set", "viewport", String(width), "900"); run("open", `${base}/tools/json-format-validate`); ready();
+		run("open", `${base}/tools/json-format-validate`); run("set", "viewport", String(width), "900"); ready();
+		assert.equal(value("innerWidth"), width);
 		run("eval", "localStorage.clear()"); run("reload"); ready();
 		if (width === 320) click("Switch to light mode");
 		open();

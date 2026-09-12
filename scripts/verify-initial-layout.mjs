@@ -24,6 +24,8 @@ try {
 			// Hold application JavaScript back to verify usable, correctly sized SSR content.
 			run("network", "route", "**/assets/*.js", "--abort");
 			run("open", `${base}/`); wait('document.querySelectorAll("[data-panel]").length === 2 && document.fonts.status === "loaded"');
+			run("set", "viewport", String(width), String(height));
+			assert.equal(value("innerWidth"), width);
 			const before = value(dimensions);
 			assert.equal(value('document.querySelector(".app-shell").dataset.ready'), "false");
 			assert(before[2] > width * (width >= 1024 ? .3 : .8), "Panels must not be squished before hydration");
@@ -31,6 +33,7 @@ try {
 			if (width === 1440 && !saved) run("screenshot", "/tmp/uutil-initial-after.png");
 			run("network", "unroute");
 			run("open", `${base}/`); wait('document.querySelector(".app-shell")?.dataset.ready === "true" && window.__initialLayout?.done');
+			assert.equal(value("innerWidth"), width);
 			const after = value(dimensions);
 			before.forEach((size, index) => assert(Math.abs(size-after[index]) < 1, `${width}px ${saved ? "saved" : "default"} panel ${index}: ${size} -> ${after[index]}`));
 			const metrics = value('window.__initialLayout');

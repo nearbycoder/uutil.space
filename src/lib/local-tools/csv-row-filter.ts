@@ -21,12 +21,17 @@ const ops = [
 	"<=",
 ];
 function numeric(s: string) {
+	const n = Number(s);
 	if (
 		!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(s) ||
-		!Number.isFinite(Number(s))
+		!Number.isFinite(n)
 	)
 		throw new Error("Numeric comparisons require finite decimal values.");
-	return Number(s);
+	if (Number.isInteger(n) && !Number.isSafeInteger(n))
+		throw new Error(
+			"Numeric comparison exceeds the safe integer range; use exact text equality for large identifiers.",
+		);
+	return n;
 }
 export const tool: LocalTool = {
 	fields: [
