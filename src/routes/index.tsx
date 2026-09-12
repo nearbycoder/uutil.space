@@ -151,6 +151,7 @@ import { tool as retryBackoffPlanner } from "#/lib/local-tools/retry-backoff-pla
 import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
 import { tool as setCookieInspector } from "#/lib/local-tools/set-cookie-inspector";
 import { tool as sqlInClause } from "#/lib/local-tools/sql-in-clause";
+import { tool as textColumnAligner } from "#/lib/local-tools/text-column-aligner";
 import { tool as textLineAffixes } from "#/lib/local-tools/text-line-affixes";
 import { tool as textRangeExtractor } from "#/lib/local-tools/text-range-extractor";
 import { tool as textReflowWrap } from "#/lib/local-tools/text-reflow-wrap";
@@ -1131,6 +1132,13 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Add or remove per-line prefixes and suffixes with optional numbered placeholders.",
 		component: createLocalTool(textLineAffixes),
+	},
+	{
+		id: "text-column-aligner",
+		name: "Text Column Aligner",
+		category: "Formatting",
+		summary: "Create fixed-width plain or ASCII tables from typed JSON rows.",
+		component: createLocalTool(textColumnAligner),
 	},
 ];
 
