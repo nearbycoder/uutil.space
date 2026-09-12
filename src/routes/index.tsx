@@ -131,6 +131,7 @@ import { tool as csvRowFilter } from "#/lib/local-tools/csv-row-filter";
 import { tool as csvTableJoin } from "#/lib/local-tools/csv-table-join";
 import { tool as csvTranspose } from "#/lib/local-tools/csv-transpose";
 import { tool as csvUnpivot } from "#/lib/local-tools/csv-unpivot";
+import { tool as durationCalculator } from "#/lib/local-tools/duration-calculator";
 import { tool as fractionCalculator } from "#/lib/local-tools/fraction-calculator";
 import { tool as globPatternTester } from "#/lib/local-tools/glob-pattern-tester";
 import { tool as httpBasicAuth } from "#/lib/local-tools/http-basic-auth";
@@ -1193,6 +1194,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Add, subtract, multiply, divide and compare exact fractions or decimals.",
 		component: createLocalTool(fractionCalculator),
+	},
+	{
+		id: "duration-calculator",
+		name: "Duration Arithmetic",
+		category: "Conversion",
+		summary:
+			"Sum, subtract, average or compare durations with exact millisecond arithmetic.",
+		component: createLocalTool(durationCalculator),
 	},
 ];
 
