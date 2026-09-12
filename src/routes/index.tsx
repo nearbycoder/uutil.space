@@ -132,6 +132,7 @@ import { tool as csvRowFilter } from "#/lib/local-tools/csv-row-filter";
 import { tool as csvTableJoin } from "#/lib/local-tools/csv-table-join";
 import { tool as csvTranspose } from "#/lib/local-tools/csv-transpose";
 import { tool as csvUnpivot } from "#/lib/local-tools/csv-unpivot";
+import { tool as dataTransferPlanner } from "#/lib/local-tools/data-transfer-planner";
 import { tool as durationCalculator } from "#/lib/local-tools/duration-calculator";
 import { tool as fractionCalculator } from "#/lib/local-tools/fraction-calculator";
 import { tool as globPatternTester } from "#/lib/local-tools/glob-pattern-tester";
@@ -1211,6 +1212,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Count or offset working dates with custom weekends, holidays and endpoint rules.",
 		component: createLocalTool(businessDayCalculator),
+	},
+	{
+		id: "data-transfer-planner",
+		name: "Data Transfer Planner",
+		category: "Conversion",
+		summary:
+			"Estimate transfer durations with explicit bit/byte units, overhead and concurrency assumptions.",
+		component: createLocalTool(dataTransferPlanner),
 	},
 ];
 
