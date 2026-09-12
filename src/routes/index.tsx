@@ -132,6 +132,7 @@ import { tool as globPatternTester } from "#/lib/local-tools/glob-pattern-tester
 import { tool as httpBasicAuth } from "#/lib/local-tools/http-basic-auth";
 import { tool as httpRequestInspector } from "#/lib/local-tools/http-request-inspector";
 import { tool as invisibleCharacterCleaner } from "#/lib/local-tools/invisible-character-cleaner";
+import { tool as jsonArrayChunker } from "#/lib/local-tools/json-array-chunker";
 import { tool as jsonArrayQuery } from "#/lib/local-tools/json-array-query";
 import { tool as jsonFlattenUnflatten } from "#/lib/local-tools/json-flatten-unflatten";
 import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
@@ -1068,6 +1069,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Calculate page ranges, offsets, navigation windows, and API query parameters without off-by-one errors.",
 		component: createLocalTool(paginationPlanner),
+	},
+	{
+		id: "json-array-chunker",
+		name: "JSON Array Chunker",
+		category: "Formatting",
+		summary:
+			"Split arrays into batches or sliding windows with explicit remainder handling.",
+		component: createLocalTool(jsonArrayChunker),
 	},
 ];
 
