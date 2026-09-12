@@ -126,6 +126,7 @@ import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
 import { tool as csvGroupAggregate } from "#/lib/local-tools/csv-group-aggregate";
 import { tool as csvMarkdownTable } from "#/lib/local-tools/csv-markdown-table";
 import { tool as csvMultiSort } from "#/lib/local-tools/csv-multi-sort";
+import { tool as csvRowFilter } from "#/lib/local-tools/csv-row-filter";
 import { tool as csvTableJoin } from "#/lib/local-tools/csv-table-join";
 import { tool as csvTranspose } from "#/lib/local-tools/csv-transpose";
 import { tool as csvUnpivot } from "#/lib/local-tools/csv-unpivot";
@@ -1095,6 +1096,14 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Turn wide measurement columns into tidy variable/value rows while retaining identifiers.",
 		component: createLocalTool(csvUnpivot),
+	},
+	{
+		id: "csv-row-filter",
+		name: "CSV Row Filter",
+		category: "Parsing",
+		summary:
+			"Keep or exclude rows using combined literal text and numeric conditions.",
+		component: createLocalTool(csvRowFilter),
 	},
 ];
 
