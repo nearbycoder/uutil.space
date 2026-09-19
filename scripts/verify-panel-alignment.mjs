@@ -36,7 +36,10 @@ try {
     }
     console.log(`PASS ${ids.length} tool panels aligned at ${width}px`);
   }
-  run("open", `${base}/tools/retry-backoff-planner`);
+  // Compact option grids no longer need scrolling on a tall desktop. Use a
+  // content-heavy form and a short desktop viewport to exercise actual sticky behavior.
+  run("set", "viewport", "1440", "600");
+  run("open", `${base}/tools/csv-pivot-table`);
   run("wait", "--fn", 'document.querySelector(".app-shell")?.dataset.ready === "true"');
   run("eval", 'document.querySelector(".tool-workspace-scroll").scrollTop = 200');
   run("wait", "--fn", 'document.querySelector(".tool-workspace-scroll").scrollTop >= 200');
