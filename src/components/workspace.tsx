@@ -1,4 +1,12 @@
-import { ArrowRight, Download, Star, X } from "lucide-react";
+import {
+	ArrowRight,
+	BookOpen,
+	ClipboardPaste,
+	Download,
+	FolderOpen,
+	Star,
+	X,
+} from "lucide-react";
 import {
 	createContext,
 	useCallback,
@@ -418,13 +426,34 @@ export function WorkspaceToolbar({
 				>
 					<Star
 						className="size-4"
+						aria-hidden="true"
 						fill={ws.state.favorites.includes(toolId) ? "currentColor" : "none"}
 					/>
 					<span className="hidden sm:inline">Favorite</span>
 				</Button>
-				<Button onClick={() => ws.setPanel("library")}>My workspace</Button>
-				<Button onClick={() => ws.setPanel("paste")}>Smart paste</Button>
-				<Button onClick={() => ws.setPanel("help")}>Examples & help</Button>
+				<Button
+					aria-label="My workspace"
+					onClick={() => ws.setPanel("library")}
+				>
+					<FolderOpen className="size-4" aria-hidden="true" />
+					<span>My workspace</span>
+				</Button>
+				<Button
+					aria-label="Smart paste"
+					title="Smart paste"
+					onClick={() => ws.setPanel("paste")}
+				>
+					<ClipboardPaste className="size-4" aria-hidden="true" />
+					<span className="hidden sm:inline">Smart paste</span>
+				</Button>
+				<Button
+					aria-label="Examples & help"
+					title="Examples & help"
+					onClick={() => ws.setPanel("help")}
+				>
+					<BookOpen className="size-4" aria-hidden="true" />
+					<span className="hidden sm:inline">Examples & help</span>
+				</Button>
 			</fieldset>
 			<WorkspaceDialog />
 		</>
@@ -433,13 +462,13 @@ export function WorkspaceToolbar({
 export function OutputActions({ value }: { value: string }) {
 	const ws = useWorkspace();
 	return (
-		<div className="flex gap-1">
+		<div className="output-secondary-actions flex gap-1">
 			<Button
 				aria-label="Download output"
 				disabled={!value}
 				onClick={() => downloadText(value)}
 			>
-				<Download className="size-3.5" />
+				<Download className="size-3.5" aria-hidden="true" />
 				<span className="hidden sm:inline">Download</span>
 			</Button>
 			<Button
@@ -450,7 +479,7 @@ export function OutputActions({ value }: { value: string }) {
 					ws.setPanel("send");
 				}}
 			>
-				<ArrowRight className="size-3.5" />
+				<ArrowRight className="size-3.5" aria-hidden="true" />
 				<span className="hidden sm:inline">Send</span>
 			</Button>
 		</div>
@@ -477,21 +506,24 @@ function WorkspaceDialog() {
 			onCancel={() => ws.setPanel(null)}
 			onClose={() => ws.setPanel(null)}
 		>
-			<div className="flex items-center justify-between gap-4 border-b p-5 [border-color:var(--app-border)]">
+			<div className="ws-dialog-header flex items-center justify-between gap-4 border-b p-5 [border-color:var(--app-border)]">
 				<div>
 					<p className="mb-1 text-xs text-[color:var(--app-fg-soft)]">
-						YOUR LOCAL WORKSPACE
+						Local workspace
 					</p>
 					<h2 id="workspace-dialog-title" className="text-xl font-semibold">
 						{title}
 					</h2>
 				</div>
 				<Button aria-label="Close workspace" onClick={() => ws.setPanel(null)}>
-					<X className="size-4" />
+					<X className="size-4" aria-hidden="true" />
 				</Button>
 			</div>
 			<div className="ws-dialog-body">
-				<nav className="flex flex-wrap gap-2" aria-label="Workspace sections">
+				<nav
+					className="workspace-sections flex gap-2"
+					aria-label="Workspace sections"
+				>
 					{panels.map((p) => (
 						<Button
 							key={p.id}

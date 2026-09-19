@@ -29,7 +29,10 @@ function ToolField({
 		field.label,
 	);
 	return (
-		<div className="local-tool-field min-w-0 space-y-2">
+		<div
+			className="local-tool-field min-w-0 space-y-2"
+			data-field-kind={field.type ?? "textarea"}
+		>
 			<label htmlFor={id} className="block text-sm font-medium">
 				{field.label}
 			</label>
@@ -37,6 +40,8 @@ function ToolField({
 				<div className="relative">
 					<select
 						id={id}
+						name={field.key}
+						aria-describedby={field.help ? `${id}-help` : undefined}
 						className={control}
 						value={value}
 						onChange={(event) => change(event.target.value)}
@@ -53,6 +58,9 @@ function ToolField({
 			) : field.type === "text" ? (
 				<input
 					id={id}
+					name={field.key}
+					autoComplete="off"
+					aria-describedby={field.help ? `${id}-help` : undefined}
 					className={control}
 					value={value}
 					onChange={(event) => change(event.target.value)}
@@ -61,6 +69,9 @@ function ToolField({
 			) : (
 				<textarea
 					id={id}
+					name={field.key}
+					autoComplete="off"
+					aria-describedby={field.help ? `${id}-help` : undefined}
 					className={`${control} min-h-44 font-mono text-sm leading-6`}
 					rows={7}
 					value={value}
@@ -69,7 +80,10 @@ function ToolField({
 				/>
 			)}
 			{field.help && (
-				<p className="text-xs leading-5 text-[color:var(--app-fg-muted)]">
+				<p
+					id={`${id}-help`}
+					className="text-xs leading-5 text-[color:var(--app-fg-muted)]"
+				>
 					{field.help}
 				</p>
 			)}
@@ -112,7 +126,7 @@ export function createLocalTool(tool: LocalTool) {
 					<div className="tool-panel-header mb-4 flex items-center">
 						<h3 className="text-sm font-semibold">Input & options</h3>
 					</div>
-					<div className="space-y-5">
+					<div className="local-tool-fields space-y-5">
 						{tool.fields.map((field) => (
 							<ToolField
 								key={field.key}
@@ -152,10 +166,16 @@ export function createLocalTool(tool: LocalTool) {
 							{error}
 						</p>
 					)}
-					<p className="local-tool-help mt-5 text-xs leading-6 text-[color:var(--app-fg-muted)]">
-						{tool.help} Combined input limit: 200,000 characters. Processing
-						stays in your browser.
-					</p>
+					<details className="local-tool-help mt-5 text-xs leading-6 text-[color:var(--app-fg-muted)]">
+						<summary>
+							Usage notes & limits{" "}
+							<ChevronDown className="size-4" aria-hidden="true" />
+						</summary>
+						<p>
+							{tool.help} Combined input limit: 200,000 characters. Processing
+							stays in your browser.
+						</p>
+					</details>
 				</section>
 				<section className="tool-card output-panel min-w-0 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 sm:p-5 lg:sticky lg:top-4">
 					<div className="tool-panel-header mb-4 flex flex-wrap items-center gap-3">

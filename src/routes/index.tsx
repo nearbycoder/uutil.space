@@ -1698,6 +1698,11 @@ function applyThemeVarsToDocument(vars: AppCssVariables) {
 	if (typeof vars.color === "string") {
 		style.color = vars.color;
 	}
+	if (typeof vars["--app-bg"] === "string") {
+		document
+			.querySelector('meta[name="theme-color"]')
+			?.setAttribute("content", vars["--app-bg"]);
+	}
 
 	for (const [key, value] of Object.entries(vars)) {
 		if (!key.startsWith("--") || value == null) {
@@ -2543,22 +2548,28 @@ export function ToolingApp({
 	const sidebarContent = (
 		<div className="tool-library-content flex h-full min-h-0 flex-col px-3 pb-3 pt-0">
 			<div className="mb-4 flex min-h-9 items-center justify-between gap-2 px-2">
-				<span className="text-sm font-semibold">
+				<span className="tool-library-heading font-semibold">
 					Tool library{" "}
-					<span className="ml-1.5 font-mono text-xs font-normal text-[color:var(--app-fg-soft)]">
+					<span className="tool-library-heading-count ml-1.5 font-mono text-xs font-normal">
 						{TOOL_REGISTRY.length}
 					</span>
 				</span>
 			</div>
 			<div className="tool-library-filters mb-5 space-y-3 px-1">
-				<div className="relative">
-					<Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-soft)]" />
+				<div className="tool-library-search relative">
+					<Search
+						aria-hidden="true"
+						className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-soft)]"
+					/>
 					<input
 						type="search"
+						name="tool-search"
+						autoComplete="off"
+						spellCheck={false}
 						aria-label="Search tools"
 						value={search}
 						onChange={(event) => setSearch(event.target.value)}
-						placeholder="Filter tools..."
+						placeholder={`Search ${TOOL_REGISTRY.length} tools…`}
 						className="control-surface min-h-11 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] py-2.5 pl-10 pr-3 text-sm text-[color:var(--app-fg)] placeholder:text-[color:var(--app-fg-soft)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
 					/>
 				</div>
@@ -2619,9 +2630,16 @@ export function ToolingApp({
 									onBlur={clearToolTooltip}
 									className={`sidebar-tool flex min-h-11 min-w-0 flex-1 items-center rounded-lg text-left transition-colors gap-3 px-3 py-2 ${isSelected ? "bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)]" : "text-[color:var(--app-fg-muted)] hover:bg-[color:var(--app-surface-bg)] hover:text-[color:var(--app-fg)]"}`}
 								>
-									<ToolIcon className="size-4 shrink-0" aria-hidden="true" />
-									<span className="min-w-0 truncate text-[13px] font-medium">
-										{tool.name}
+									<span className="tool-library-icon">
+										<ToolIcon className="size-4" aria-hidden="true" />
+									</span>
+									<span className="tool-library-copy">
+										<span className="tool-library-name truncate">
+											{tool.name}
+										</span>
+										<span className="tool-library-category">
+											{tool.category}
+										</span>
 									</span>
 								</button>
 								<button
@@ -2661,6 +2679,15 @@ export function ToolingApp({
 					) : null}
 				</div>
 			</nav>
+			<div className="tool-library-footer" aria-hidden="true">
+				<span>
+					<kbd>↑ ↓</kbd> to navigate <span className="mx-2">·</span>{" "}
+					<kbd>Enter</kbd> to open
+				</span>
+				<span>
+					<kbd>Esc</kbd> to close
+				</span>
+			</div>
 		</div>
 	);
 
@@ -3397,6 +3424,7 @@ function ToolTextarea({
 			placeholder={placeholder}
 			aria-label={placeholder}
 			rows={rows}
+			autoComplete="off"
 			spellCheck={false}
 			className={`tool-textarea control-surface w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 py-3.5 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
 		/>
@@ -3430,6 +3458,7 @@ function ToolTextInput({
 	return (
 		<input
 			{...props}
+			autoComplete={props.autoComplete ?? "off"}
 			type={type}
 			value={value}
 			onChange={(event) => onChange(event.target.value)}
@@ -3479,9 +3508,9 @@ function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 					className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-[color:var(--app-fg-muted)] hover:bg-[color:var(--app-surface-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] disabled:cursor-not-allowed disabled:opacity-40"
 				>
 					{copyState === "done" ? (
-						<Check className="size-3.5" />
+						<Check className="size-3.5" aria-hidden="true" />
 					) : (
-						<Copy className="size-3.5" />
+						<Copy className="size-3.5" aria-hidden="true" />
 					)}
 					{copyState === "idle"
 						? "Copy"
@@ -4089,7 +4118,7 @@ function createLorem(paragraphCount: number) {
 
 function ToolLabel({ text }: { text: string }) {
 	return (
-		<p className="mb-2 block text-xs font-medium text-[color:var(--app-fg-muted)]">
+		<p className="tool-field-label mb-2 block text-xs font-medium text-[color:var(--app-fg-muted)]">
 			{text}
 		</p>
 	);
