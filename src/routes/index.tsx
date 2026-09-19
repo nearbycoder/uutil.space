@@ -120,16 +120,22 @@ import { tool as byteHexdump } from "#/lib/local-tools/byte-hexdump";
 import { tool as cacheControlInspector } from "#/lib/local-tools/cache-control-inspector";
 import { tool as cssBezierSampler } from "#/lib/local-tools/css-bezier-sampler";
 import { tool as cssFluidType } from "#/lib/local-tools/css-fluid-type";
+import { tool as cssGradientBuilder } from "#/lib/local-tools/css-gradient-builder";
 import { tool as cssGridPlanner } from "#/lib/local-tools/css-grid-planner";
+import { tool as cssShadowBuilder } from "#/lib/local-tools/css-shadow-builder";
 import { tool as cssSpacingScale } from "#/lib/local-tools/css-spacing-scale";
 import { tool as csvCellTransform } from "#/lib/local-tools/csv-cell-transform";
 import { tool as csvColumnEditor } from "#/lib/local-tools/csv-column-editor";
+import { tool as csvConcatenate } from "#/lib/local-tools/csv-concatenate";
 import { tool as csvDataProfiler } from "#/lib/local-tools/csv-data-profiler";
 import { tool as csvDeduplicator } from "#/lib/local-tools/csv-deduplicator";
 import { tool as csvGroupAggregate } from "#/lib/local-tools/csv-group-aggregate";
+import { tool as csvKeyedDiff } from "#/lib/local-tools/csv-keyed-diff";
 import { tool as csvMarkdownTable } from "#/lib/local-tools/csv-markdown-table";
 import { tool as csvMultiSort } from "#/lib/local-tools/csv-multi-sort";
+import { tool as csvPivotTable } from "#/lib/local-tools/csv-pivot-table";
 import { tool as csvRowFilter } from "#/lib/local-tools/csv-row-filter";
+import { tool as csvSeededSampler } from "#/lib/local-tools/csv-seeded-sampler";
 import { tool as csvTableJoin } from "#/lib/local-tools/csv-table-join";
 import { tool as csvTranspose } from "#/lib/local-tools/csv-transpose";
 import { tool as csvUnpivot } from "#/lib/local-tools/csv-unpivot";
@@ -143,6 +149,8 @@ import { tool as integerBitwiseCalculator } from "#/lib/local-tools/integer-bitw
 import { tool as invisibleCharacterCleaner } from "#/lib/local-tools/invisible-character-cleaner";
 import { tool as jsonArrayChunker } from "#/lib/local-tools/json-array-chunker";
 import { tool as jsonArrayQuery } from "#/lib/local-tools/json-array-query";
+import { tool as jsonArraySet } from "#/lib/local-tools/json-array-set";
+import { tool as jsonArrayZip } from "#/lib/local-tools/json-array-zip";
 import { tool as jsonFlattenUnflatten } from "#/lib/local-tools/json-flatten-unflatten";
 import { tool as jsonKeySorter } from "#/lib/local-tools/json-key-sorter";
 import { tool as jsonMergePatch } from "#/lib/local-tools/json-merge-patch";
@@ -150,18 +158,28 @@ import { tool as jsonPointerEditor } from "#/lib/local-tools/json-pointer-editor
 import { tool as jsonRecordIndexer } from "#/lib/local-tools/json-record-indexer";
 import { tool as jsonSchemaInference } from "#/lib/local-tools/json-schema-inference";
 import { tool as jsonSqlInsert } from "#/lib/local-tools/json-sql-insert";
+import { tool as jsonStringCodec } from "#/lib/local-tools/json-string-codec";
 import { tool as jsonStructuralDiff } from "#/lib/local-tools/json-structural-diff";
+import { tool as jsonTreeInspector } from "#/lib/local-tools/json-tree-inspector";
+import { tool as linearRegression } from "#/lib/local-tools/linear-regression";
 import { tool as markdownTableFormatter } from "#/lib/local-tools/markdown-table-formatter";
+import { tool as matrixCalculator } from "#/lib/local-tools/matrix-calculator";
+import { tool as movingAverage } from "#/lib/local-tools/moving-average";
 import { tool as numberSequenceGenerator } from "#/lib/local-tools/number-sequence-generator";
 import { tool as numberStatistics } from "#/lib/local-tools/number-statistics";
 import { tool as paginationPlanner } from "#/lib/local-tools/pagination-planner";
 import { tool as percentageCalculator } from "#/lib/local-tools/percentage-calculator";
+import { tool as radixArithmetic } from "#/lib/local-tools/radix-arithmetic";
 import { tool as retryBackoffPlanner } from "#/lib/local-tools/retry-backoff-planner";
 import { tool as safeTemplateRenderer } from "#/lib/local-tools/safe-template-renderer";
 import { tool as setCookieInspector } from "#/lib/local-tools/set-cookie-inspector";
 import { tool as sqlInClause } from "#/lib/local-tools/sql-in-clause";
 import { tool as textColumnAligner } from "#/lib/local-tools/text-column-aligner";
+import { tool as textIndentation } from "#/lib/local-tools/text-indentation";
 import { tool as textLineAffixes } from "#/lib/local-tools/text-line-affixes";
+import { tool as textLineNumbering } from "#/lib/local-tools/text-line-numbering";
+import { tool as textLiteralSplitter } from "#/lib/local-tools/text-literal-splitter";
+import { tool as textNgramAnalyzer } from "#/lib/local-tools/text-ngram-analyzer";
 import { tool as textRangeExtractor } from "#/lib/local-tools/text-range-extractor";
 import { tool as textReflowWrap } from "#/lib/local-tools/text-reflow-wrap";
 import { tool as textSetOperations } from "#/lib/local-tools/text-set-operations";
@@ -169,6 +187,8 @@ import { tool as textSimilarity } from "#/lib/local-tools/text-similarity";
 import { tool as textTruncate } from "#/lib/local-tools/text-truncate";
 import { tool as timezoneMeetingPlanner } from "#/lib/local-tools/timezone-meeting-planner";
 import { tool as unicodeNormalizer } from "#/lib/local-tools/unicode-normalizer";
+import { tool as unitConverter } from "#/lib/local-tools/unit-converter";
+import { tool as urlListInspector } from "#/lib/local-tools/url-list-inspector";
 import { tool as utmLinkBuilder } from "#/lib/local-tools/utm-link-builder";
 import { tool as weightedScoreCalculator } from "#/lib/local-tools/weighted-score-calculator";
 import { tool as wordFrequencyAnalyzer } from "#/lib/local-tools/word-frequency-analyzer";
@@ -1247,6 +1267,166 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 		summary:
 			"Generate fixed or responsive grid CSS and inspect track widths, rows and item coordinates.",
 		component: createLocalTool(cssGridPlanner),
+	},
+	{
+		id: "json-array-zip",
+		name: "JSON Array Zipper",
+		category: "Conversion",
+		summary:
+			"Combine arrays by position with named records, strict lengths or null padding.",
+		component: createLocalTool(jsonArrayZip),
+	},
+	{
+		id: "json-tree-inspector",
+		name: "JSON Tree Inspector",
+		category: "Parsing",
+		summary:
+			"Inspect JSON Pointer paths, node types, depths and container sizes.",
+		component: createLocalTool(jsonTreeInspector),
+	},
+	{
+		id: "json-string-codec",
+		name: "JSON String Literal Codec",
+		category: "Encoding",
+		summary:
+			"Encode or unwrap multiple JSON string layers with optional ASCII escapes.",
+		component: createLocalTool(jsonStringCodec),
+	},
+	{
+		id: "json-array-set",
+		name: "JSON Array Set Operations",
+		category: "Conversion",
+		summary:
+			"Union, intersect and subtract arrays using structural JSON equality.",
+		component: createLocalTool(jsonArraySet),
+	},
+	{
+		id: "csv-pivot-table",
+		name: "CSV Pivot Table",
+		category: "Conversion",
+		summary:
+			"Cross-tabulate categories with counts, sums, averages and min/max values.",
+		component: createLocalTool(csvPivotTable),
+	},
+	{
+		id: "csv-keyed-diff",
+		name: "CSV Snapshot Diff",
+		category: "Parsing",
+		summary:
+			"Compare keyed snapshots and inspect added rows, schema changes and cell edits.",
+		component: createLocalTool(csvKeyedDiff),
+	},
+	{
+		id: "csv-concatenate",
+		name: "CSV File Combiner",
+		category: "Conversion",
+		summary:
+			"Append CSV files by header name with schema reconciliation and deduplication.",
+		component: createLocalTool(csvConcatenate),
+	},
+	{
+		id: "csv-seeded-sampler",
+		name: "Reproducible CSV Sampler",
+		category: "Generators",
+		summary:
+			"Create seeded samples and complementary data splits without replacement.",
+		component: createLocalTool(csvSeededSampler),
+	},
+	{
+		id: "text-indentation",
+		name: "Text Indentation Converter",
+		category: "Formatting",
+		summary:
+			"Normalize tab stops, remove common indentation or add an indentation level.",
+		component: createLocalTool(textIndentation),
+	},
+	{
+		id: "text-line-numbering",
+		name: "Text Line Numbering",
+		category: "Formatting",
+		summary:
+			"Add or remove line numbers with custom increments, separators and padding.",
+		component: createLocalTool(textLineNumbering),
+	},
+	{
+		id: "text-ngram-analyzer",
+		name: "Repeated Phrase Analyzer",
+		category: "Parsing",
+		summary:
+			"Find repeated word phrases with Unicode tokenization and occurrence counts.",
+		component: createLocalTool(textNgramAnalyzer),
+	},
+	{
+		id: "text-literal-splitter",
+		name: "Literal Text Split / Join",
+		category: "Conversion",
+		summary:
+			"Split literal delimiters into JSON arrays or join strings with cleanup options.",
+		component: createLocalTool(textLiteralSplitter),
+	},
+	{
+		id: "url-list-inspector",
+		name: "URL List Inspector",
+		category: "Parsing",
+		summary:
+			"Audit URL lists, relative paths, host counts, invalid lines and duplicates.",
+		component: createLocalTool(urlListInspector),
+	},
+	{
+		id: "linear-regression",
+		name: "Linear Regression Calculator",
+		category: "Parsing",
+		summary:
+			"Fit a line and inspect residuals, R², correlation and sample predictions.",
+		component: createLocalTool(linearRegression),
+	},
+	{
+		id: "matrix-calculator",
+		name: "Matrix Calculator",
+		category: "Conversion",
+		summary:
+			"Multiply, add, subtract and transpose rectangular numeric matrices.",
+		component: createLocalTool(matrixCalculator),
+	},
+	{
+		id: "moving-average",
+		name: "Moving Average Calculator",
+		category: "Parsing",
+		summary:
+			"Smooth numeric series with trailing, centered or exponential averages.",
+		component: createLocalTool(movingAverage),
+	},
+	{
+		id: "radix-arithmetic",
+		name: "Exact Radix Arithmetic",
+		category: "Conversion",
+		summary:
+			"Calculate with large integers and inspect binary, octal, decimal and hex results.",
+		component: createLocalTool(radixArithmetic),
+	},
+	{
+		id: "unit-converter",
+		name: "Batch Unit Converter",
+		category: "Conversion",
+		summary:
+			"Convert 25 units across length, mass, time, speed and temperature.",
+		component: createLocalTool(unitConverter),
+	},
+	{
+		id: "css-shadow-builder",
+		name: "CSS Shadow Builder",
+		category: "Generators",
+		summary:
+			"Generate validated multi-layer box shadows with inset and opacity controls.",
+		component: createLocalTool(cssShadowBuilder),
+	},
+	{
+		id: "css-gradient-builder",
+		name: "CSS Gradient Builder",
+		category: "Generators",
+		summary:
+			"Build linear, radial and conic gradients with color stops and repetition.",
+		component: createLocalTool(cssGradientBuilder),
 	},
 ];
 
