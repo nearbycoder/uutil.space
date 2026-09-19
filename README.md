@@ -22,7 +22,7 @@ cd uutil.space
 
 ## Features
 
-- 132 developer utilities, including JSON/CSV data operations, HTTP inspectors, text and byte utilities, exact arithmetic, frontend calculators, and application planners
+- 152 developer utilities, including JSON/CSV data operations, HTTP inspectors, text and byte utilities, exact arithmetic, frontend calculators, and application planners
 - Per-tool routed pages (`/tools/:toolId`)
 - Query-param input prefill + autorun support
 - Command palette quick switch (`Cmd/Ctrl + K`)
@@ -63,7 +63,7 @@ bun run start
 
 ## Quality
 
-See [the first 20-tool release](docs/local-tools-release.md), [the second 20-tool release](docs/local-tools-second-release.md), and [the third 20-tool release](docs/local-tools-third-release.md) for features, limits, PRs, and verification coverage.
+See [the first 20-tool release](docs/local-tools-release.md), [the second 20-tool release](docs/local-tools-second-release.md), [the third 20-tool release](docs/local-tools-third-release.md), and [the fourth 20-tool release](docs/local-tools-fourth-release.md) for features, limits, PRs, and verification coverage.
 
 ```bash
 bun run test
