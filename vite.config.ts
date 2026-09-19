@@ -5,7 +5,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
-import { offlinePlugin } from "./scripts/offline-plugin";
+import { offlinePlugin } from "./scripts/offline-plugin.ts";
 
 const securityHeaders = {
 	"Content-Security-Policy": [
