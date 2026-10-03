@@ -17,6 +17,8 @@ export function validateJsonSchema(input: string, schemaText: string) {
 		);
 	const result = new Validator().validate(instance, schema as Schema, {
 		nestedErrors: true,
+		// An absolute synthetic base lets the validator resolve local fragment references.
+		base: "https://uutil.invalid/schema",
 	});
 	return {
 		valid: result.valid,

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 const base = process.env.TEST_URL ?? "http://localhost:3103";
 const run = (...args) => execFileSync("agent-browser", ["--session", "offline-regression", ...args], { encoding: "utf8", timeout: 30000 });
 const click = name => run("find", "role", "button", "click", "--name", name, "--exact");
@@ -15,8 +15,10 @@ try {
 	click("Base64 String Encode/Decode: Encode plain text to base64 and decode base64 back to text."); wait('location.pathname.endsWith("base64-string")'); click("Encode"); wait('document.querySelector(".output-panel pre")?.textContent.length > 0');
 	open("/tools/json-schema-validator"); click("Validate schema"); wait('document.body.innerText.includes("validation errors")');
 	open("/tools/cron-builder"); wait('document.querySelector(".output-panel pre")?.textContent.includes("Next 5 runs")');
-	for (const file of readdirSync("src/lib/local-tools").filter(name => name.endsWith(".ts") && !name.endsWith(".test.ts") && !["types.ts", "csv.ts", "dates.ts"].includes(name))) {
-		open(`/tools/${file.slice(0,-3)}`); click("Run tool");
+	const ids = readdirSync("src/lib/local-tools").filter(name => name.endsWith(".ts") && !name.endsWith(".test.ts") && !["types.ts", "csv.ts", "dates.ts"].includes(name)).map(file => file.slice(0, -3));
+	ids.push(...[...readFileSync("src/lib/productivity-tools.ts", "utf8").matchAll(/id: "([^"]+)"/g)].map(match => match[1]));
+	for (const id of ids) {
+		open(`/tools/${id}`); click("Run tool");
 		wait('!document.querySelector(".local-tool [role=alert]") && document.querySelector(".local-tool pre")?.textContent !== "Your result will appear here."');
 	}
 	assert.equal(run("errors").trim(), "");

@@ -1,3 +1,5 @@
+import { PRODUCTIVITY_TOOLS } from "./productivity-tools";
+
 /** Public, deliberately non-production fixtures for tools that start empty. */
 export const TOOL_EXAMPLES: Record<string, string> = {
 	"jwt-debugger":
@@ -17,6 +19,9 @@ FTtLQ0WuqsfZL4PMrNvE25QTEMwFmqUJ3w5UI5nqMWCvuUNb5X7jqws=
 -----END CERTIFICATE-----`,
 };
 export const TOOL_HELP: Record<string, string> = {
+	...Object.fromEntries(
+		PRODUCTIVITY_TOOLS.map(({ id, tool }) => [id, tool.help]),
+	),
 	"json-schema-validator":
 		"Choose draft 4, 6, or 7. Click an error path to select the exact value in the source document. External schema URLs are not fetched. Validation is time-limited to protect the browser.",
 	"text-redactor":

@@ -2,7 +2,7 @@
 
 @import 'tw-animate-css';
 
-.ws-button { display: inline-flex; min-height: var(--app-control-height); align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--app-border); border-radius: var(--app-control-radius); padding: 9px 12px; font-size: 13px; font-weight: 500; line-height: 1.5; color: var(--app-fg-muted); background: var(--app-panel-bg); cursor: pointer; touch-action: manipulation; transition: background 120ms ease, border-color 120ms ease, color 120ms ease; }
+.ws-button { display: inline-flex; min-height: var(--app-control-height); align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--app-border); border-radius: var(--app-control-radius); padding: 9px 12px; font-size: 13px; font-weight: 500; line-height: 1.5; color: var(--app-fg-muted); background: var(--app-panel-bg); cursor: pointer; touch-action: manipulation; transition: border-color 120ms ease; }
 .ws-button:hover:not(:disabled), .ws-button[aria-pressed="true"] { color: var(--app-fg); border-color: var(--app-border-strong); background: var(--app-surface-bg); }
 .ws-button:focus-visible, .ws-input:focus-visible, .ws-list-item:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 3px; }
 .ws-button:disabled { opacity: .5; cursor: not-allowed; }
@@ -440,8 +440,10 @@ code {
 /* Shared product chrome: consistent controls and restrained, spacious headings. */
 .tool-panel-header,
 .tool-card-title {
-  min-height: 44px;
-  padding-bottom: 0;
+  min-height: 57px;
+  padding-bottom: 12px;
+  gap: 10px;
+  border-bottom: 1px solid var(--app-border);
   letter-spacing: -0.015em;
 }
 
@@ -466,7 +468,9 @@ code {
 .workspace-actions .ws-button { white-space: nowrap; }
 .workspace-actions .ws-button[aria-pressed='true'] { color: var(--app-accent); border-color: color-mix(in srgb, var(--app-accent) 40%, var(--app-border)); background: var(--app-accent-soft); }
 .workspace-actions .ws-button:first-child { min-width: 44px; }
-.tool-card { border-radius: var(--app-card-radius); }
+.tool-card { border-radius: var(--app-card-radius); box-shadow: 0 2px 8px color-mix(in srgb, var(--app-shadow) 28%, transparent); }
+.panel-step { display: grid; place-items: center; flex-shrink: 0; width: 26px; height: 26px; border: 1px solid var(--app-border); border-radius: 7px; color: var(--app-fg-soft); background: var(--app-surface-alt); font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0; }
+.workspace-summary { max-width: 64ch; margin-top: 6px; color: var(--app-fg-muted); font-size: 13px; line-height: 1.6; text-wrap: pretty; }
 .tool-card :is(input, select).control-surface { min-height: var(--app-control-height); padding-block: 10px; border-radius: var(--app-control-radius); }
 .tool-card :is(input, textarea, select).control-surface:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 2px; box-shadow: none; }
 .tool-field-label, .tool-card > label:not(:has(input[type='checkbox'])) { color: var(--app-fg-muted); font-size: 13px; line-height: 20px; }
@@ -479,7 +483,7 @@ code {
 .output-secondary-actions .ws-button:hover:not(:disabled) { background: var(--app-surface-bg); }
 .output-toolbar > button { font-size: 13px; }
 .local-tool > section:first-child { container: tool-input / inline-size; }
-.local-tool-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px 16px; align-items: end; }
+.local-tool-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px 16px; align-items: start; }
 .local-tool-fields > * { margin-block: 0; }
 .local-tool-field[data-field-kind='textarea'] { grid-column: 1 / -1; }
 @container tool-input (min-width: 480px) {
@@ -499,8 +503,8 @@ code {
 .local-tool-help[open] summary svg { transform: rotate(180deg); }
 .local-tool-help p { padding-block: 8px 4px; line-height: 1.85; }
 .local-tool-error { padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--app-danger) 40%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--app-danger) 6%, var(--app-panel-bg)); }
-.local-tool .output-panel > pre { border: 1px solid var(--app-border); min-height: 180px; }
-.local-tool .output-panel > pre[data-empty='true'] { border-style: dashed; color: var(--app-fg-soft); }
+.local-tool .output-panel > pre { border: 1px solid var(--app-border); min-height: 220px; padding: 20px; }
+.local-tool .output-panel > pre[data-empty='true'] { display: grid; place-items: center; border-style: dashed; color: var(--app-fg-soft); text-align: center; background: transparent; }
 .local-tool .output-panel > pre:focus-visible { outline: 2px solid var(--app-accent); outline-offset: 3px; }
 
 .tool-library-filters > fieldset { padding: 3px; border: 1px solid var(--app-border); border-radius: 10px; background: var(--app-surface-alt); }
@@ -541,7 +545,7 @@ code {
   .local-tool-field :is(input, select, textarea) { font-size: 16px; }
   .local-tool-actions .ws-button { flex: 1 1 auto; }
   .local-tool .output-panel .tool-panel-header { gap: 8px; }
-  .local-tool .output-panel .tool-panel-header h3 { flex-basis: 100%; }
+  .local-tool .output-panel .tool-panel-header h3 { flex-basis: calc(100% - 44px); }
   .local-tool .output-panel .tool-panel-header .ws-button { min-height: 44px; flex: 1 1 auto; }
   .tool-library-filters > fieldset .ws-button { min-height: 44px; }
   .workspace-actions { gap: 6px; }

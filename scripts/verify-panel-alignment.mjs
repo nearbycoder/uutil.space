@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 
 const base = process.env.TEST_URL ?? "http://localhost:3107";
@@ -8,6 +8,7 @@ const value = code => JSON.parse(JSON.parse(run("eval", `JSON.stringify(${code})
 const ids = readdirSync("src/lib/local-tools")
   .filter(name => name.endsWith(".ts") && !name.endsWith(".test.ts") && !["types.ts", "csv.ts", "dates.ts"].includes(name))
   .map(name => name.slice(0, -3));
+ids.push(...[...readFileSync("src/lib/productivity-tools.ts", "utf8").matchAll(/id: "([^"]+)"/g)].map(match => match[1]));
 
 try {
   for (const width of [390, 1024, 1440]) {

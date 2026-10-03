@@ -199,6 +199,7 @@ import {
 	UNIX_IO_LAYOUT_COOKIE_KEY,
 	UNIX_IO_PANEL_IDS,
 } from "#/lib/panel-layout";
+import { PRODUCTIVITY_TOOLS } from "#/lib/productivity-tools";
 import {
 	analyzePassword,
 	analyzeReadability,
@@ -262,7 +263,8 @@ type ToolCategory =
 	| "Conversion"
 	| "Security"
 	| "Generators"
-	| "Parsing";
+	| "Parsing"
+	| "Productivity";
 
 type ToolDefinition = {
 	id: string;
@@ -1428,6 +1430,13 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 			"Build linear, radial and conic gradients with color stops and repetition.",
 		component: createLocalTool(cssGradientBuilder),
 	},
+	...PRODUCTIVITY_TOOLS.map(({ id, name, summary, tool }) => ({
+		id,
+		name,
+		summary,
+		category: "Productivity" as const,
+		component: createLocalTool(tool),
+	})),
 ];
 
 const TOOL_IDS = new Set(TOOL_REGISTRY.map((tool) => tool.id));
@@ -1454,6 +1463,7 @@ const MAX_QR_IMAGE_DIMENSION = 4096;
 
 const CATEGORY_ICONS: Record<ToolCategory, LucideIcon> = {
 	Core: Monitor,
+	Productivity: Check,
 	Encoding: Binary,
 	Formatting: Wand2,
 	Conversion: ArrowLeftRight,
@@ -2702,6 +2712,7 @@ export function ToolingApp({
 						<h1 className="font-display text-xl font-semibold leading-tight tracking-[-0.035em] sm:text-2xl">
 							{selectedTool.name}
 						</h1>
+						<p className="workspace-summary">{selectedTool.summary}</p>
 					</div>
 				</div>
 				<WorkspaceToolbar

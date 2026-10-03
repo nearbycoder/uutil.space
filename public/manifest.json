@@ -1,8 +1,8 @@
 {
   "id": "/",
   "short_name": "uutil",
-  "name": "uutil.space — Developer Toolkit",
-  "description": "Your local-first developer toolkit. Convert, inspect, generate, and reuse data.",
+  "name": "uutil.space — Everyday & Developer Tools",
+  "description": "Your local toolkit for everyday planning, shopping, budgets, and developer workflows.",
   "scope": "/",
   "icons": [
     {

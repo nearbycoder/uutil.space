@@ -7,5 +7,10 @@ for (const file of readdirSync("src/lib/local-tools").filter(name => name.endsWi
   execFileSync(process.execPath, ["scripts/verify-local-tool.mjs", file.slice(0,-3), tool.smoke], { stdio: "inherit", env: process.env });
   count++;
 }
-if (count < 80) throw new Error(`Expected four 20-tool releases, found ${count}`);
+const { PRODUCTIVITY_TOOLS } = await import("../src/lib/productivity-tools.ts");
+for (const { id, tool } of PRODUCTIVITY_TOOLS) {
+  execFileSync(process.execPath, ["scripts/verify-local-tool.mjs", id, tool.smoke], { stdio: "inherit", env: process.env });
+  count++;
+}
+if (count < 100) throw new Error(`Expected five 20-tool releases, found ${count}`);
 console.log(`PASS all ${count} local features across mobile and desktop`);

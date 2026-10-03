@@ -61,7 +61,7 @@ try {
     run("wait", "--fn", 'document.body.innerText.includes("Result copied")');
     run("screenshot", `/tmp/${id}-${width}.png`);
     // A whitespace-only value exercises required-field validation and emits an input event.
-    run("fill", ".local-tool .space-y-5 > div:first-child :is(textarea,input)", " ");
+    run("fill", ".local-tool-fields > div:first-child :is(textarea,input)", " ");
     run("find", "role", "button", "click", "--name", "Run tool", "--exact");
     run("wait", "--fn", '!!document.querySelector(".local-tool [role=alert]")');
     run("find", "role", "button", "click", "--name", "Reset example", "--exact");

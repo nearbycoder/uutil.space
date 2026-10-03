@@ -1,6 +1,6 @@
 # uutil.space
 
-Developer tooling workspace for parsing, formatting, converting, encoding, and debugging data in one place.
+Local tools for everyday productivity and developer workflows in one workspace.
 
 ![uutil.space preview](public/readme.png)
 
@@ -22,7 +22,7 @@ cd uutil.space
 
 ## Features
 
-- 152 developer utilities, including JSON/CSV data operations, HTTP inspectors, text and byte utilities, exact arithmetic, frontend calculators, and application planners
+- 172 utilities, including 20 everyday productivity tools for shopping, meals, schedules, chores, habits, reading, and budgets, alongside JSON/CSV data operations, HTTP inspectors, text and byte utilities, exact arithmetic, frontend calculators, and application planners
 - Per-tool routed pages (`/tools/:toolId`)
 - Query-param input prefill + autorun support
 - Command palette quick switch (`Cmd/Ctrl + K`)
@@ -63,7 +63,7 @@ bun run start
 
 ## Quality
 
-See [the first 20-tool release](docs/local-tools-release.md), [the second 20-tool release](docs/local-tools-second-release.md), [the third 20-tool release](docs/local-tools-third-release.md), and [the fourth 20-tool release](docs/local-tools-fourth-release.md) for features, limits, PRs, and verification coverage.
+See [the first 20-tool release](docs/local-tools-release.md), [the second 20-tool release](docs/local-tools-second-release.md), [the third 20-tool release](docs/local-tools-third-release.md), [the fourth 20-tool release](docs/local-tools-fourth-release.md), and [the everyday productivity release](docs/productivity-release.md) for features, limits, PRs, and verification coverage.
 
 ```bash
 bun run test

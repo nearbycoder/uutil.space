@@ -30,12 +30,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content: "width=device-width, initial-scale=1, viewport-fit=cover",
 			},
 			{
-				title: "uutil.space | Developer Tooling Hub",
+				title: "uutil.space | Everyday & Developer Tools",
 			},
 			{
 				name: "description",
 				content:
-					"uutil.space is a developer tooling hub for API, data, security, frontend, and database workflows.",
+					"Local tools for everyday planning, shopping, budgets, and developer workflows.",
 			},
 			{
 				name: "theme-color",

@@ -13,7 +13,7 @@ export function offlinePlugin(): Plugin {
 			async handler(_options, bundle) {
 				const assets = Object.keys(bundle).filter(name => /\.(?:js|css|wasm)$/.test(name)).map(name => `/${name}`);
 				for (const name of await readdir("public/fonts")) if (name.endsWith(".woff2")) assets.push(`/fonts/${name}`);
-				const source = await readFile("src/routes/index.tsx", "utf8");
+				const source = (await Promise.all(["src/routes/index.tsx", "src/lib/productivity-tools.ts"].map(path => readFile(path, "utf8")))).join("\n");
 				const routes = ["/", ...[...source.matchAll(/id: "([^"]+)",\s*name: "([^"]+)"/g)].map(match => `/tools/${match[1]}`)];
 				const files = [...new Set([...assets, ...routes, "/manifest.json", "/icon.svg", "/app-icon-192.png", "/app-icon-512.png"])].sort();
 				const template = await readFile("scripts/service-worker.js", "utf8");

@@ -30,7 +30,7 @@ function ToolField({
 	);
 	return (
 		<div
-			className="local-tool-field min-w-0 space-y-2"
+			className="local-tool-field flex min-w-0 flex-col gap-2"
 			data-field-kind={field.type ?? "textarea"}
 		>
 			<label htmlFor={id} className="block text-sm font-medium">
@@ -121,12 +121,21 @@ export function createLocalTool(tool: LocalTool) {
 			}
 		};
 		return (
-			<div className="local-tool grid min-w-0 items-start gap-5 lg:grid-cols-2">
+			<form
+				onSubmit={(event) => {
+					event.preventDefault();
+					run();
+				}}
+				className="local-tool grid min-w-0 items-start gap-5 lg:grid-cols-2"
+			>
 				<section className="tool-card min-w-0 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 sm:p-5">
 					<div className="tool-panel-header mb-4 flex items-center">
+						<span className="panel-step" aria-hidden="true">
+							01
+						</span>
 						<h3 className="text-sm font-semibold">Input & options</h3>
 					</div>
-					<div className="local-tool-fields space-y-5">
+					<div className="local-tool-fields">
 						{tool.fields.map((field) => (
 							<ToolField
 								key={field.key}
@@ -138,10 +147,9 @@ export function createLocalTool(tool: LocalTool) {
 					</div>
 					<div className="local-tool-actions mt-5 flex flex-wrap gap-3">
 						<button
-							type="button"
+							type="submit"
 							className="ws-button action-primary min-h-11"
 							data-tool-action="run-tool"
-							onClick={run}
 						>
 							Run tool
 							<ArrowRight className="size-4" aria-hidden="true" />
@@ -179,6 +187,9 @@ export function createLocalTool(tool: LocalTool) {
 				</section>
 				<section className="tool-card output-panel min-w-0 rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-panel-bg)] p-4 sm:p-5 lg:sticky lg:top-4">
 					<div className="tool-panel-header mb-4 flex flex-wrap items-center gap-3">
+						<span className="panel-step" aria-hidden="true">
+							02
+						</span>
 						<h3 className="mr-auto text-sm font-semibold">Result</h3>
 						<button
 							type="button"
@@ -232,7 +243,7 @@ export function createLocalTool(tool: LocalTool) {
 						{result ?? "Your result will appear here."}
 					</pre>
 				</section>
-			</div>
+			</form>
 		);
 	};
 }

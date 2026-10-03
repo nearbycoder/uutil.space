@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 const base = process.env.TEST_URL ?? "http://localhost:3103";
-const source = readFileSync("src/routes/index.tsx", "utf8");
+const source = ["src/routes/index.tsx", "src/lib/productivity-tools.ts"].map(path => readFileSync(path, "utf8")).join("\n");
 const tools = [...source.matchAll(/id: "([^"]+)",\s*name: "([^"]+)"/g)].map(match => ({ id: match[1], name: match[2] }));
 const run = (...args) => execFileSync("agent-browser", ["--session", "layout-regression", ...args], { encoding: "utf8", timeout: 30000 });
 try {
