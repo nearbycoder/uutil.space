@@ -41,6 +41,13 @@ export function FloatingToolNavigation({
 		input?.focus({ preventScroll: true });
 		input?.select();
 	};
+	const scrollCurrentIntoView = () => {
+		requestAnimationFrame(() => {
+			dialog.current
+				?.querySelector<HTMLElement>('.sidebar-tool[aria-current="page"]')
+				?.scrollIntoView({ block: "nearest" });
+		});
+	};
 	const show = (find: boolean) => {
 		cancelAnimationFrame(restoreFocusFrame.current);
 		if (find) callbacks.current.onFind();
@@ -48,7 +55,10 @@ export function FloatingToolNavigation({
 		// Stay inside the tap event so iOS can open the keyboard for Find.
 		if (!dialog.current?.open) dialog.current?.showModal();
 		if (find) search();
-		else title.current?.focus({ preventScroll: true });
+		else {
+			title.current?.focus({ preventScroll: true });
+			scrollCurrentIntoView();
+		}
 	};
 	useEffect(() => {
 		const element = dialog.current;
@@ -165,7 +175,18 @@ export function FloatingToolNavigation({
 						) ?? [],
 					);
 					const index = results.indexOf(target as HTMLButtonElement);
-					if (!searching && index < 0) return;
+					if (!searching && index < 0) {
+						if (
+							event.key === "/" &&
+							!event.metaKey &&
+							!event.ctrlKey &&
+							!event.altKey
+						) {
+							event.preventDefault();
+							search();
+						}
+						return;
+					}
 					if (
 						searching &&
 						event.key === "Enter" &&
@@ -182,6 +203,21 @@ export function FloatingToolNavigation({
 							: index + (event.key === "ArrowDown" ? 1 : -1);
 						if (next < 0 || next >= results.length) search();
 						else results[next]?.focus();
+					} else if (!searching && event.key === "Home" && results.length > 0) {
+						event.preventDefault();
+						results[0]?.focus();
+					} else if (!searching && event.key === "End" && results.length > 0) {
+						event.preventDefault();
+						results[results.length - 1]?.focus();
+					} else if (
+						!searching &&
+						event.key === "/" &&
+						!event.metaKey &&
+						!event.ctrlKey &&
+						!event.altKey
+					) {
+						event.preventDefault();
+						search();
 					}
 				}}
 				onCancel={(event) => {

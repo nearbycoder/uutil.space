@@ -1,5 +1,5 @@
 import { ArrowRight, Check, ChevronDown, Copy, Download } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	defaults,
@@ -7,11 +7,13 @@ import {
 	type Field,
 	type LocalTool,
 } from "#/lib/local-tools/types";
+import { formatTextStats } from "#/lib/tool-search";
 import { downloadText } from "#/lib/workspace";
 import { useWorkspace, useWorkspaceField } from "./workspace";
 
 const control =
 	"control-surface w-full min-w-0 rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] p-3 text-base text-[color:var(--app-fg)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]";
+
 function ToolField({
 	field,
 	value,
@@ -22,20 +24,31 @@ function ToolField({
 	change: (value: string) => void;
 }) {
 	const id = useId();
+	const [dragOver, setDragOver] = useState(false);
 	useWorkspaceField(
 		value,
 		(next) => change(String(next)),
 		field.type ? "setting" : "input",
 		field.label,
 	);
+	const isTextarea = !field.type;
+	const textareaStats = isTextarea && value ? formatTextStats(value) : "";
+
 	return (
 		<div
 			className="local-tool-field flex min-w-0 flex-col gap-2"
 			data-field-kind={field.type ?? "textarea"}
 		>
-			<label htmlFor={id} className="block text-sm font-medium">
-				{field.label}
-			</label>
+			<div className="local-tool-field-head flex items-baseline justify-between gap-2">
+				<label htmlFor={id} className="block text-sm font-medium">
+					{field.label}
+				</label>
+				{textareaStats ? (
+					<span className="font-mono text-[11px] tabular-nums text-[color:var(--app-fg-soft)]">
+						{textareaStats}
+					</span>
+				) : null}
+			</div>
 			{field.type === "select" ? (
 				<div className="relative">
 					<select
@@ -72,10 +85,44 @@ function ToolField({
 					name={field.key}
 					autoComplete="off"
 					aria-describedby={field.help ? `${id}-help` : undefined}
+					data-drag-over={dragOver || undefined}
 					className={`${control} min-h-44 font-mono text-sm leading-6`}
 					rows={7}
 					value={value}
 					onChange={(event) => change(event.target.value)}
+					onDragOver={(event) => {
+						if (event.dataTransfer.types.includes("Files")) {
+							event.preventDefault();
+							setDragOver(true);
+						}
+					}}
+					onDragLeave={() => setDragOver(false)}
+					onDrop={async (event) => {
+						setDragOver(false);
+						if (!event.dataTransfer.files.length) return;
+						event.preventDefault();
+						const file = event.dataTransfer.files[0];
+						if (event.dataTransfer.files.length > 1) {
+							toast.error(
+								"Drop one file here, or use Workspace → Batch files.",
+							);
+							return;
+						}
+						if (file.size > 1_000_000) {
+							toast.error("Keep files below 1 MB.");
+							return;
+						}
+						try {
+							change(
+								new TextDecoder("utf-8", { fatal: true }).decode(
+									await file.arrayBuffer(),
+								),
+							);
+							toast.success(`Loaded ${file.name}`);
+						} catch {
+							toast.error("Choose a UTF-8 text file.");
+						}
+					}}
 					spellCheck={false}
 				/>
 			)}
@@ -90,18 +137,31 @@ function ToolField({
 		</div>
 	);
 }
+
 export function createLocalTool(tool: LocalTool) {
 	return function LocalToolPanel() {
 		const [values, setValues] = useState(() => defaults(tool));
 		const [result, setResult] = useState<string | null>(null);
 		const [error, setError] = useState("");
+		const [copied, setCopied] = useState(false);
+		const copiedTimer = useRef<number | null>(null);
 		const outputRef = useRef<HTMLPreElement>(null);
-		const { record } = useWorkspace();
+		const { record, setSendText, setPanel } = useWorkspace();
+
+		useEffect(
+			() => () => {
+				if (copiedTimer.current !== null)
+					window.clearTimeout(copiedTimer.current);
+			},
+			[],
+		);
+
 		const change = (key: string, value: string) => {
 			setValues((current) => ({ ...current, [key]: value }));
 			setResult(null);
 			setError("");
 		};
+
 		const run = () => {
 			try {
 				setError("");
@@ -120,11 +180,33 @@ export function createLocalTool(tool: LocalTool) {
 				);
 			}
 		};
+
+		const copyResult = async () => {
+			try {
+				await navigator.clipboard.writeText(result ?? "");
+				toast.success("Result copied");
+				setCopied(true);
+				if (copiedTimer.current !== null)
+					window.clearTimeout(copiedTimer.current);
+				copiedTimer.current = window.setTimeout(() => setCopied(false), 1200);
+			} catch {
+				toast.error(
+					"Clipboard unavailable. Select and copy the result manually.",
+				);
+			}
+		};
+
 		return (
 			<form
 				onSubmit={(event) => {
 					event.preventDefault();
 					run();
+				}}
+				onKeyDown={(event) => {
+					if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+						event.preventDefault();
+						run();
+					}
 				}}
 				className="local-tool grid min-w-0 items-start gap-5 lg:grid-cols-2"
 			>
@@ -145,11 +227,12 @@ export function createLocalTool(tool: LocalTool) {
 							/>
 						))}
 					</div>
-					<div className="local-tool-actions mt-5 flex flex-wrap gap-3">
+					<div className="local-tool-actions mt-5 flex flex-wrap items-center gap-3">
 						<button
 							type="submit"
 							className="ws-button action-primary min-h-11"
 							data-tool-action="run-tool"
+							title="Run tool (⌘/Ctrl + Enter)"
 						>
 							Run tool
 							<ArrowRight className="size-4" aria-hidden="true" />
@@ -165,6 +248,10 @@ export function createLocalTool(tool: LocalTool) {
 						>
 							Reset example
 						</button>
+						<span className="local-tool-shortcut hidden text-xs text-[color:var(--app-fg-soft)] xl:ml-auto xl:inline-flex xl:items-center xl:gap-1.5">
+							<kbd className="uutil-kbd">⌘ / Ctrl ↵</kbd>
+							<span>to run</span>
+						</span>
 					</div>
 					{error && (
 						<p
@@ -195,18 +282,16 @@ export function createLocalTool(tool: LocalTool) {
 							type="button"
 							className="ws-button min-h-11"
 							disabled={result === null}
-							onClick={async () => {
-								try {
-									await navigator.clipboard.writeText(result ?? "");
-									toast.success("Result copied");
-								} catch {
-									toast.error(
-										"Clipboard unavailable. Select and copy the result manually.",
-									);
-								}
-							}}
+							onClick={() => void copyResult()}
 						>
-							<Copy className="size-3.5" aria-hidden="true" />
+							{copied ? (
+								<Check
+									className="size-3.5 text-[color:var(--app-success)]"
+									aria-hidden="true"
+								/>
+							) : (
+								<Copy className="size-3.5" aria-hidden="true" />
+							)}
 							Copy result
 						</button>
 						<button
@@ -219,26 +304,42 @@ export function createLocalTool(tool: LocalTool) {
 							Download result
 						</button>
 					</div>
-					<p
-						role="status"
-						className="mb-3 flex items-center gap-2 text-xs text-[color:var(--app-fg-muted)]"
-					>
-						{result !== null && (
-							<Check
-								className="size-3.5 shrink-0 text-[color:var(--app-success)]"
-								aria-hidden="true"
-							/>
-						)}
-						{result === null
-							? "Run the tool to see results."
-							: `${result.length.toLocaleString()} characters · ready to copy or download`}
-					</p>
+					<div className="local-tool-status-bar mb-3 flex flex-wrap items-center justify-between gap-2">
+						<p
+							role="status"
+							className="flex items-center gap-2 text-xs tabular-nums text-[color:var(--app-fg-muted)]"
+						>
+							{result !== null && (
+								<Check
+									className="size-3.5 shrink-0 text-[color:var(--app-success)]"
+									aria-hidden="true"
+								/>
+							)}
+							{result === null
+								? "Run the tool to see results."
+								: `${formatTextStats(result)} · ready to copy or download`}
+						</p>
+						{result !== null && result.length > 0 ? (
+							<button
+								type="button"
+								className="local-tool-send -ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-[color:var(--app-fg-muted)] transition-colors hover:bg-[color:var(--app-surface-bg)] hover:text-[color:var(--app-fg)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--app-accent)] sm:ml-0 sm:min-h-8 sm:px-2.5"
+								aria-label="Send output to another tool"
+								onClick={() => {
+									setSendText(result);
+									setPanel("send");
+								}}
+							>
+								<ArrowRight className="size-3.5" aria-hidden="true" />
+								<span>Send to tool</span>
+							</button>
+						) : null}
+					</div>
 					<pre
 						ref={outputRef}
 						data-empty={result === null}
 						// biome-ignore lint/a11y/noNoninteractiveTabindex: Enable keyboard scrolling of long results.
 						tabIndex={0}
-						className={`max-h-[65vh] min-h-36 overflow-auto ${tool.preserveColumns ? "whitespace-pre" : "whitespace-pre-wrap break-words"} rounded-lg bg-[color:var(--app-surface-alt)] p-4 font-mono text-[13px] leading-6`}
+						className={`uutil-scrollbar max-h-[65vh] min-h-36 overflow-auto ${tool.preserveColumns ? "whitespace-pre" : "whitespace-pre-wrap break-words"} rounded-lg bg-[color:var(--app-surface-alt)] p-4 font-mono text-[13px] leading-6`}
 					>
 						{result ?? "Your result will appear here."}
 					</pre>

@@ -1,10 +1,19 @@
 import {
 	ArrowRight,
+	Bookmark,
 	BookOpen,
+	ChevronDown,
+	Clipboard,
 	ClipboardPaste,
+	Clock3,
 	Download,
+	FileStack,
 	FolderOpen,
+	type LucideIcon,
+	Share2,
 	Star,
+	StickyNote,
+	Wifi,
 	X,
 } from "lucide-react";
 import {
@@ -13,12 +22,14 @@ import {
 	useContext,
 	useEffect,
 	useId,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
 import { toast } from "sonner";
 import { useOffline } from "#/lib/offline";
 import { TOOL_EXAMPLES, TOOL_HELP } from "#/lib/tool-examples";
+import { filterAndRankTools } from "#/lib/tool-search";
 import {
 	decodeRecipe,
 	detectTools,
@@ -53,6 +64,7 @@ type Panel =
 	| "help"
 	| "send"
 	| "offline";
+
 function useWorkspaceModel() {
 	const offline = useOffline();
 	const [state, setState] = useState(emptyWorkspace);
@@ -260,10 +272,12 @@ function useWorkspaceModel() {
 		update,
 	};
 }
+
 const WorkspaceContext = createContext<ReturnType<
 	typeof useWorkspaceModel
 > | null>(null);
 const ToolFieldsContext = createContext(false);
+
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 	const workspace = useWorkspaceModel();
 	return (
@@ -272,11 +286,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 		</WorkspaceContext.Provider>
 	);
 }
+
 export function useWorkspace() {
 	const value = useContext(WorkspaceContext);
 	if (!value) throw new Error("Workspace provider missing.");
 	return value;
 }
+
 export function ToolSession({
 	toolId,
 	children,
@@ -290,6 +306,7 @@ export function ToolSession({
 		<ToolFieldsContext.Provider value>{children}</ToolFieldsContext.Provider>
 	);
 }
+
 export function useWorkspaceField(
 	value: string | boolean,
 	onChange: (value: string | boolean) => void,
@@ -316,17 +333,26 @@ export function useWorkspaceField(
 	}, [enabled, register, id]);
 }
 
-const buttonClass = "ws-button";
 function Button({
 	children,
 	onClick,
 	disabled,
+	variant = "default",
+	className,
 	...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+	variant?: "default" | "primary" | "danger";
+}) {
+	const variantClass =
+		variant === "primary"
+			? "ws-button action-primary"
+			: variant === "danger"
+				? "ws-button ws-button-danger"
+				: "ws-button";
 	return (
 		<button
 			type="button"
-			className={buttonClass}
+			className={className ? `${variantClass} ${className}` : variantClass}
 			disabled={disabled}
 			{...props}
 			onClick={onClick}
@@ -335,6 +361,7 @@ function Button({
 		</button>
 	);
 }
+
 function Note({ children }: { children: React.ReactNode }) {
 	return (
 		<p className="text-sm leading-6 text-[color:var(--app-fg-muted)]">
@@ -342,6 +369,7 @@ function Note({ children }: { children: React.ReactNode }) {
 		</p>
 	);
 }
+
 function CheckField({
 	label,
 	checked,
@@ -352,7 +380,7 @@ function CheckField({
 	onChange: (v: boolean) => void;
 }) {
 	return (
-		<label className="flex min-h-11 items-center gap-3 text-sm">
+		<label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
 			<input
 				className="size-4 accent-[var(--app-accent)]"
 				type="checkbox"
@@ -363,17 +391,23 @@ function CheckField({
 		</label>
 	);
 }
-const panels: { id: Panel; label: string }[] = [
-	{ id: "library", label: "My tools" },
-	{ id: "paste", label: "Smart paste" },
-	{ id: "presets", label: "Presets" },
-	{ id: "scratchpads", label: "Scratchpads" },
-	{ id: "history", label: "History" },
-	{ id: "files", label: "Batch files" },
-	{ id: "share", label: "Share recipe" },
-	{ id: "help", label: "Examples & help" },
-	{ id: "offline", label: "Offline & install" },
+
+const panels: {
+	id: Panel;
+	label: string;
+	icon: LucideIcon;
+}[] = [
+	{ id: "library", label: "My tools", icon: Star },
+	{ id: "paste", label: "Smart paste", icon: ClipboardPaste },
+	{ id: "presets", label: "Presets", icon: Bookmark },
+	{ id: "scratchpads", label: "Scratchpads", icon: StickyNote },
+	{ id: "history", label: "History", icon: Clock3 },
+	{ id: "files", label: "Batch files", icon: FileStack },
+	{ id: "share", label: "Share recipe", icon: Share2 },
+	{ id: "help", label: "Examples & help", icon: BookOpen },
+	{ id: "offline", label: "Offline & install", icon: Wifi },
 ];
+
 export function WorkspaceToolbar({
 	toolId,
 	tools,
@@ -409,6 +443,7 @@ export function WorkspaceToolbar({
 		window.addEventListener("hashchange", read);
 		return () => window.removeEventListener("hashchange", read);
 	}, [tools, load]);
+	const isFavorite = ws.state.favorites.includes(toolId);
 	return (
 		<>
 			<fieldset
@@ -416,18 +451,14 @@ export function WorkspaceToolbar({
 				aria-label="Workspace actions"
 			>
 				<Button
-					aria-label={
-						ws.state.favorites.includes(toolId)
-							? "Remove favorite"
-							: "Favorite this tool"
-					}
-					aria-pressed={ws.state.favorites.includes(toolId)}
+					aria-label={isFavorite ? "Remove favorite" : "Favorite this tool"}
+					aria-pressed={isFavorite}
 					onClick={() => ws.favorite(toolId)}
 				>
 					<Star
 						className="size-4"
 						aria-hidden="true"
-						fill={ws.state.favorites.includes(toolId) ? "currentColor" : "none"}
+						fill={isFavorite ? "currentColor" : "none"}
 					/>
 					<span className="hidden sm:inline">Favorite</span>
 				</Button>
@@ -459,6 +490,7 @@ export function WorkspaceToolbar({
 		</>
 	);
 }
+
 export function OutputActions({ value }: { value: string }) {
 	const ws = useWorkspace();
 	return (
@@ -485,33 +517,72 @@ export function OutputActions({ value }: { value: string }) {
 		</div>
 	);
 }
+
 function WorkspaceDialog() {
 	const ws = useWorkspace();
 	const dialog = useRef<HTMLDialogElement>(null);
+	const navRef = useRef<HTMLElement>(null);
 	const panel = ws.panel;
+
+	const syncOverflowIndicators = useCallback(() => {
+		const nav = navRef.current;
+		if (!nav) return;
+		const left = nav.scrollLeft > 4;
+		const right = nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4;
+		nav.dataset.overflowLeft = String(left);
+		nav.dataset.overflowRight = String(right);
+	}, []);
+
 	useEffect(() => {
 		if (panel) {
 			if (!dialog.current?.open) dialog.current?.showModal();
-		} else dialog.current?.close();
-	}, [panel]);
+			requestAnimationFrame(() => {
+				const active = navRef.current?.querySelector<HTMLButtonElement>(
+					'button[aria-pressed="true"]',
+				);
+				active?.scrollIntoView({ inline: "nearest", block: "nearest" });
+				syncOverflowIndicators();
+			});
+		} else {
+			dialog.current?.close();
+		}
+	}, [panel, syncOverflowIndicators]);
+
+	useEffect(() => {
+		const nav = navRef.current;
+		if (!nav || !panel) return;
+		const observer = new ResizeObserver(syncOverflowIndicators);
+		observer.observe(nav);
+		syncOverflowIndicators();
+		return () => observer.disconnect();
+	}, [panel, syncOverflowIndicators]);
+
 	const title =
 		panel === "send"
 			? "Send output"
 			: (panels.find((p) => p.id === panel)?.label ?? "Workspace");
+
 	return (
+		// biome-ignore lint/a11y/useKeyWithClickEvents: Backdrop click dismissal pairs with native dialog Escape handling.
 		<dialog
 			ref={dialog}
-			className="workspace-dialog"
+			className="workspace-dialog uutil-scrollbar"
 			aria-labelledby="workspace-dialog-title"
 			onCancel={() => ws.setPanel(null)}
 			onClose={() => ws.setPanel(null)}
+			onClick={(event) => {
+				if (event.target === dialog.current) ws.setPanel(null);
+			}}
 		>
 			<div className="ws-dialog-header flex items-center justify-between gap-4 border-b p-5 [border-color:var(--app-border)]">
 				<div>
-					<p className="mb-1 text-xs text-[color:var(--app-fg-soft)]">
+					<p className="mb-1 text-xs font-medium text-[color:var(--app-fg-soft)]">
 						Local workspace
 					</p>
-					<h2 id="workspace-dialog-title" className="text-xl font-semibold">
+					<h2
+						id="workspace-dialog-title"
+						className="text-xl font-semibold tracking-tight"
+					>
 						{title}
 					</h2>
 				</div>
@@ -521,18 +592,24 @@ function WorkspaceDialog() {
 			</div>
 			<div className="ws-dialog-body">
 				<nav
-					className="workspace-sections flex gap-2"
+					ref={navRef}
+					onScroll={syncOverflowIndicators}
+					className="workspace-sections flex gap-1.5"
 					aria-label="Workspace sections"
 				>
-					{panels.map((p) => (
-						<Button
-							key={p.id}
-							aria-pressed={p.id === panel}
-							onClick={() => ws.setPanel(p.id)}
-						>
-							{p.label}
-						</Button>
-					))}
+					{panels.map((p) => {
+						const Icon = p.icon;
+						return (
+							<Button
+								key={p.id}
+								aria-pressed={p.id === panel}
+								onClick={() => ws.setPanel(p.id)}
+							>
+								<Icon className="size-3.5 shrink-0" aria-hidden="true" />
+								{p.label}
+							</Button>
+						);
+					})}
 				</nav>
 				<div className="mt-6" key={panel}>
 					{panel === "library" && <LibraryPanel />}
@@ -550,9 +627,14 @@ function WorkspaceDialog() {
 		</dialog>
 	);
 }
+
 function ToolChooser({ onChoose }: { onChoose: (toolId: string) => void }) {
 	const ws = useWorkspace();
 	const [query, setQuery] = useState("");
+	const matches = useMemo(
+		() => filterAndRankTools(ws.config.current.tools, query),
+		[ws.config.current.tools, query],
+	);
 	return (
 		<div className="space-y-3">
 			<input
@@ -561,29 +643,41 @@ function ToolChooser({ onChoose }: { onChoose: (toolId: string) => void }) {
 				placeholder="Find a tool…"
 				value={query}
 				onChange={(e) => setQuery(e.target.value)}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" && matches[0]) {
+						e.preventDefault();
+						onChoose(matches[0].id);
+					}
+				}}
 			/>
-			<div className="max-h-64 space-y-2 overflow-auto">
-				{ws.config.current.tools
-					.filter((t) =>
-						`${t.name} ${t.summary}`
-							.toLowerCase()
-							.includes(query.toLowerCase()),
-					)
-					.map((t) => (
-						<button
-							type="button"
-							key={t.id}
-							className="ws-list-item"
-							onClick={() => onChoose(t.id)}
-						>
-							<span>{t.name}</span>
-							<ArrowRight className="size-4 shrink-0" />
-						</button>
-					))}
+			<div className="uutil-scrollbar max-h-64 space-y-2 overflow-auto pr-0.5">
+				{matches.map((t) => (
+					<button
+						type="button"
+						key={t.id}
+						className="ws-list-item"
+						onClick={() => onChoose(t.id)}
+					>
+						<span className="min-w-0">
+							<span className="block truncate font-medium">{t.name}</span>
+							<span
+								aria-hidden="true"
+								className="block truncate text-xs text-[color:var(--app-fg-soft)]"
+							>
+								{t.category} · {t.summary}
+							</span>
+						</span>
+						<ArrowRight className="size-4 shrink-0 text-[color:var(--app-fg-soft)]" />
+					</button>
+				))}
+				{matches.length === 0 ? (
+					<Note>No destination tools match "{query}".</Note>
+				) : null}
 			</div>
 		</div>
 	);
 }
+
 function LibraryPanel() {
 	const ws = useWorkspace();
 	const { tools } = ws.config.current;
@@ -591,9 +685,16 @@ function LibraryPanel() {
 		<div className="space-y-6">
 			{(["favorites", "recent"] as const).map((group) => (
 				<section key={group}>
-					<h3 className="mb-3 font-semibold">
-						{group === "favorites" ? "Favorites" : "Recently opened"}
-					</h3>
+					<div className="mb-3 flex items-center justify-between gap-2">
+						<h3 className="font-semibold">
+							{group === "favorites" ? "Favorites" : "Recently opened"}
+						</h3>
+						{ws.state[group].length > 0 ? (
+							<span className="font-mono text-xs tabular-nums text-[color:var(--app-fg-soft)]">
+								{ws.state[group].length}
+							</span>
+						) : null}
+					</div>
 					{!ws.state[group].length && (
 						<Note>
 							{group === "favorites"
@@ -605,21 +706,37 @@ function LibraryPanel() {
 						{ws.state[group].map((id) => {
 							const tool = tools.find((t) => t.id === id);
 							return tool ? (
-								<div className="flex gap-2" key={id}>
-									<Button
+								<div className="ws-list-row" key={id}>
+									<button
+										type="button"
+										className="ws-list-item"
 										onClick={() => {
 											ws.setPanel(null);
 											ws.config.current.navigate(id);
 										}}
 									>
-										{tool.name}
-									</Button>
+										<span className="min-w-0">
+											<span className="block truncate font-medium">
+												{tool.name}
+											</span>
+											<span
+												aria-hidden="true"
+												className="block truncate text-xs text-[color:var(--app-fg-soft)]"
+											>
+												{tool.category} · {tool.summary}
+											</span>
+										</span>
+										<ArrowRight
+											className="size-4 shrink-0 text-[color:var(--app-fg-soft)]"
+											aria-hidden="true"
+										/>
+									</button>
 									{group === "favorites" && (
 										<Button
 											aria-label={`Unfavorite ${tool.name}`}
 											onClick={() => ws.favorite(id)}
 										>
-											<X className="size-4" />
+											<X className="size-4" aria-hidden="true" />
 										</Button>
 									)}
 								</div>
@@ -628,60 +745,93 @@ function LibraryPanel() {
 					</div>
 				</section>
 			))}
-			<Button onClick={() => ws.update((s) => ({ ...s, recent: [] }))}>
+			<Button
+				variant="danger"
+				disabled={ws.state.recent.length === 0}
+				onClick={() => ws.update((s) => ({ ...s, recent: [] }))}
+			>
 				Clear recent tools
 			</Button>
 		</div>
 	);
 }
+
 function PastePanel() {
 	const ws = useWorkspace();
 	const [text, setText] = useState("");
-	const [suggestions, setSuggestions] = useState<
-		ReturnType<typeof detectTools>
-	>([]);
+	const firstSuggestionRef = useRef<HTMLButtonElement>(null);
+	const suggestions = useMemo(() => detectTools(text), [text]);
+
+	const pasteFromClipboard = async () => {
+		try {
+			const clip = await navigator.clipboard.readText();
+			if (!clip) {
+				toast.info("Clipboard is empty.");
+				return;
+			}
+			setText(clip.slice(0, 100_000));
+		} catch {
+			toast.error("Clipboard read unavailable. Paste directly into the box.");
+		}
+	};
+
 	return (
 		<div className="space-y-4">
 			<Note>
-				Paste anything to find a matching tool. Detection runs locally and never
-				executes the input.
+				Paste anything to find a matching tool. Detection runs locally as you
+				paste and never executes the input.
 			</Note>
 			<textarea
 				className="ws-input font-mono"
 				rows={7}
 				maxLength={100_000}
 				aria-label="Smart paste input"
+				placeholder="Paste JSON, JWT, URL, Unix timestamp, Base64, or PEM certificate…"
 				value={text}
-				onChange={(e) => {
-					setText(e.target.value);
-					setSuggestions([]);
-				}}
+				onChange={(e) => setText(e.target.value)}
 			/>
-			<Button
-				disabled={!text.trim()}
-				onClick={() => setSuggestions(detectTools(text))}
-			>
-				Suggest tools
-			</Button>
-			{suggestions.map((s) => (
-				<button
-					className="ws-list-item"
-					type="button"
-					key={s.id}
-					onClick={() => ws.load(s.id, { text })}
+			<div className="flex flex-wrap gap-2">
+				<Button
+					variant="primary"
+					disabled={!text.trim()}
+					onClick={() => firstSuggestionRef.current?.focus()}
 				>
-					<span>
-						{ws.config.current.tools.find((t) => t.id === s.id)?.name}
-						<small className="block text-[color:var(--app-fg-muted)]">
-							{s.reason}
-						</small>
-					</span>
-					<ArrowRight className="size-4" />
-				</button>
-			))}
+					Suggest tools
+				</Button>
+				<Button onClick={() => void pasteFromClipboard()}>
+					<Clipboard className="size-4" aria-hidden="true" />
+					Paste from clipboard
+				</Button>
+				{text ? <Button onClick={() => setText("")}>Clear</Button> : null}
+			</div>
+			{suggestions.length > 0 ? (
+				<div className="space-y-2">
+					{suggestions.map((s, index) => (
+						<button
+							ref={index === 0 ? firstSuggestionRef : undefined}
+							className="ws-list-item"
+							type="button"
+							key={s.id}
+							onClick={() => ws.load(s.id, { text })}
+						>
+							<span className="min-w-0">
+								{ws.config.current.tools.find((t) => t.id === s.id)?.name}
+								<small className="block text-[color:var(--app-fg-muted)]">
+									{s.reason}
+								</small>
+							</span>
+							<ArrowRight
+								className="size-4 shrink-0 text-[color:var(--app-fg-soft)]"
+								aria-hidden="true"
+							/>
+						</button>
+					))}
+				</div>
+			) : null}
 		</div>
 	);
 }
+
 function SendPanel() {
 	const ws = useWorkspace();
 	return (
@@ -697,6 +847,7 @@ function SendPanel() {
 		</div>
 	);
 }
+
 function PresetsPanel() {
 	const ws = useWorkspace();
 	const [name, setName] = useState("");
@@ -742,7 +893,9 @@ function PresetsPanel() {
 				checked={include}
 				onChange={setInclude}
 			/>
-			<Button onClick={save}>Save preset</Button>
+			<Button variant="primary" onClick={save}>
+				Save preset
+			</Button>
 			<RunList
 				runs={ws.state.presets.filter((p) => p.toolId === toolId)}
 				onDelete={(id) =>
@@ -755,6 +908,7 @@ function PresetsPanel() {
 		</div>
 	);
 }
+
 function RunList({
 	runs,
 	onDelete,
@@ -768,7 +922,7 @@ function RunList({
 			{!runs.length && <Note>No saved items yet.</Note>}
 			{runs.map((run) => (
 				<div
-					className="rounded-lg border p-3 [border-color:var(--app-border)]"
+					className="rounded-xl border bg-[color:var(--app-surface-alt)] p-3.5 [border-color:var(--app-border)]"
 					key={run.id}
 				>
 					<p className="font-medium break-words">{run.name}</p>
@@ -787,13 +941,16 @@ function RunList({
 						>
 							Export
 						</Button>
-						<Button onClick={() => onDelete(run.id)}>Delete</Button>
+						<Button variant="danger" onClick={() => onDelete(run.id)}>
+							Delete
+						</Button>
 					</div>
 				</div>
 			))}
 		</div>
 	);
 }
+
 function ScratchpadsPanel() {
 	const ws = useWorkspace();
 	const [id, setId] = useState<string | null>(null);
@@ -823,6 +980,7 @@ function ScratchpadsPanel() {
 			/>
 			<div className="flex flex-wrap gap-2">
 				<Button
+					variant="primary"
 					disabled={!name.trim() || !text}
 					onClick={() => {
 						const key = id ?? crypto.randomUUID();
@@ -864,9 +1022,9 @@ function ScratchpadsPanel() {
 			{ws.state.scratchpads.map((p) => (
 				<div
 					key={p.id}
-					className="flex flex-wrap items-center gap-2 rounded-lg border p-3 [border-color:var(--app-border)]"
+					className="flex flex-wrap items-center gap-2 rounded-xl border bg-[color:var(--app-surface-alt)] p-3.5 [border-color:var(--app-border)]"
 				>
-					<span className="mr-auto break-words">{p.name}</span>
+					<span className="mr-auto font-medium break-words">{p.name}</span>
 					<Button
 						onClick={() => {
 							setId(p.id);
@@ -877,6 +1035,7 @@ function ScratchpadsPanel() {
 						Edit
 					</Button>
 					<Button
+						variant="danger"
 						aria-label={`Delete scratchpad ${p.name}`}
 						onClick={() => {
 							ws.update((s) => ({
@@ -897,6 +1056,7 @@ function ScratchpadsPanel() {
 		</div>
 	);
 }
+
 function HistoryPanel() {
 	const ws = useWorkspace();
 	return (
@@ -914,23 +1074,32 @@ function HistoryPanel() {
 					ws.update((s) => ({ ...s, historyEnabled: value }))
 				}
 			/>
-			<label className="block text-sm">
+			<label className="block text-sm font-medium text-[color:var(--app-fg-muted)]">
 				Retention
-				<select
-					className="ws-input mt-2"
-					value={ws.state.retention}
-					onChange={(e) =>
-						ws.update((s) => ({ ...s, retention: Number(e.target.value) }))
-					}
-				>
-					{[1, 7, 30].map((n) => (
-						<option key={n} value={n}>
-							{n} {n === 1 ? "day" : "days"}
-						</option>
-					))}
-				</select>
+				<div className="ws-select-wrap relative mt-2">
+					<select
+						className="ws-input"
+						value={ws.state.retention}
+						onChange={(e) =>
+							ws.update((s) => ({ ...s, retention: Number(e.target.value) }))
+						}
+					>
+						{[1, 7, 30].map((n) => (
+							<option key={n} value={n}>
+								{n} {n === 1 ? "day" : "days"}
+							</option>
+						))}
+					</select>
+					<ChevronDown
+						aria-hidden="true"
+						className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-soft)]"
+					/>
+				</div>
 			</label>
-			<Button onClick={() => ws.update((s) => ({ ...s, history: [] }))}>
+			<Button
+				variant="danger"
+				onClick={() => ws.update((s) => ({ ...s, history: [] }))}
+			>
 				Clear all history
 			</Button>
 			<RunList
@@ -945,9 +1114,11 @@ function HistoryPanel() {
 		</div>
 	);
 }
+
 function FilesPanel() {
 	const [operation, setOperation] = useState<string>(FILE_OPERATIONS[0]);
 	const [busy, setBusy] = useState(false);
+	const [dragOver, setDragOver] = useState(false);
 	const [results, setResults] = useState<
 		{ id: string; name: string; text?: string; error?: string }[]
 	>([]);
@@ -988,30 +1159,44 @@ function FilesPanel() {
 				Process up to 10 UTF-8 text files, 1 MB each. Files never leave your
 				browser. Each file gets its own result or error.
 			</Note>
-			<select
-				className="ws-input"
-				aria-label="Batch operation"
-				value={operation}
-				onChange={(e) => {
-					setOperation(e.target.value);
-					setResults([]);
-				}}
-				disabled={busy}
-			>
-				{FILE_OPERATIONS.map((value) => (
-					<option key={value}>{value}</option>
-				))}
-			</select>
+			<div className="ws-select-wrap relative">
+				<select
+					className="ws-input"
+					aria-label="Batch operation"
+					value={operation}
+					onChange={(e) => {
+						setOperation(e.target.value);
+						setResults([]);
+					}}
+					disabled={busy}
+				>
+					{FILE_OPERATIONS.map((value) => (
+						<option key={value}>{value}</option>
+					))}
+				</select>
+				<ChevronDown
+					aria-hidden="true"
+					className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-soft)]"
+				/>
+			</div>
 			<fieldset
-				className="rounded-xl border-2 border-dashed p-6 text-center [border-color:var(--app-border)]"
+				data-drag-over={dragOver || undefined}
+				className="ws-dropzone rounded-xl border-2 border-dashed p-6 text-center transition-colors [border-color:var(--app-border)]"
 				aria-label="File drop area"
-				onDragOver={(e) => e.preventDefault()}
+				onDragOver={(e) => {
+					e.preventDefault();
+					setDragOver(true);
+				}}
+				onDragLeave={() => setDragOver(false)}
 				onDrop={(e) => {
 					e.preventDefault();
+					setDragOver(false);
 					void process(e.dataTransfer.files);
 				}}
 			>
-				<p className="mb-3 text-sm">Drop files here</p>
+				<p className="mb-3 text-sm text-[color:var(--app-fg-muted)]">
+					Drop files here
+				</p>
 				<input
 					ref={input}
 					className="hidden"
@@ -1023,12 +1208,17 @@ function FilesPanel() {
 						e.target.value = "";
 					}}
 				/>
-				<Button disabled={busy} onClick={() => input.current?.click()}>
+				<Button
+					variant="primary"
+					disabled={busy}
+					onClick={() => input.current?.click()}
+				>
 					{busy ? "Processing…" : "Choose files"}
 				</Button>
 			</fieldset>
 			{results.length > 0 && (
 				<Button
+					variant="primary"
 					onClick={() =>
 						downloadText(
 							JSON.stringify(results, null, 2),
@@ -1041,7 +1231,7 @@ function FilesPanel() {
 			)}
 			{results.map((r) => (
 				<div
-					className="rounded-lg border p-3 [border-color:var(--app-border)]"
+					className="rounded-xl border bg-[color:var(--app-surface-alt)] p-3.5 [border-color:var(--app-border)]"
 					key={r.id}
 				>
 					<p className="mb-2 break-words font-medium">{r.name}</p>
@@ -1051,7 +1241,7 @@ function FilesPanel() {
 						</p>
 					) : (
 						<>
-							<pre className="mb-3 max-h-32 overflow-auto whitespace-pre-wrap break-words text-xs">
+							<pre className="uutil-scrollbar mb-3 max-h-32 overflow-auto whitespace-pre-wrap break-words rounded-md bg-[color:var(--app-panel-bg)] p-2.5 text-xs">
 								{r.text?.slice(0, 1000)}
 								{(r.text?.length ?? 0) > 1000 ? "\n… preview truncated" : ""}
 							</pre>
@@ -1069,6 +1259,7 @@ function FilesPanel() {
 		</div>
 	);
 }
+
 function SharePanel() {
 	const ws = useWorkspace();
 	const [include, setInclude] = useState(false);
@@ -1089,6 +1280,7 @@ function SharePanel() {
 				}}
 			/>
 			<Button
+				variant="primary"
 				onClick={() => {
 					try {
 						setUrl(
@@ -1111,6 +1303,7 @@ function SharePanel() {
 						value={url}
 					/>
 					<Button
+						variant="primary"
 						onClick={async () => {
 							try {
 								await navigator.clipboard.writeText(url);
@@ -1129,6 +1322,7 @@ function SharePanel() {
 		</div>
 	);
 }
+
 function HelpPanel() {
 	const ws = useWorkspace();
 	const tool = ws.config.current.tools.find(
@@ -1145,12 +1339,14 @@ function HelpPanel() {
 					use your chosen local file.
 				</li>
 				<li>
-					Choose options, then select an action. Tools with live results update
-					as you type.
+					Choose options, then select an action or press{" "}
+					<kbd className="uutil-kbd">⌘/Ctrl ↵</kbd>. Tools with live results
+					update as you type.
 				</li>
 				<li>Copy, download, or send text results to another tool.</li>
 			</ol>
 			<Button
+				variant="primary"
 				onClick={() => {
 					const defaults = [...ws.fields.current.values()].map((f) => ({
 						...f.initial,
@@ -1175,12 +1371,13 @@ function HelpPanel() {
 				Secret-bearing inputs should not be saved or shared.
 			</Note>
 			<p className="text-xs text-[color:var(--app-fg-soft)]">
-				Keyboard: ⌘/Ctrl K opens tool search. Escape closes dialogs. Tab moves
-				between controls.
+				Keyboard: ⌘/Ctrl K opens tool search. ⌘/Ctrl Enter runs the active tool.
+				Escape closes dialogs. Tab moves between controls.
 			</p>
 		</div>
 	);
 }
+
 function OfflinePanel() {
 	const { offline } = useWorkspace();
 	return (
@@ -1191,13 +1388,14 @@ function OfflinePanel() {
 				storage can be cleared or evicted by your device.
 			</Note>
 			<p
-				className="rounded-lg border p-4 text-sm [border-color:var(--app-border)]"
+				className="rounded-xl border bg-[color:var(--app-surface-alt)] p-4 text-sm [border-color:var(--app-border)]"
 				role="status"
 			>
 				{offline.online ? "Online" : "Offline"} · {offline.status}
 			</p>
 			<div className="flex flex-wrap gap-2">
 				<Button
+					variant="primary"
 					disabled={offline.busy || !offline.online}
 					onClick={() => void offline.enable()}
 				>
@@ -1223,10 +1421,16 @@ function OfflinePanel() {
 					</Button>
 				)}
 				{offline.updateReady && (
-					<Button onClick={offline.update}>Update app and reload</Button>
+					<Button variant="primary" onClick={offline.update}>
+						Update app and reload
+					</Button>
 				)}
 				{offline.enabled && (
-					<Button disabled={offline.busy} onClick={() => void offline.remove()}>
+					<Button
+						variant="danger"
+						disabled={offline.busy}
+						onClick={() => void offline.remove()}
+					>
 						Remove offline files
 					</Button>
 				)}

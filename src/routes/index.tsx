@@ -42,8 +42,10 @@ import {
 	Sparkles,
 	Star,
 	Sun,
+	Terminal,
 	Type,
 	Wand2,
+	X,
 } from "lucide-react";
 import { marked } from "marked";
 import Papa from "papaparse";
@@ -200,6 +202,7 @@ import {
 	UNIX_IO_PANEL_IDS,
 } from "#/lib/panel-layout";
 import { PRODUCTIVITY_TOOLS } from "#/lib/productivity-tools";
+import { filterAndRankTools, formatTextStats } from "#/lib/tool-search";
 import {
 	analyzePassword,
 	analyzeReadability,
@@ -272,13 +275,6 @@ type ToolDefinition = {
 	category: ToolCategory;
 	summary: string;
 	component: () => React.ReactElement;
-};
-
-type ToolTooltipState = {
-	name: string;
-	summary: string;
-	x: number;
-	y: number;
 };
 
 type AppCssVariables = React.CSSProperties &
@@ -1442,13 +1438,6 @@ const TOOL_REGISTRY: ToolDefinition[] = [
 const TOOL_IDS = new Set(TOOL_REGISTRY.map((tool) => tool.id));
 const DEFAULT_TOOL_ID = TOOL_REGISTRY[0]?.id ?? "unix-time-converter";
 
-type ShikiThemeModel = {
-	type?: "light" | "dark";
-	colors?: Record<string, string | undefined>;
-	name?: string;
-	displayName?: string;
-};
-
 const DARK_THEME_ID = "github-dark";
 const LIGHT_THEME_ID = "github-light";
 const DEFAULT_THEME_ID = DARK_THEME_ID;
@@ -1722,461 +1711,6 @@ function applyThemeVarsToDocument(vars: AppCssVariables) {
 	}
 }
 
-function withAlpha(colorValue: string, alpha: number, fallback: string) {
-	try {
-		return Color(colorValue).alpha(alpha).rgb().string();
-	} catch {
-		return fallback;
-	}
-}
-
-function flattenColorOn(
-	colorValue: string,
-	backgroundValue: string,
-	fallback: string,
-) {
-	try {
-		const foregroundColor = Color(colorValue).rgb();
-		const backgroundColor = Color(backgroundValue).rgb();
-		const alpha = Math.max(0, Math.min(1, foregroundColor.alpha()));
-		if (alpha >= 0.999) {
-			return foregroundColor.string();
-		}
-
-		const [fr = 0, fg = 0, fb = 0] = foregroundColor.array();
-		const [br = 0, bg = 0, bb = 0] = backgroundColor.array();
-
-		return Color.rgb(
-			Math.round(fr * alpha + br * (1 - alpha)),
-			Math.round(fg * alpha + bg * (1 - alpha)),
-			Math.round(fb * alpha + bb * (1 - alpha)),
-		).string();
-	} catch {
-		return fallback;
-	}
-}
-
-function colorLuminosity(colorValue: string, fallback: number) {
-	try {
-		return Color(colorValue).luminosity();
-	} catch {
-		return fallback;
-	}
-}
-
-function contrastRatio(
-	foreground: string,
-	background: string,
-	fallback: number,
-) {
-	try {
-		const fgLum = Color(foreground).luminosity();
-		const bgLum = Color(background).luminosity();
-		const lighter = Math.max(fgLum, bgLum);
-		const darker = Math.min(fgLum, bgLum);
-		return (lighter + 0.05) / (darker + 0.05);
-	} catch {
-		return fallback;
-	}
-}
-
-function enforceContrast(
-	foreground: string,
-	background: string,
-	minimumContrast: number,
-	fallback: string,
-) {
-	return contrastRatio(foreground, background, minimumContrast) >=
-		minimumContrast
-		? foreground
-		: fallback;
-}
-
-function pickThemeColor(
-	colors: Record<string, string | undefined> | undefined,
-	candidates: string[],
-	fallback: string,
-) {
-	for (const candidate of candidates) {
-		const color = colors?.[candidate];
-		if (typeof color === "string" && color.trim().length > 0) {
-			return color;
-		}
-	}
-	return fallback;
-}
-
-function resolveThemeVariables(theme: ShikiThemeModel): AppCssVariables {
-	const mode = theme.type === "light" ? "light" : "dark";
-	const colors = theme.colors ?? {};
-	const lightMutedFallback = "#334155";
-	const lightSoftFallback = "#475569";
-
-	const backgroundCandidate = pickThemeColor(
-		colors,
-		["editor.background", "activityBar.background", "sideBar.background"],
-		mode === "light" ? "#f8fafc" : "#080b10",
-	);
-	const backgroundBase = flattenColorOn(
-		backgroundCandidate,
-		mode === "light" ? "#ffffff" : "#080b10",
-		mode === "light" ? "#f8fafc" : "#080b10",
-	);
-	const backgroundLuminosity = colorLuminosity(
-		backgroundBase,
-		mode === "light" ? 0.96 : 0.04,
-	);
-	const background =
-		mode === "light" && backgroundLuminosity < 0.52
-			? "#f8fafc"
-			: mode === "dark" && backgroundLuminosity > 0.5
-				? "#080b10"
-				: backgroundBase;
-	const foregroundCandidate = pickThemeColor(
-		colors,
-		["editor.foreground", "foreground"],
-		mode === "light" ? "#111827" : "#e4e8ee",
-	);
-	const foregroundSource = flattenColorOn(
-		foregroundCandidate,
-		background,
-		mode === "light" ? "#111827" : "#e4e8ee",
-	);
-	const foreground = enforceContrast(
-		foregroundSource,
-		background,
-		mode === "light" ? 6.4 : 5.8,
-		mode === "light" ? "#0f172a" : "#e7edf6",
-	);
-	const panelCandidate = pickThemeColor(
-		colors,
-		["panel.background", "editorWidget.background", "sideBar.background"],
-		withAlpha(
-			background,
-			mode === "light" ? 0.94 : 0.88,
-			mode === "light" ? "rgba(255,255,255,0.94)" : "rgba(16,23,34,0.88)",
-		),
-	);
-	const panelCandidateFlat = flattenColorOn(
-		panelCandidate,
-		background,
-		mode === "light" ? "rgb(248,250,252)" : "rgb(17,23,31)",
-	);
-	const panel =
-		mode === "light" && colorLuminosity(panelCandidateFlat, 0.9) < 0.52
-			? flattenColorOn(
-					withAlpha(background, 0.9, "rgba(248,250,252,0.9)"),
-					background,
-					"rgb(248,250,252)",
-				)
-			: mode === "dark" && colorLuminosity(panelCandidateFlat, 0.08) > 0.56
-				? flattenColorOn(
-						withAlpha(background, 0.88, "rgba(16,23,34,0.88)"),
-						background,
-						"rgb(16,23,34)",
-					)
-				: panelCandidateFlat;
-	const surfaceCandidate = pickThemeColor(
-		colors,
-		[
-			"editorGroupHeader.tabsBackground",
-			"editorGroupHeader.noTabsBackground",
-			"tab.activeBackground",
-		],
-		withAlpha(
-			background,
-			mode === "light" ? 0.99 : 0.95,
-			mode === "light" ? "rgba(255,255,255,0.99)" : "rgba(20,30,44,0.95)",
-		),
-	);
-	const surfaceCandidateFlat = flattenColorOn(
-		surfaceCandidate,
-		background,
-		mode === "light" ? "#ffffff" : "rgb(21,28,38)",
-	);
-	const surface =
-		mode === "light" && colorLuminosity(surfaceCandidateFlat, 0.95) < 0.55
-			? flattenColorOn(
-					withAlpha(background, 0.96, "rgba(255,255,255,0.96)"),
-					background,
-					"#ffffff",
-				)
-			: mode === "dark" && colorLuminosity(surfaceCandidateFlat, 0.1) > 0.58
-				? flattenColorOn(
-						withAlpha(background, 0.95, "rgba(20,30,44,0.95)"),
-						background,
-						"rgb(20,30,44)",
-					)
-				: surfaceCandidateFlat;
-	const surfaceAltCandidate = pickThemeColor(
-		colors,
-		["editorWidget.background", "input.background", "dropdown.background"],
-		withAlpha(
-			background,
-			mode === "light" ? 1 : 0.98,
-			mode === "light" ? "rgba(247,251,255,1)" : "rgba(11,18,30,0.98)",
-		),
-	);
-	const surfaceAltCandidateFlat = flattenColorOn(
-		surfaceAltCandidate,
-		background,
-		mode === "light" ? "#ffffff" : "rgb(10,15,24)",
-	);
-	const surfaceAlt =
-		mode === "light" && colorLuminosity(surfaceAltCandidateFlat, 0.98) < 0.58
-			? flattenColorOn(
-					withAlpha(background, 1, "rgba(255,255,255,1)"),
-					background,
-					"#ffffff",
-				)
-			: mode === "dark" && colorLuminosity(surfaceAltCandidateFlat, 0.08) > 0.6
-				? flattenColorOn(
-						withAlpha(background, 0.98, "rgba(11,18,30,0.98)"),
-						background,
-						"rgb(11,18,30)",
-					)
-				: surfaceAltCandidateFlat;
-	const border = pickThemeColor(
-		colors,
-		["panel.border", "sideBar.border", "editorGroup.border"],
-		mode === "light" ? "rgba(71,85,105,0.52)" : "rgba(123,143,170,0.5)",
-	);
-	const borderStrong = pickThemeColor(
-		colors,
-		["contrastBorder", "focusBorder", "input.border", "commandCenter.border"],
-		mode === "light" ? "rgba(71,85,105,0.68)" : "rgba(140,161,188,0.68)",
-	);
-	const accent = pickThemeColor(
-		colors,
-		["focusBorder", "textLink.foreground", "button.background"],
-		mode === "light" ? "#2563eb" : "#5aa8ff",
-	);
-	const accentStrong = pickThemeColor(
-		colors,
-		[
-			"button.foreground",
-			"textLink.activeForeground",
-			"editorCursor.foreground",
-		],
-		mode === "light" ? "#1d4ed8" : "#8ec3ff",
-	);
-	const darkMutedFallback = flattenColorOn(
-		withAlpha(foreground, 0.8, "rgba(197,210,228,0.8)"),
-		background,
-		"#c5d2e4",
-	);
-	const muted = pickThemeColor(
-		colors,
-		["descriptionForeground", "disabledForeground", "sideBar.foreground"],
-		mode === "light" ? lightMutedFallback : darkMutedFallback,
-	);
-	const darkSoftFallback = flattenColorOn(
-		withAlpha(foreground, 0.68, "rgba(158,176,199,0.68)"),
-		background,
-		"#9eb0c7",
-	);
-	const soft = pickThemeColor(
-		colors,
-		[
-			"widget.shadow",
-			"panelTitle.inactiveForeground",
-			"tab.inactiveForeground",
-		],
-		mode === "light" ? lightSoftFallback : darkSoftFallback,
-	);
-	const success = pickThemeColor(
-		colors,
-		["terminal.ansiGreen", "gitDecoration.addedResourceForeground"],
-		mode === "light" ? "#047857" : "#71e4b6",
-	);
-	const danger = pickThemeColor(
-		colors,
-		["terminal.ansiRed", "gitDecoration.deletedResourceForeground"],
-		mode === "light" ? "#dc2626" : "#ff8b9f",
-	);
-	const sidebarBase = pickThemeColor(
-		colors,
-		["sideBar.background"],
-		background,
-	);
-	const sidebarSource =
-		mode === "light" && colorLuminosity(sidebarBase, 0.96) < 0.52
-			? background
-			: sidebarBase;
-	const sidebarBackground = flattenColorOn(
-		withAlpha(
-			sidebarSource,
-			mode === "light" ? 0.92 : 0.9,
-			mode === "light" ? "rgba(248,250,252,0.92)" : "rgba(11,15,21,0.9)",
-		),
-		background,
-		mode === "light" ? "rgb(248,250,252)" : "rgb(11,15,21)",
-	);
-	const sidebarForeground = enforceContrast(
-		flattenColorOn(
-			pickThemeColor(colors, ["sideBar.foreground", "foreground"], foreground),
-			sidebarBackground,
-			mode === "light" ? "#111827" : "#e4e8ee",
-		),
-		sidebarBackground,
-		4.5,
-		mode === "light" ? "#111827" : "#e4e8ee",
-	);
-	const sidebarMutedFallback =
-		mode === "light"
-			? lightMutedFallback
-			: flattenColorOn(
-					withAlpha(sidebarForeground, 0.82, "rgba(197,210,228,0.82)"),
-					sidebarBackground,
-					"#c5d2e4",
-				);
-	const sidebarMuted = enforceContrast(
-		flattenColorOn(
-			mode === "light"
-				? pickThemeColor(colors, ["descriptionForeground"], lightMutedFallback)
-				: withAlpha(
-						pickThemeColor(
-							colors,
-							["descriptionForeground"],
-							sidebarForeground,
-						),
-						0.82,
-						"rgba(197,210,228,0.82)",
-					),
-			sidebarBackground,
-			sidebarMutedFallback,
-		),
-		sidebarBackground,
-		mode === "light" ? 6.6 : 4.2,
-		sidebarMutedFallback,
-	);
-	const sidebarSoftFallback =
-		mode === "light"
-			? lightSoftFallback
-			: flattenColorOn(
-					withAlpha(sidebarForeground, 0.68, "rgba(158,176,199,0.68)"),
-					sidebarBackground,
-					"#9eb0c7",
-				);
-	const sidebarSoft = enforceContrast(
-		flattenColorOn(
-			mode === "light"
-				? pickThemeColor(
-						colors,
-						["panelTitle.inactiveForeground"],
-						lightSoftFallback,
-					)
-				: withAlpha(
-						pickThemeColor(
-							colors,
-							["panelTitle.inactiveForeground"],
-							sidebarForeground,
-						),
-						0.68,
-						"rgba(158,176,199,0.68)",
-					),
-			sidebarBackground,
-			sidebarSoftFallback,
-		),
-		sidebarBackground,
-		mode === "light" ? 5.8 : 3.8,
-		sidebarSoftFallback,
-	);
-	const mutedReadable = enforceContrast(
-		flattenColorOn(
-			muted,
-			background,
-			mode === "light" ? lightMutedFallback : darkMutedFallback,
-		),
-		background,
-		mode === "light" ? 6.6 : 4.2,
-		mode === "light" ? lightMutedFallback : darkMutedFallback,
-	);
-	const softReadable = enforceContrast(
-		flattenColorOn(
-			soft,
-			background,
-			mode === "light" ? lightSoftFallback : darkSoftFallback,
-		),
-		background,
-		mode === "light" ? 5.8 : 3.8,
-		mode === "light" ? lightSoftFallback : darkSoftFallback,
-	);
-	const borderColor = flattenColorOn(
-		withAlpha(
-			border,
-			mode === "light" ? 0.74 : 0.58,
-			mode === "light" ? "rgba(71,85,105,0.74)" : "rgba(123,143,170,0.58)",
-		),
-		background,
-		mode === "light" ? "rgb(71,85,105)" : "rgb(123,143,170)",
-	);
-	const borderStrongColor = flattenColorOn(
-		withAlpha(
-			borderStrong,
-			mode === "light" ? 0.92 : 0.78,
-			mode === "light" ? "rgba(71,85,105,0.92)" : "rgba(140,161,188,0.78)",
-		),
-		background,
-		mode === "light" ? "rgb(71,85,105)" : "rgb(140,161,188)",
-	);
-
-	return {
-		colorScheme: mode,
-		backgroundColor: background,
-		color: foreground,
-		"--app-bg": background,
-		"--app-sidebar-bg": sidebarBackground,
-		"--app-sidebar-fg": sidebarForeground,
-		"--app-sidebar-fg-muted": sidebarMuted,
-		"--app-sidebar-fg-soft": sidebarSoft,
-		"--app-panel-bg": panel,
-		"--app-surface-bg": surface,
-		"--app-surface-alt": surfaceAlt,
-		"--app-border": borderColor,
-		"--app-border-strong": borderStrongColor,
-		"--app-fg": foreground,
-		"--app-fg-muted": mutedReadable,
-		"--app-fg-soft": softReadable,
-		"--app-accent": accent,
-		"--app-accent-soft": withAlpha(
-			accent,
-			0.2,
-			mode === "light" ? "rgba(37,99,235,0.2)" : "rgba(90,168,255,0.2)",
-		),
-		"--app-accent-strong": accentStrong,
-		"--app-danger": danger,
-		"--app-success": success,
-		"--app-overlay": withAlpha(
-			background,
-			mode === "light" ? 0.6 : 0.64,
-			mode === "light" ? "rgba(226,232,240,0.6)" : "rgba(2,8,18,0.64)",
-		),
-		"--app-shadow": withAlpha(
-			background,
-			mode === "light" ? 0.35 : 0.76,
-			mode === "light" ? "rgba(15,23,42,0.35)" : "rgba(2,8,18,0.76)",
-		),
-		"--app-glow-1": withAlpha(
-			accent,
-			mode === "light" ? 0.17 : 0.23,
-			mode === "light" ? "rgba(37,99,235,0.17)" : "rgba(90,168,255,0.23)",
-		),
-		"--app-glow-2": withAlpha(
-			success,
-			mode === "light" ? 0.14 : 0.15,
-			mode === "light" ? "rgba(4,120,87,0.14)" : "rgba(111,220,179,0.15)",
-		),
-		"--app-ring": withAlpha(
-			accent,
-			0.6,
-			mode === "light" ? "rgba(37,99,235,0.6)" : "rgba(90,168,255,0.6)",
-		),
-	} satisfies AppCssVariables;
-}
-
-void resolveThemeVariables;
-
 type ToolingAppProps = {
 	routedToolId?: string;
 	initialUiPreferences: Awaited<ReturnType<typeof getUiPreferences>>;
@@ -2186,8 +1720,6 @@ export function ToolingApp({
 	routedToolId,
 	initialUiPreferences,
 }: ToolingAppProps) {
-	const TOOL_TOOLTIP_DELAY_MS = 2000;
-	const TOOL_TOOLTIP_INSTANT_WINDOW_MS = 2500;
 	const location = useLocation();
 	const navigate = useNavigate();
 	const [search, setSearch] = useState("");
@@ -2206,11 +1738,10 @@ export function ToolingApp({
 	const [themeId, setThemeId] = useState<string>(initialUiPreferences.themeId);
 	const [themePreferencesLoaded, setThemePreferencesLoaded] = useState(false);
 	const themeVars = useMemo(() => getThemeFallbackVars(themeId), [themeId]);
-	const [toolTooltip, setToolTooltip] = useState<ToolTooltipState | null>(null);
+	const [previewTool, setPreviewTool] = useState<ToolDefinition | null>(null);
 	const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+	const searchInputRef = useRef<HTMLInputElement>(null);
 	const mobileNavigationTimerRef = useRef<number | null>(null);
-	const toolTooltipTimerRef = useRef<number | null>(null);
-	const toolTooltipLastVisibleAtRef = useRef<number>(0);
 	const toolPaneRef = useRef<HTMLElement | null>(null);
 	const lastDomAutoRunKeyRef = useRef<string>("");
 
@@ -2235,19 +1766,15 @@ export function ToolingApp({
 						(id) => TOOL_REGISTRY.find((tool) => tool.id === id) ?? [],
 					)
 				: TOOL_REGISTRY;
-		return tools.filter((tool) => {
+		const scoped = tools.filter((tool) => {
 			if (
 				collection === "favorites" &&
 				!workspaceState.favorites.includes(tool.id)
 			)
 				return false;
-			const matchesCategory =
-				activeCategory === "All" || tool.category === activeCategory;
-			const query =
-				`${tool.name} ${tool.summary} ${tool.category}`.toLowerCase();
-			const matchesSearch = query.includes(search.trim().toLowerCase());
-			return matchesCategory && matchesSearch;
+			return activeCategory === "All" || tool.category === activeCategory;
 		});
+		return filterAndRankTools(scoped, search);
 	}, [
 		activeCategory,
 		search,
@@ -2382,10 +1909,6 @@ export function ToolingApp({
 				window.clearTimeout(mobileNavigationTimerRef.current);
 				mobileNavigationTimerRef.current = null;
 			}
-			if (toolTooltipTimerRef.current !== null) {
-				window.clearTimeout(toolTooltipTimerRef.current);
-				toolTooltipTimerRef.current = null;
-			}
 		};
 	}, []);
 
@@ -2400,8 +1923,28 @@ export function ToolingApp({
 				setSearch("");
 				setActiveCategory("All");
 				setCollection("all");
+				setPreviewTool(null);
 				setMobileSearchRequest((value) => value + 1);
 				setMobileNavOpen(true);
+				return;
+			}
+			if (
+				(event.metaKey || event.ctrlKey) &&
+				event.key === "Enter" &&
+				!event.defaultPrevented &&
+				!document.querySelector("dialog[open]")
+			) {
+				const pane = toolPaneRef.current;
+				const target = event.target as HTMLElement | null;
+				if (!pane || !target || !pane.contains(target)) return;
+				if (target.closest(".local-tool")) return;
+				const primaryAction = pane.querySelector<HTMLButtonElement>(
+					"[data-tool-action]:not(:disabled)",
+				);
+				if (primaryAction) {
+					event.preventDefault();
+					primaryAction.click();
+				}
 			}
 		};
 		window.addEventListener("keydown", onKeyDown);
@@ -2420,74 +1963,6 @@ export function ToolingApp({
 			return nextThemeId;
 		});
 	}, []);
-
-	const clearToolTooltip = () => {
-		if (toolTooltipTimerRef.current !== null) {
-			window.clearTimeout(toolTooltipTimerRef.current);
-			toolTooltipTimerRef.current = null;
-		}
-		setToolTooltip((currentTooltip) => {
-			if (currentTooltip) {
-				toolTooltipLastVisibleAtRef.current = Date.now();
-			}
-			return null;
-		});
-	};
-
-	const scheduleToolTooltip = (
-		event: React.MouseEvent<HTMLElement> | React.FocusEvent<HTMLElement>,
-		tool: ToolDefinition,
-	) => {
-		if (toolTooltipTimerRef.current !== null) {
-			window.clearTimeout(toolTooltipTimerRef.current);
-		}
-
-		const anchorRect = (
-			event.currentTarget as HTMLElement
-		).getBoundingClientRect();
-		const anchorX =
-			"clientX" in event
-				? event.clientX
-				: anchorRect.left + anchorRect.width / 2;
-		const anchorY =
-			"clientY" in event
-				? event.clientY
-				: anchorRect.top + anchorRect.height / 2;
-
-		const maxTooltipWidth = 300;
-		const x = Math.max(
-			10,
-			Math.min(anchorX + 16, window.innerWidth - maxTooltipWidth - 10),
-		);
-		const y = Math.max(10, Math.min(anchorY + 14, window.innerHeight - 70));
-		const shouldShowImmediately =
-			toolTooltip !== null ||
-			Date.now() - toolTooltipLastVisibleAtRef.current <
-				TOOL_TOOLTIP_INSTANT_WINDOW_MS;
-
-		if (shouldShowImmediately) {
-			setToolTooltip({
-				name: tool.name,
-				summary: tool.summary,
-				x,
-				y,
-			});
-			toolTooltipLastVisibleAtRef.current = Date.now();
-			toolTooltipTimerRef.current = null;
-			return;
-		}
-
-		toolTooltipTimerRef.current = window.setTimeout(() => {
-			setToolTooltip({
-				name: tool.name,
-				summary: tool.summary,
-				x,
-				y,
-			});
-			toolTooltipLastVisibleAtRef.current = Date.now();
-			toolTooltipTimerRef.current = null;
-		}, TOOL_TOOLTIP_DELAY_MS);
-	};
 
 	const commitToolSelection = (toolId: string, restoreMenuFocus = false) => {
 		if (toolPaneRef.current) {
@@ -2509,7 +1984,7 @@ export function ToolingApp({
 	};
 
 	const selectTool = (toolId: string) => {
-		clearToolTooltip();
+		setPreviewTool(null);
 
 		if (mobileNavOpen) {
 			setMobileNavOpen(false);
@@ -2531,7 +2006,6 @@ export function ToolingApp({
 	};
 
 	const toggleLibraryFavorite = (toolId: string, button: HTMLButtonElement) => {
-		clearToolTooltip();
 		const removingVisibleRow =
 			collection === "favorites" && workspaceState.favorites.includes(toolId);
 		const row = button.closest(".tool-library-item");
@@ -2555,13 +2029,19 @@ export function ToolingApp({
 			});
 	};
 
+	const isFiltered = Boolean(
+		search.trim() || activeCategory !== "All" || collection !== "all",
+	);
+
 	const sidebarContent = (
 		<div className="tool-library-content flex h-full min-h-0 flex-col px-3 pb-3 pt-0">
 			<div className="mb-4 flex min-h-9 items-center justify-between gap-2 px-2">
 				<span className="tool-library-heading font-semibold">
 					Tool library{" "}
-					<span className="tool-library-heading-count ml-1.5 font-mono text-xs font-normal">
-						{TOOL_REGISTRY.length}
+					<span className="tool-library-heading-count ml-1.5 font-mono text-xs font-normal tabular-nums">
+						{isFiltered
+							? `${filteredTools.length} / ${TOOL_REGISTRY.length}`
+							: TOOL_REGISTRY.length}
 					</span>
 				</span>
 			</div>
@@ -2572,6 +2052,7 @@ export function ToolingApp({
 						className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--app-fg-soft)]"
 					/>
 					<input
+						ref={searchInputRef}
 						type="search"
 						name="tool-search"
 						autoComplete="off"
@@ -2580,8 +2061,21 @@ export function ToolingApp({
 						value={search}
 						onChange={(event) => setSearch(event.target.value)}
 						placeholder={`Search ${TOOL_REGISTRY.length} tools…`}
-						className="control-surface min-h-11 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] py-2.5 pl-10 pr-3 text-sm text-[color:var(--app-fg)] placeholder:text-[color:var(--app-fg-soft)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
+						className="control-surface min-h-11 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] py-2.5 pl-10 pr-10 text-sm text-[color:var(--app-fg)] placeholder:text-[color:var(--app-fg-soft)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)]"
 					/>
+					{search ? (
+						<button
+							type="button"
+							aria-label="Clear search"
+							className="tool-library-search-clear"
+							onClick={() => {
+								setSearch("");
+								searchInputRef.current?.focus({ preventScroll: true });
+							}}
+						>
+							<X className="size-3.5" aria-hidden="true" />
+						</button>
+					) : null}
 				</div>
 				<CustomSelect
 					value={activeCategory}
@@ -2593,30 +2087,45 @@ export function ToolingApp({
 					size="sm"
 				/>
 				<fieldset className="flex gap-1" aria-label="Tool collection">
-					{(["all", "favorites", "recent"] as const).map((value) => (
-						<button
-							key={value}
-							type="button"
-							className="ws-button min-w-0 flex-1 px-2"
-							aria-pressed={collection === value}
-							onClick={() => setCollection(value)}
-						>
-							{value[0].toUpperCase() + value.slice(1)}
-						</button>
-					))}
+					{(["all", "favorites", "recent"] as const).map((value) => {
+						const count =
+							value === "favorites"
+								? workspaceState.favorites.length
+								: value === "recent"
+									? workspaceState.recent.length
+									: 0;
+						return (
+							<button
+								key={value}
+								type="button"
+								className="ws-button min-w-0 flex-1 px-2"
+								aria-pressed={collection === value}
+								onClick={() => setCollection(value)}
+							>
+								{value[0].toUpperCase() + value.slice(1)}
+								{count > 0 ? (
+									<span aria-hidden="true" className="tool-library-count-pill">
+										{count}
+									</span>
+								) : null}
+							</button>
+						);
+					})}
 				</fieldset>
-				{search || activeCategory !== "All" || collection !== "all" ? (
+				{isFiltered ? (
 					<p
-						className="px-1 text-xs text-[color:var(--app-fg-soft)]"
+						className="px-1 text-xs tabular-nums text-[color:var(--app-fg-soft)]"
 						role="status"
 					>
-						{filteredTools.length} matching tools
+						{filteredTools.length}{" "}
+						{filteredTools.length === 1 ? "matching tool" : "matching tools"}
 					</p>
 				) : null}
 			</div>
 			<nav
 				aria-label="Utilities"
 				className="uutil-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
+				onMouseLeave={() => setPreviewTool(null)}
 			>
 				<div className="space-y-0.5">
 					{filteredTools.map((tool) => {
@@ -2632,12 +2141,10 @@ export function ToolingApp({
 									type="button"
 									aria-label={`${tool.name}: ${tool.summary}`}
 									aria-current={isSelected ? "page" : undefined}
-									title={tool.name}
+									title={tool.summary}
 									onClick={() => selectTool(tool.id)}
-									onMouseEnter={(event) => scheduleToolTooltip(event, tool)}
-									onMouseLeave={clearToolTooltip}
-									onFocus={(event) => scheduleToolTooltip(event, tool)}
-									onBlur={clearToolTooltip}
+									onMouseEnter={() => setPreviewTool(tool)}
+									onFocus={() => setPreviewTool(tool)}
 									className={`sidebar-tool flex min-h-11 min-w-0 flex-1 items-center rounded-lg text-left transition-colors gap-3 px-3 py-2 ${isSelected ? "bg-[color:var(--app-accent-soft)] text-[color:var(--app-accent)]" : "text-[color:var(--app-fg-muted)] hover:bg-[color:var(--app-surface-bg)] hover:text-[color:var(--app-fg)]"}`}
 								>
 									<span className="tool-library-icon">
@@ -2647,8 +2154,16 @@ export function ToolingApp({
 										<span className="tool-library-name truncate">
 											{tool.name}
 										</span>
-										<span className="tool-library-category">
-											{tool.category}
+										<span className="tool-library-meta">
+											<span className="tool-library-category">
+												{tool.category}
+											</span>
+											<span aria-hidden="true" className="tool-library-dot">
+												·
+											</span>
+											<span aria-hidden="true" className="tool-library-summary">
+												{tool.summary}
+											</span>
 										</span>
 									</span>
 								</button>
@@ -2690,11 +2205,18 @@ export function ToolingApp({
 				</div>
 			</nav>
 			<div className="tool-library-footer" aria-hidden="true">
-				<span>
-					<kbd>↑ ↓</kbd> to navigate <span className="mx-2">·</span>{" "}
-					<kbd>Enter</kbd> to open
-				</span>
-				<span>
+				{previewTool ? (
+					<span className="truncate text-[color:var(--app-fg-muted)]">
+						{previewTool.summary}
+					</span>
+				) : (
+					<span>
+						<kbd>↑ ↓</kbd> to navigate <span className="mx-2">·</span>{" "}
+						<kbd>Enter</kbd> to open <span className="mx-2">·</span>{" "}
+						<kbd>/</kbd> to search
+					</span>
+				)}
+				<span className="shrink-0">
 					<kbd>Esc</kbd> to close
 				</span>
 			</div>
@@ -2704,14 +2226,19 @@ export function ToolingApp({
 	const toolWorkspace = (
 		<div className="workspace-content w-full">
 			<header className="workspace-intro">
-				<div className="flex min-w-0 items-center gap-2.5">
+				<div className="flex min-w-0 items-center gap-3">
 					<div className="workspace-symbol">
 						<SelectedToolIcon className="size-5" aria-hidden="true" />
 					</div>
 					<div className="min-w-0">
-						<h1 className="font-display text-xl font-semibold leading-tight tracking-[-0.035em] sm:text-2xl">
-							{selectedTool.name}
-						</h1>
+						<div className="flex min-w-0 items-center gap-2.5">
+							<h1 className="font-display truncate text-xl font-semibold leading-tight tracking-[-0.035em] sm:text-2xl">
+								{selectedTool.name}
+							</h1>
+							<span className="workspace-category-badge hidden sm:inline-flex">
+								{selectedTool.category}
+							</span>
+						</div>
 						<p className="workspace-summary">{selectedTool.summary}</p>
 					</div>
 				</div>
@@ -2764,6 +2291,7 @@ export function ToolingApp({
 						setSearch("");
 						setActiveCategory("All");
 						setCollection("all");
+						setPreviewTool(null);
 					}}
 					searchRequest={mobileSearchRequest}
 					menuButtonRef={mobileMenuButtonRef}
@@ -2789,19 +2317,6 @@ export function ToolingApp({
 						},
 					}}
 				/>
-				{toolTooltip ? (
-					<div
-						className="pointer-events-none fixed z-[70] max-w-[280px] rounded-md border [border-color:var(--app-border-strong)] bg-[color:var(--app-panel-bg)] px-2.5 py-2 shadow-[0_16px_36px_var(--app-shadow)]"
-						style={{ left: toolTooltip.x, top: toolTooltip.y }}
-					>
-						<p className="text-xs font-semibold text-[color:var(--app-fg)]">
-							{toolTooltip.name}
-						</p>
-						<p className="mt-0.5 text-[11px] leading-snug text-[color:var(--app-fg-muted)]">
-							{toolTooltip.summary}
-						</p>
-					</div>
-				) : null}
 			</div>
 		</AppThemeContext.Provider>
 	);
@@ -3399,16 +2914,23 @@ function ToolTextarea({
 	rows?: number;
 	className?: string;
 }) {
+	const [dragOver, setDragOver] = useState(false);
 	useToolQueryPrefill(value, onChange);
 	useWorkspaceField(value, (v) => onChange(String(v)), "input", placeholder);
 
 	return (
 		<textarea
 			value={value}
+			data-drag-over={dragOver || undefined}
 			onDragOver={(event) => {
-				if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+				if (event.dataTransfer.types.includes("Files")) {
+					event.preventDefault();
+					setDragOver(true);
+				}
 			}}
+			onDragLeave={() => setDragOver(false)}
 			onDrop={async (event) => {
+				setDragOver(false);
 				if (!event.dataTransfer.files.length) return;
 				event.preventDefault();
 				const file = event.dataTransfer.files[0];
@@ -3437,7 +2959,7 @@ function ToolTextarea({
 			rows={rows}
 			autoComplete="off"
 			spellCheck={false}
-			className={`tool-textarea control-surface w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 py-3.5 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
+			className={`tool-textarea uutil-scrollbar control-surface w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 py-3.5 font-mono text-[13px] leading-6 text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] ${className ?? ""}`}
 		/>
 	);
 }
@@ -3473,7 +2995,7 @@ function ToolTextInput({
 			type={type}
 			value={value}
 			onChange={(event) => onChange(event.target.value)}
-			className={`control-surface min-h-12 w-full rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-4 py-3 text-[16px] text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] sm:text-sm ${className ?? ""}`}
+			className={`control-surface min-h-11 w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3.5 py-2.5 text-[16px] text-[color:var(--app-fg)] transition placeholder:text-[color:var(--app-fg-soft)] focus:border-[color:var(--app-accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--app-ring)] sm:text-sm ${className ?? ""}`}
 		/>
 	);
 }
@@ -3505,10 +3027,8 @@ function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 			className={`output-panel flex min-w-0 max-w-full flex-col overflow-hidden rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] ${shouldFill ? "min-h-[240px] flex-1" : "min-h-28"}`}
 		>
 			<div className="output-toolbar flex min-h-11 flex-wrap items-center justify-between gap-2 border-b [border-color:var(--app-border)] px-3 py-1">
-				<span className="font-mono text-[11px] text-[color:var(--app-fg-soft)]">
-					{value
-						? `${value.length.toLocaleString()} characters`
-						: "Awaiting output"}
+				<span className="font-mono text-[11px] tabular-nums text-[color:var(--app-fg-soft)]">
+					{value ? formatTextStats(value) : "Awaiting output"}
 				</span>
 				<OutputActions value={value} />
 				<button
@@ -3516,10 +3036,13 @@ function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 					onClick={copy}
 					disabled={!value}
 					aria-label={value ? "Copy output" : "No output to copy"}
-					className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-[color:var(--app-fg-muted)] hover:bg-[color:var(--app-surface-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] disabled:cursor-not-allowed disabled:opacity-40"
+					className="inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-[color:var(--app-fg-muted)] transition-colors hover:bg-[color:var(--app-surface-bg)] hover:text-[color:var(--app-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--app-ring)] disabled:cursor-not-allowed disabled:opacity-40"
 				>
 					{copyState === "done" ? (
-						<Check className="size-3.5" aria-hidden="true" />
+						<Check
+							className="size-3.5 text-[color:var(--app-success)]"
+							aria-hidden="true"
+						/>
 					) : (
 						<Copy className="size-3.5" aria-hidden="true" />
 					)}
@@ -3535,15 +3058,16 @@ function OutputBox({ value, fill }: { value: string; fill?: boolean }) {
 					{value}
 				</pre>
 			) : (
-				<div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 text-center text-[color:var(--app-fg-soft)]">
-					<Braces
-						className="size-7 opacity-60"
-						strokeWidth={1.25}
-						aria-hidden="true"
-					/>
-					<p className="text-sm">Your result will appear here</p>
-					<p className="max-w-[240px] text-xs leading-5">
-						Enter your input, then run a tool to see the output.
+				<div className="output-empty-state flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 text-center text-[color:var(--app-fg-soft)]">
+					<span className="output-empty-icon" aria-hidden="true">
+						<Terminal className="size-5" strokeWidth={1.6} />
+					</span>
+					<p className="text-sm font-medium text-[color:var(--app-fg-muted)]">
+						Your result will appear here
+					</p>
+					<p className="max-w-[260px] text-xs leading-5">
+						Enter your input and run an action, or press{" "}
+						<kbd className="uutil-kbd">⌘ / Ctrl ↵</kbd>.
 					</p>
 				</div>
 			)}
@@ -4617,7 +4141,7 @@ function RegexTesterTool() {
 							aria-label="Regular expression pattern"
 							value={pattern}
 							onChange={setPattern}
-							className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
+							className="font-mono"
 						/>
 					</div>
 					<div>
@@ -4626,7 +4150,7 @@ function RegexTesterTool() {
 							aria-label="Regular expression flags"
 							value={flags}
 							onChange={setFlags}
-							className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
+							className="font-mono"
 						/>
 					</div>
 				</div>
@@ -4645,7 +4169,7 @@ function RegexTesterTool() {
 						aria-label="Replacement string"
 						value={replacement}
 						onChange={setReplacement}
-						className="w-full rounded-lg border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] px-3 py-2 font-mono text-sm"
+						className="font-mono"
 					/>
 				</div>
 				<ActionRow>
@@ -7233,10 +6757,10 @@ function MetricTile({
 }) {
 	return (
 		<div className="rounded-xl border [border-color:var(--app-border)] bg-[color:var(--app-surface-alt)] p-3.5">
-			<p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[color:var(--app-fg-soft)]">
+			<p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[color:var(--app-fg-soft)]">
 				{label}
 			</p>
-			<p className="mt-1.5 font-mono text-base font-semibold text-[color:var(--app-accent-strong)]">
+			<p className="mt-1.5 font-mono text-base font-semibold tabular-nums text-[color:var(--app-accent-strong)]">
 				{value}
 			</p>
 		</div>
